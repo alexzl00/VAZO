@@ -1,3 +1,67 @@
 {
-  "hello": "czesc"
+  "taxes-and-deductions-tax-regime": "Reżim podatkowy",
+  "taxes-and-deductions-young-relief": "ulga dla młodych", 
+  "taxes-and-deductions-pit-2": "PIT-2",
+  "taxes-and-deductions-deduction-after-tax": "Odliczenie po podatku",
+  "taxes-and-deductions-info": "Podatki – jak uzupełnić\n\nW tym bloku określasz swój status podatkowy, który wpływa na wysokość zaliczki PIT.\n\n• Ulga dla młodych (PIT-0) – wybierz, jeśli nie ukończyłeś 26 lat. W takim przypadku nie jest pobierany podatek PIT (do limitu ustawowego).\n• Kwota zmniejszająca podatek (PIT-2) – zaznacz tylko wtedy, jeśli złożyłeś u pracodawcy formularz PIT-2. Jeśli nie składałeś PIT-2 – pozostaw tę opcję wyłączoną.\n• Inne ustawienia podatkowe – dotyczą indywidualnych sytuacji i wpływają na sposób naliczania zaliczki PIT.\n\n⚠️ Kalkulator zakłada, że dane są zgodne z dokumentami złożonymi u pracodawcy.",
+
+  "calendar-and-working-time-working-hours": "Norma godzin w miesiącu",
+  "calendar-and-working-time-info": "Kalendarz – czas pracy w miesiącu\nTen blok przedstawia kalendarz danego miesiąca i służy do ustalenia normy czasu pracy.\n\n• Kalkulator automatycznie uwzględnia: dni robocze, weekendy oraz święta ustawowe.\n• Na tej podstawie wyliczana jest norma czasu pracy dla miesiąca.\n\nW większości przypadków nie wymaga ręcznych zmian.",
+
+  "rate-and-bonuses-work-rate-type": "Typ stawki",
+  "rate-monthly": "Miesięczna BRUTTO (Umowa o pracę)",
+  "rate-hourly": "Godzinowa BRUTTO",
+  "rate-contract-of-mandate": "Umowa zlecenia (BRUTTO/h)",
+  "rate-and-bonuses-rate": "Stawka",
+  "rate-and-bonuses-attendance-bonus": "Premia frekwencyjna",
+  "rate-and-bonuses-discretionary-bonus": "Premia uznaniowa",
+  "rate-and-bonuses-other-bonus": "Inna premia",
+  "rate-and-bonuses-info": "Stawka – wynagrodzenie wynikające z umowy\nW tym bloku wybierasz typ umowy oraz wpisujesz wynagrodzenie wynikające bezpośrednio z tej umowy.\n\n• Wybierz rodzaj umowy: Umowa o pracę, Umowa zlecenie lub Stawka godzinowa.\n• Wpisz wynagrodzenie zgodnie z wybranym typem umowy: kwotę miesięczną brutto (przy umowie o pracę) lub stawkę godzinową (jeśli rozliczasz się godzinowo).\n\n Wybrany typ umowy określa sposób dalszych obliczeń w kalkulatorze.",
+
+  "month-picker-name-1": "Styczeń",
+  "month-picker-name-2": "Luty",
+  "month-picker-name-3": "Marzec",
+  "month-picker-name-4": "Kwiecień",
+  "month-picker-name-5": "Maj",
+  "month-picker-name-6": "Czerwiec",
+  "month-picker-name-7": "Lipiec",
+  "month-picker-name-8": "Sierpień",
+  "month-picker-name-9": "Wrzesień",
+  "month-picker-name-10": "Październik",
+  "month-picker-name-11": "Listopad",
+  "month-picker-name-12": "Grudzień",
+  "month-picker-placeholder": "Wybierz miesiąc",
+  "month-picker-label": "Wybierz miesiąc",
+
+  "overtime-and-night-hours-daily-overtime": "Nadgodziny dzienne",
+  "overtime-and-night-hours-weekend-holiday-overtime": "Nadgodziny weekendowe i świąteczne",
+  "overtime-and-night-hours-night-overtime": "Nadgodziny nocne",
+  "overtime-and-night-hours-night-hours": "Godziny nocne",
+  "overtime-and-night-hours-turn-of-day-hours": "Godziny zmianowe",
+  "overtime-and-night-hours-overtime-limit": "Limit nadgodzin",
+  "overtime-and-night-hours-info": "Nadgodziny – praca poza normą czasu pracy\nW tym bloku wpisujesz nadgodziny przepracowane w danym miesiącu.\n\n• Nadgodziny to praca wykonywana poza obowiązującą normą czasu pracy.\n• Mogą obejmować również godziny z przełomu doby pracowniczej.\n Czym jest przełom doby: Przełom doby występuje wtedy, gdy kolejna zmiana rozpoczyna się przed upływem 24 godzin od rozpoczęcia poprzedniej.\n Przykład: Jeśli pracujesz w piątek od 14:00 do 22:00, a w sobotę zaczynasz pracę o 9:00, to część godzin w sobotę stanowi godziny z przełomu doby, które zgodnie z Kodeksem pracy traktowane są jak nadgodziny.\n Wpisuj wyłącznie faktycznie przepracowane i rozliczane nadgodziny.",
+
+  "sick-leave-l4": "Tu dodasz zakresy L4",
+  "sick-leave-info": "Zwolnienie lekarskie (L4) – jak uzupełnić\nW tym bloku wpisujesz okresy zwolnienia lekarskiego (L4) przypadające w danym miesiącu.\n\n• Podaj datę początku i datę końca zwolnienia.\n• Jeśli L4 było podzielone na kilka części, użyj opcji Dodaj okres.\n• Liczba dni L4 obliczana jest automatycznie jako suma dni kalendarzowych.\n Jak liczone jest wynagrodzenie: Kalkulator stosuje uproszczony, ale logicznie poprawny model, zgodny z praktyką oraz zasadami Kodeksu pracy. L4 zmniejsza liczbę dni przepracowanych i odpowiednio wpływa na wynagrodzenie.",
+
+  "vacation-leave-base": "Podstawa urlopu",
+  "vacation-leave": "Tu dodasz zakresy urlopu",
+  "vacation-leave-info": "Urlop – jak uzupełnić\nW tym bloku wpisujesz okresy urlopu wypoczynkowego.\n\n• Podaj datę początku i datę końca urlopu.\n• Jeśli urlop był w kilku częściach, użyj opcji Dodaj okres.\n• Liczba dni urlopu wyliczana jest automatycznie jako dni robocze.\n Jak liczony jest Urlop: Wynagrodzenie urlopowe obliczane jest na podstawie średniej z ostatnich miesięcy zapisanych w Historii, zgodnie z zasadą „jakby pracownik normalnie pracował”.",
+
+  "tabs-taxes-and-deductions": "Podatki i potrącenia",
+  "tabs-calendar-and-working-time": "Kalendarz i norma czasu",
+  "tabs-rate-and-bonuses": "Stawka i premie",
+  "tabs-overtime-and-night-hours": "Nadgodziny i godziny nocne",
+  "tabs-sick-leave": "Zwolnienie lekarskie (L4)",
+  "tabs-vacation": "Urlop",
+
+  "validation-number-min-zero": "Must be >= 0",
+  "validation-number-cannot-exceed-overtime-limit": "Cannot exceed overtime limit",
+  "validation-l4-in-month": "L4 must be within selected month",
+  "validation-leave-in-month": "Leave must be within selected month",
+
+  "year": "Rok",
+  "month": "Miesiąc",
+
+  "calculate": "Oblicz"
 }
