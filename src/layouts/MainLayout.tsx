@@ -4,11 +4,10 @@ import { Outlet } from 'react-router-dom';
 
 const MainLayout = () => {
   return (
-    <Box sx={{ minHeight: '100vh' }}>
+    <Box sx={{ minHeight: '100vh', width: '100%', bgcolor: '#DFDCFD', pt: 7, pb: 7, overscrollBehavior: 'none' }}>
       <Container
         maxWidth="md"
         sx={{
-          mt: '40px',
           display: 'flex',
           justifyContent: 'center'
         }}
