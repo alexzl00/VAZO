@@ -5,7 +5,7 @@ const theme = createTheme({
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
-          backgroundColor: '#fff',
+          backgroundColor: '#F7F6FF',
           '& .MuiOutlinedInput-notchedOutline': {
             borderColor: '#ccc', // normal border
           },
@@ -18,13 +18,18 @@ const theme = createTheme({
     MuiSelect: {
       styleOverrides: {
         outlined: {
-          backgroundColor: '#fff',
+          backgroundColor: '#F7F6FF',
           '&:focus .MuiOutlinedInput-notchedOutline': {
             borderColor: '#ccc', // keep border neutral
           },
         },
       },
     },
+    MuiButton: {
+      defaultProps: {
+        disableRipple: true,
+      }
+    }
   },
 });
 

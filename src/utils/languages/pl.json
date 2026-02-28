@@ -2,7 +2,11 @@
   "taxes-and-deductions-tax-regime": "Reżim podatkowy",
   "taxes-and-deductions-young-relief": "ulga dla młodych", 
   "taxes-and-deductions-pit-2": "PIT-2",
+  "taxes-and-deductions-kup": "Koszt uzyskania przychodu (KUP)",
+  "taxes-and-deductions-student-status": "Jesteś studentem?",
+  "taxes-and-deductions-age-status": "Masz poniej 26 lat?",
   "taxes-and-deductions-deduction-after-tax": "Odliczenie po podatku",
+  "taxes-and-deductions-addition-after-tax": "Dodatki po podatku",
   "taxes-and-deductions-info": "Podatki – jak uzupełnić\n\nW tym bloku określasz swój status podatkowy, który wpływa na wysokość zaliczki PIT.\n\n• Ulga dla młodych (PIT-0) – wybierz, jeśli nie ukończyłeś 26 lat. W takim przypadku nie jest pobierany podatek PIT (do limitu ustawowego).\n• Kwota zmniejszająca podatek (PIT-2) – zaznacz tylko wtedy, jeśli złożyłeś u pracodawcy formularz PIT-2. Jeśli nie składałeś PIT-2 – pozostaw tę opcję wyłączoną.\n• Inne ustawienia podatkowe – dotyczą indywidualnych sytuacji i wpływają na sposób naliczania zaliczki PIT.\n\n⚠️ Kalkulator zakłada, że dane są zgodne z dokumentami złożonymi u pracodawcy.",
 
   "calendar-and-working-time-working-hours": "Norma godzin w miesiącu",
@@ -10,7 +14,7 @@
 
   "rate-and-bonuses-work-rate-type": "Typ stawki",
   "rate-monthly": "Miesięczna BRUTTO (Umowa o pracę)",
-  "rate-hourly": "Godzinowa BRUTTO",
+  "rate-hourly": "Godzinowa BRUTTO (Umowa o pracę)",
   "rate-contract-of-mandate": "Umowa zlecenia (BRUTTO/h)",
   "rate-and-bonuses-rate": "Stawka",
   "rate-and-bonuses-attendance-bonus": "Premia frekwencyjna",
@@ -42,6 +46,7 @@
   "overtime-and-night-hours-info": "Nadgodziny – praca poza normą czasu pracy\nW tym bloku wpisujesz nadgodziny przepracowane w danym miesiącu.\n\n• Nadgodziny to praca wykonywana poza obowiązującą normą czasu pracy.\n• Mogą obejmować również godziny z przełomu doby pracowniczej.\n Czym jest przełom doby: Przełom doby występuje wtedy, gdy kolejna zmiana rozpoczyna się przed upływem 24 godzin od rozpoczęcia poprzedniej.\n Przykład: Jeśli pracujesz w piątek od 14:00 do 22:00, a w sobotę zaczynasz pracę o 9:00, to część godzin w sobotę stanowi godziny z przełomu doby, które zgodnie z Kodeksem pracy traktowane są jak nadgodziny.\n Wpisuj wyłącznie faktycznie przepracowane i rozliczane nadgodziny.",
 
   "sick-leave-l4": "Tu dodasz zakresy L4",
+  "l4-base": "Podstawa L4",
   "sick-leave-info": "Zwolnienie lekarskie (L4) – jak uzupełnić\nW tym bloku wpisujesz okresy zwolnienia lekarskiego (L4) przypadające w danym miesiącu.\n\n• Podaj datę początku i datę końca zwolnienia.\n• Jeśli L4 było podzielone na kilka części, użyj opcji Dodaj okres.\n• Liczba dni L4 obliczana jest automatycznie jako suma dni kalendarzowych.\n Jak liczone jest wynagrodzenie: Kalkulator stosuje uproszczony, ale logicznie poprawny model, zgodny z praktyką oraz zasadami Kodeksu pracy. L4 zmniejsza liczbę dni przepracowanych i odpowiednio wpływa na wynagrodzenie.",
 
   "vacation-leave-base": "Podstawa urlopu",
@@ -63,5 +68,6 @@
   "year": "Rok",
   "month": "Miesiąc",
 
-  "calculate": "Oblicz"
+  "calculate": "Oblicz",
+  "clear": "Wyczyść"
 }

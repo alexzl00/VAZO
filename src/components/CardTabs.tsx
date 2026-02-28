@@ -4,9 +4,10 @@ interface CardTabProps {
   value: number,
   labels: string[],
   onChange: (value: number) => void;
+  disabledTabs: number[]
 }
 
-export default function CardTabs({ value, labels, onChange }: CardTabProps) {
+export default function CardTabs({ value, labels, onChange, disabledTabs }: CardTabProps) {
   return (
     <Tabs
       value={value}
@@ -26,10 +27,12 @@ export default function CardTabs({ value, labels, onChange }: CardTabProps) {
       {labels.map((label, i) => {
         const selected = value === i;
 
+        const disabled = disabledTabs.includes(i);
         return (
           <Tab
             key={label}
             disableRipple
+            disabled={disabled}
             sx={{ padding: 0, minHeight: 0 }}
             label={
               <Box
@@ -43,7 +46,7 @@ export default function CardTabs({ value, labels, onChange }: CardTabProps) {
                   alignItems: "center",
                   justifyContent: "center",
 
-                  color: "#23326D",
+                  color: disabled ? "#fa4b1a" : "#3B4DB3",
 
                   transition: "color .2s ease, font-weight .2s ease",
 
