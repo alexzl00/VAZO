@@ -9,7 +9,7 @@ const MainLayout = () => {
         maxWidth="md"
         sx={{
           display: 'flex',
-          justifyContent: 'center'
+          justifyContent: 'center',
         }}
       >
         <Outlet />
