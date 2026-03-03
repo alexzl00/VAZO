@@ -37,6 +37,7 @@ dayjs.extend(isSameOrBefore);
 import CardTabs from '../components/CardTabs';
 import MonthPicker from '../components/MonthPikcer';
 import FormWithInfo from '../components/FormWithInfo';
+import FormikNumberField from '../components/FormikNumberField';
 
 // utils 
 import camelToKebabCase from '../utils/camelToKebab';
@@ -217,10 +218,12 @@ const calculateTaxes = (values: SalaryCalculatorValues) => {
     values.discretionaryBonus + 
     values.otherBonus +
     overtimes;
+  console.log(workDaysPayment, values.attendanceBonus, values.discretionaryBonus, values.otherBonus)
 
   const zusTaxes = Math.round(fullSalaryBrutto*taxes.zusPensionInsurance +
     fullSalaryBrutto*taxes.zusDisability +
-    fullSalaryBrutto*taxes.zusSicknessInsurance)/100
+    fullSalaryBrutto*taxes.zusSicknessInsurance
+  )/100
 
   const healthInsurance = Math.round((fullSalaryBrutto-zusTaxes)*9) / 100;
   let pitTax = (fullSalaryBrutto-zusTaxes-taxes.taxDeductibaleExpenses) * (values.taxRegime/100);
@@ -299,40 +302,46 @@ const calculateTaxes = (values: SalaryCalculatorValues) => {
     result: deductionAfterTax
   }
 }
+const positiveNumber = () =>
+  Yup.number()
+    .typeError('Must be a number')
+    .required('Required')
+    .test('positive', 'Must be >= 0', (value) => {
+      // value can be number or NaN
+      return typeof value === 'number' && !isNaN(value) && value >= 0;
+    });
 
 const SalarySchema = Yup.object().shape({
   taxRegime: Yup.mixed<0 | 12>().oneOf([0, 12]).required(),
   pit2: Yup.boolean(),
-  deductionAfterTax: Yup.number().min(0, 'Must be >= 0'),
+  deductionAfterTax: positiveNumber(),
+  additionAfterTax: positiveNumber(),
 
   year: Yup.number().required().min(2000),
   month: Yup.number().required().min(1).max(12),
-  workingHours: Yup.number().min(0, 'Must be >= 0'),
+  workingHours: positiveNumber().min(1),
 
   workRateType: Yup.mixed<'monthly' | 'hourly' | 'contractOfMandate'>().required(),
-  rate: Yup.number().min(0, 'Must be >= 0'),
-  attandanceBonus: Yup.number().min(0, 'Must be >= 0'),
-  discretionaryBonus: Yup.number().min(0, 'Must be >= 0'),
-  otherBonus: Yup.number().min(0, 'Must be >= 0'),
+  rate: positiveNumber(),
+  attendanceBonus: positiveNumber(),
+  discretionaryBonus: positiveNumber(),
+  otherBonus: positiveNumber(),
 
-  overtimeLimit: Yup.number().min(0, 'Must be >= 0'),
+  overtimeLimit: positiveNumber(),
 
-  dailyOvertime: Yup.number()
-    .min(0, 'Must be >= 0')
+  dailyOvertime: positiveNumber()
     .max(Yup.ref('overtimeLimit'), 'Cannot exceed overtime limit'),
 
-  weekendHolidayOvertime: Yup.number()
-    .min(0, 'Must be >= 0')
+  weekendHolidayOvertime: positiveNumber()
     .max(Yup.ref('overtimeLimit'), 'Cannot exceed overtime limit'),
 
-  nightOvertime: Yup.number()
-    .min(0, 'Must be >= 0')
+  nightOvertime: positiveNumber()
     .max(Yup.ref('overtimeLimit'), 'Cannot exceed overtime limit'),
 
-  nightHours: Yup.number().min(0, 'Must be >= 0'),
-  turnOfDayHours: Yup.number().min(0, 'Must be >= 0'),
+  nightHours: positiveNumber(),
+  turnOfDayHours: positiveNumber(),
 
-  leaveBase: Yup.number().min(0, 'Must be >= 0'),
+  l4Base: positiveNumber(),
 
   l4: Yup.array().of(
     Yup.object().shape({
@@ -346,6 +355,8 @@ const SalarySchema = Yup.object().shape({
       isInMonth(r.start, year, month) && isInMonth(r.end, year, month)
     );
   }),
+
+  leaveBase: positiveNumber(),
 
   leave: Yup.array().of(
     Yup.object().shape({
@@ -518,40 +529,8 @@ export default function SalaryCalculator() {
                     </>
                   )}
 
-                  <Stack spacing={1}>
-                    <InputLabel>
-                      <FormattedMessage id={"taxes-and-deductions-deduction-after-tax"}/>
-                    </InputLabel>
-                    <Field name="deductionAfterTax">
-                      {({ field }: FieldProps<number>) => (
-                        <TextField
-                          {...field}
-                          type="number"
-                          error={Boolean(touched.deductionAfterTax && errors.deductionAfterTax)}
-                        />
-                      )}
-                    </Field>
-                    {touched.deductionAfterTax && errors.deductionAfterTax && (
-                      <FormHelperText error>{errors.deductionAfterTax}</FormHelperText>
-                    )}
-                  </Stack>
-                  <Stack spacing={1}>
-                    <InputLabel>
-                      <FormattedMessage id={"taxes-and-deductions-addition-after-tax"}/>
-                    </InputLabel>
-                    <Field name="additionAfterTax">
-                      {({ field }: FieldProps<number>) => (
-                        <TextField
-                          {...field}
-                          type="number"
-                          error={Boolean(touched.additionAfterTax && errors.additionAfterTax)}
-                        />
-                      )}
-                    </Field>
-                    {touched.additionAfterTax && errors.additionAfterTax && (
-                      <FormHelperText error>{errors.additionAfterTax}</FormHelperText>
-                    )}
-                  </Stack>
+                  <FormikNumberField name="deductionAfterTax" labelId="taxes-and-deductions-deduction-after-tax" unit='zł'/>
+                  <FormikNumberField name="additionAfterTax" labelId="taxes-and-deductions-addition-after-tax" unit='zł'/>
                 </Stack>
               </FormWithInfo>
             )}
@@ -572,13 +551,13 @@ export default function SalaryCalculator() {
                         <TextField
                           {...field}
                           type="number"
-                          value={field.value} // make sure value is controlled
+                          value={field.value} 
                           onChange={(e) => {
                             const newYear = Number(e.target.value);
                             form.setFieldValue("year", newYear);
 
                             // Update workingHours
-                            const month = form.values.month; // get current month from Formik
+                            const month = form.values.month;
                             const holidays = form.values.holidays;
                             const newWorkingHours = getWorkedDaysInMonth(newYear, month-1, holidays, [], []) * 8;
                             console.log(holidays, newYear, month, newWorkingHours)
@@ -605,21 +584,8 @@ export default function SalaryCalculator() {
                   />
 
                   <Stack spacing={1}>
-                    <InputLabel>
-                      <FormattedMessage id={"calendar-and-working-time-working-hours"}/>
-                    </InputLabel>
-                    <Field name="workingHours">
-                      {({ field }: FieldProps<number>) => (
-                        <TextField
-                          {...field}
-                          type="number"
-                          error={Boolean(touched.workingHours && errors.workingHours)}
-                        />
-                      )}
-                    </Field>
-                    {touched.workingHours && errors.workingHours && (
-                      <FormHelperText error>{errors.workingHours as string}</FormHelperText>
-                    )}
+                    <FormikNumberField name="workingHours" labelId="calendar-and-working-time-working-hours"/>
+
                     {(values.workRateType === 'hourly' || values.workRateType === 'monthly') && (
                       <Box sx={{paddingTop: '10px'}}>
                         <MultiRangeMonthPicker
@@ -690,15 +656,17 @@ export default function SalaryCalculator() {
                     )}
                   </Stack>
 
-                  {(['rate', 'attendanceBonus', 'discretionaryBonus', 'otherBonus'] as const).map((name) => (
+                  {(['rate', 'attendanceBonus', 'discretionaryBonus', 'otherBonus'] as const).map((name) => { 
+                    console.log(errors)
+                    return (
                     <Stack spacing={1} key={name}>
                       <InputLabel>
                         <FormattedMessage id={`rate-and-bonuses-${camelToKebabCase(name)}`}/>
                         {
-                          (name === 'rate' && values.workRateType === 'monthly') ? ` (${Math.round(values.rate / values.workingHours * 100) / 100} zł/h)` : ""
+                          (name === 'rate' && values.workRateType === 'monthly' && !errors['workingHours']) ? ` (${Math.round(values.rate / values.workingHours * 100) / 100} zł/h)` : ""
                         }
                         {
-                          (name === 'rate' && (values.workRateType === 'hourly' || values.workRateType === 'contractOfMandate' )) ? ` (${Math.round(values.rate * values.workingHours * 100) / 100} zł)` : ""
+                          (name === 'rate' && !errors['workingHours'] && (values.workRateType === 'hourly' || values.workRateType === 'contractOfMandate' )) ? ` (${Math.round(values.rate * values.workingHours * 100) / 100} zł)` : ""
                         }
                       </InputLabel>
                       <Field name={name}>
@@ -714,7 +682,7 @@ export default function SalaryCalculator() {
                         <FormHelperText error>{errors[name] as string}</FormHelperText>
                       )}
                     </Stack>
-                  ))}
+                  )})}
                 </Stack>
               </FormWithInfo>
             )}
@@ -770,22 +738,8 @@ export default function SalaryCalculator() {
                 infoText={intl.formatMessage({id: "sick-leave-info"})
               }>
                 <Stack spacing={2}>
-                  <Stack spacing={1} width={'320px'}>
-                    <InputLabel>
-                      <FormattedMessage id={"l4-base"}/>
-                    </InputLabel>
-                    <Field name="l4Base">
-                      {({ field }: FieldProps<number>) => (
-                        <TextField
-                          {...field}
-                          type="number"
-                          error={Boolean(touched.l4Base && errors.l4Base)}
-                        />
-                      )}
-                    </Field>
-                    {touched.l4Base && errors.l4Base && (
-                      <FormHelperText error>{errors.l4Base}</FormHelperText>
-                    )}
+                  <Stack spacing={0} width={'320px'}>
+                    <FormikNumberField name="l4Base" labelId="l4-base"/>
                   </Stack>
                   <Box>
                     <MultiRangeMonthPicker
@@ -816,21 +770,7 @@ export default function SalaryCalculator() {
               >
                 <Stack spacing={2}>
                   <Stack spacing={1} width={'320px'}>
-                    <InputLabel>
-                      <FormattedMessage id={"vacation-leave-base"}/>
-                    </InputLabel>
-                    <Field name="leaveBase">
-                      {({ field }: FieldProps<number>) => (
-                        <TextField
-                          {...field}
-                          type="number"
-                          error={Boolean(touched.leaveBase && errors.leaveBase)}
-                        />
-                      )}
-                    </Field>
-                    {touched.leaveBase && errors.leaveBase && (
-                      <FormHelperText error>{errors.leaveBase}</FormHelperText>
-                    )}
+                    <FormikNumberField name="leaveBase" labelId="vacation-leave-base"/>
                   </Stack>
                   <Box>
                     <MultiRangeMonthPicker
