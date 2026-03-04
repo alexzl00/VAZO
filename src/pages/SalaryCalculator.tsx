@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // mui
 import {
@@ -21,7 +21,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { 
   Formik,
   Form,
-  Field
+  useFormikContext
 } from "formik";
 
 import type { FieldProps } from 'formik';
@@ -37,17 +37,19 @@ dayjs.extend(isSameOrBefore);
 import CardTabs from '../components/CardTabs';
 import MonthPicker from '../components/MonthPikcer';
 import FormWithInfo from '../components/FormWithInfo';
-import FormikNumberField from '../components/FormikNumberField';
+import { FormikNumberField, FomrikSelectField } from '../components/FormikFields';
 
 // utils 
 import camelToKebabCase from '../utils/camelToKebab';
 import { MultiRangeMonthPicker } from '../components/DaysPicker';
-import { isInMonth, isoToDayjsRanges, countDays, countWorkingDays, getWorkedDaysInMonth } from '../utils/monthHelperFunc';
+import { isInMonth, isoToDayjsRanges, getWorkedDaysInMonth } from '../utils/monthHelperFunc';
+
+import { calculateTaxesContractOfMandate, calculateTaxesUoP } from '../utils/workTypeSalaryCalc';
 
 import type { DateRange } from '../components/DaysPicker';
 import type { ISODateRange } from '../utils/monthHelperFunc';
 
-type SalaryCalculatorValues = {
+export type SalaryCalculatorValues = {
   
   // podatki i potracenia
   taxRegime: 0 | 12;
@@ -151,155 +153,14 @@ export const initialSalaryFormValues: SalaryCalculatorValues = {
   leaveBase: 0
 };
 
-const taxes = {
-  // Podatki PIT
-  zusPensionInsurance: 9.76, // %
-  zusDisability: 1.5, // %
-  zusSicknessInsurance: 2.45, // %
-  taxDeductibaleExpenses: 250, // KUP zł
-  PIT2_relief: 300, // zł
-
-  // overtimes
-  dailyOvertime: 150, // +50%
-  weekendHolidayOvertime: 200, // +100%
-  nightOvertime: 220, // +120%
-
-  nightHours: 20, // +20%
-
-  turnOfDayHours: 50, // it will be counted separately as extra +50%
-}
-
-const calculateTaxesContractOfMandate = (values: SalaryCalculatorValues) => {
-  const fullSalaryBrutto = values.rate * values.workingHours;
-
-  const zusTaxes = (values.isStudent && values.isUnder26)
-    ? 0
-    : Math.round(fullSalaryBrutto*taxes.zusPensionInsurance +
-      fullSalaryBrutto*taxes.zusDisability)/100
-
-  const healthInsurance = (values.isStudent && values.isUnder26)
-    ? 0
-    : (fullSalaryBrutto-zusTaxes)*0.09;
-
-  const pitBase = (fullSalaryBrutto-zusTaxes) * (100-values.kup) / 100;
-  let pit = values.isUnder26
-    ? 0
-    : (pitBase * 0.12);
-  pit = values.pit2 ? Math.max(pit-taxes.PIT2_relief, 0) : pit
-
-  const netto = fullSalaryBrutto - zusTaxes - healthInsurance - pit;
-
-  console.log("ZUS "+zusTaxes, "healthInsurance " +healthInsurance, "pitBase "+pitBase, "pit "+pit, "netto " + netto)
-}
 
 const calculateTaxes = (values: SalaryCalculatorValues) => {
-  if ( values.workRateType === 'contractOfMandate' ) return calculateTaxesContractOfMandate(values);
-  const workingDaysInMonth = getWorkedDaysInMonth(values.year, values.month-1, values.holidays, values.l4, values.leave)
-
-  const l4DaysCount = countDays(values.l4)
-  const l4Payment = (values.l4Base / 30) * l4DaysCount * 0.8;
-
-  const leaveDaysCount = countDays(values.leave);
-  const leavePayment = (values.leaveBase / getWorkedDaysInMonth(values.year, values.month-1, values.holidays, [], [])) * leaveDaysCount;
-
-  const perHour = values.workRateType === 'hourly' ? values.rate : values.rate / values.workingHours
-
-  const workDaysPayment = workingDaysInMonth * perHour * 8;
-
-  const overtimes = perHour*(values.dailyOvertime*taxes.dailyOvertime + 
-    values.weekendHolidayOvertime*taxes.weekendHolidayOvertime + 
-    values.nightOvertime*taxes.nightOvertime + 
-    values.nightHours*taxes.nightHours +
-    values.turnOfDayHours*taxes.turnOfDayHours
-  ) / 100;
-
-  const fullSalaryBrutto = workDaysPayment + l4Payment + leavePayment +
-    values.attendanceBonus + 
-    values.discretionaryBonus + 
-    values.otherBonus +
-    overtimes;
-  console.log(workDaysPayment, values.attendanceBonus, values.discretionaryBonus, values.otherBonus)
-
-  const zusTaxes = Math.round(fullSalaryBrutto*taxes.zusPensionInsurance +
-    fullSalaryBrutto*taxes.zusDisability +
-    fullSalaryBrutto*taxes.zusSicknessInsurance
-  )/100
-
-  const healthInsurance = Math.round((fullSalaryBrutto-zusTaxes)*9) / 100;
-  let pitTax = (fullSalaryBrutto-zusTaxes-taxes.taxDeductibaleExpenses) * (values.taxRegime/100);
-  pitTax = values.pit2 ? Math.round(pitTax - taxes.PIT2_relief) : Math.round(pitTax*100) / 100;
-
-  const netto = fullSalaryBrutto - zusTaxes - healthInsurance - pitTax;
-
-  const deductionAfterTax = netto - values.deductionAfterTax + values.additionAfterTax;
-
-  const format = (v: number) =>
-  new Intl.NumberFormat("pl-PL", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(v);
-
-  console.group("💰 Salary Calculation - FULL BREAKDOWN");
-
-  console.group("📅 Month & Days");
-  console.table({
-    year: values.year,
-    month: values.month,
-    workingDaysInMonth,
-    l4DaysCount,
-    //l4WorkingDays,
-    leaveDaysCount,
-    actualWorkedDays: workingDaysInMonth
-      //workingDaysInMonth - l4WorkingDays - leaveDaysCount,
-  });
-  console.groupEnd();
-
-  console.group("⏱ Hour & Base Rates");
-  console.table({
-    monthlyRate: format(values.rate),
-    leaveBase: format(values.leaveBase),
-    workingHoursInMonth: values.workingHours,
-    perHour: format(perHour),
-    perWorkDay: format(perHour * 8),
-  });
-  console.groupEnd();
-
-  console.group("💵 Earnings");
-  console.table({
-    workDaysPayment: format(workDaysPayment),
-    l4Payment: format(l4Payment),
-    leavePayment: format(leavePayment),
-    attendanceBonus: format(values.attendanceBonus),
-    discretionaryBonus: format(values.discretionaryBonus),
-    otherBonus: format(values.otherBonus),
-    overtimes: format(overtimes),
-    fullSalaryBrutto: format(fullSalaryBrutto),
-  });
-  console.groupEnd();
-
-  console.group("🏛 Taxes");
-  console.table({
-    zusTaxes: format(zusTaxes),
-    healthInsurance: format(healthInsurance),
-    pitTax: format(pitTax),
-  });
-  console.groupEnd();
-
-  console.group("🧾 Final Result");
-  console.table({
-    netto: format(netto),
-    deductionAfterTaxInput: format(values.deductionAfterTax),
-    finalPayout: format(deductionAfterTax),
-  });
-  console.groupEnd();
-
-  console.groupEnd();
-  return {
-    zusTaxes: zusTaxes,
-    healthInsurance: healthInsurance,
-    pitTax: pitTax,
-    netto: netto,
-    result: deductionAfterTax
+  switch (values.workRateType) {
+    case 'contractOfMandate':
+      return calculateTaxesContractOfMandate(values);
+    case 'hourly':
+    case 'monthly':
+      return calculateTaxesUoP(values);
   }
 }
 const positiveNumber = () =>
@@ -381,7 +242,6 @@ const SalarySchema = Yup.object().shape({
   return true; // pass validation if sum is ok
 });
 
-
 export default function SalaryCalculator() {
 
   const intl = useIntl();
@@ -402,6 +262,23 @@ export default function SalaryCalculator() {
     setValue(value);
   }
 
+  const Pit2AutoReset = () => {
+    const { values, setFieldValue } = useFormikContext<SalaryCalculatorValues>();
+
+    const isDisabled =
+      values.taxRegime === 0 &&
+      (values.workRateType === "hourly" ||
+        values.workRateType === "monthly");
+
+    useEffect(() => {
+      if (isDisabled && values.pit2) {
+        setFieldValue("pit2", false);
+      }
+    }, [isDisabled, values.pit2, setFieldValue]);
+
+    return null;
+  };
+
   return (
     <Formik
       initialValues={initialSalaryFormValues}
@@ -412,6 +289,7 @@ export default function SalaryCalculator() {
     >
       {({ values, handleChange, setFieldValue, errors, touched }) => (
         <Form>
+          <Pit2AutoReset/>
           <CardTabs value={value} labels={labels} onChange={changeTab} disabledTabs={disabledTabs}/>
 
           <Box sx={{ mt: 3 }}>
@@ -423,77 +301,37 @@ export default function SalaryCalculator() {
               >
                 <Stack spacing={2}>
                   {(values.workRateType === 'hourly' || values.workRateType === 'monthly') && (
-                    <>
-                      <Stack spacing={1}>
-                        <InputLabel>
-                          <FormattedMessage id={"taxes-and-deductions-tax-regime"}/>
-                        </InputLabel>
-                        <Field name="taxRegime">
-                          {({ field }: FieldProps<number>) => (
-                            <FormControl fullWidth error={Boolean(touched.taxRegime && errors.taxRegime)}>
-                              <Select
-                                {...field}
-                                sx={{ backgroundColor: 'white' }}
-                                value={values.taxRegime}
-                                onChange={(e) => {
-                                  const newTaxRegime = Number(e.target.value);
-
-                                  setFieldValue("taxRegime", newTaxRegime);
-
-                                  if (newTaxRegime === 0) {
-                                    setFieldValue("pit2", false);
-                                  }
-                                }}
-                              >
-                                <MenuItem value={12}>PIT 12%</MenuItem>          
-                                <MenuItem value={0}>
-                                  PIT 0% 
-                                  (<FormattedMessage id={"taxes-and-deductions-young-relief"}/>)
-                                </MenuItem>
-                              </Select>
-                            </FormControl>
-                          )}
-                        </Field>
-                        {touched.taxRegime && errors.taxRegime && (
-                          <FormHelperText error>{errors.taxRegime}</FormHelperText>
-                        )}
-                      </Stack>
-                    </>
+                    <FomrikSelectField 
+                      name="taxRegime"
+                      inputLabel="taxes-and-deductions-tax-regime"
+                      menuItems={[
+                        {value: 12, text: 'PIT 12%'}, { value: 0, text: (<> PIT 0% (<FormattedMessage id="taxes-and-deductions-young-relief" />)</>)}
+                      ]}
+                      onChange={(e) => {
+                        const newTaxRegime = Number(e.target.value);
+                        setFieldValue("taxRegime", newTaxRegime);
+                      }}
+                    />
                   )}
 
-                  {(values.workRateType === 'contractOfMandate') && (           
-                    <Stack spacing={1}>
-                      <InputLabel>
-                        <FormattedMessage id={"taxes-and-deductions-kup"}/>
-                      </InputLabel>
-                      <Field name="kup">
-                        {({ field }: FieldProps<number>) => (
-                          <FormControl fullWidth error={Boolean(touched.kup && errors.kup)}>
-                            <Select
-                              {...field}
-                              sx={{ backgroundColor: 'white' }}
-                              value={values.kup}
-                              onChange={(e) => {
-                                const kup = Number(e.target.value);
-
-                                setFieldValue("kup", kup);
-                              }}
-                            >
-                              <MenuItem value={20}>20%</MenuItem>          
-                              <MenuItem value={50}>
-                                50%
-                              </MenuItem>
-                            </Select>
-                          </FormControl>
-                        )}
-                      </Field>
-                    </Stack>
+                  {(values.workRateType === 'contractOfMandate') && (      
+                    <FomrikSelectField 
+                      name="kup"
+                      inputLabel="taxes-and-deductions-kup"
+                      menuItems={[
+                        {value: 20, text: '20%'}, { value: 50, text: "50%"}
+                      ]}
+                      onChange={(e) => {
+                        const kup = Number(e.target.value);
+                        setFieldValue("kup", kup);
+                      }}
+                    />
                   )}
 
                   <FormControlLabel
                     control={
                       <Checkbox
-                        disabled={values.taxRegime === 0}
+                        disabled={values.taxRegime === 0 && (values.workRateType === 'hourly' || values.workRateType === 'monthly')}
                         name="pit2"
                         checked={values.pit2}
                         onChange={handleChange}
@@ -507,7 +345,6 @@ export default function SalaryCalculator() {
                       <FormControlLabel
                         control={
                           <Checkbox
-                            disabled={values.taxRegime === 0}
                             name="isStudent"
                             checked={values.isStudent}
                             onChange={handleChange}
@@ -518,7 +355,6 @@ export default function SalaryCalculator() {
                       <FormControlLabel
                         control={
                           <Checkbox
-                            disabled={values.taxRegime === 0}
                             name="isUnder26"
                             checked={values.isUnder26}
                             onChange={handleChange}
@@ -542,35 +378,16 @@ export default function SalaryCalculator() {
                 infoText={intl.formatMessage({id: "calendar-and-working-time-info"})}
               >
                 <Stack spacing={2} width={'320px'}>
-                  <Stack spacing={1}>
-                    <InputLabel>
-                      <FormattedMessage id={"year"}/>
-                    </InputLabel>
-                    <Field name="year">
-                      {({ field, form }: FieldProps<number>) => (
-                        <TextField
-                          {...field}
-                          type="number"
-                          value={field.value} 
-                          onChange={(e) => {
-                            const newYear = Number(e.target.value);
-                            form.setFieldValue("year", newYear);
-
-                            // Update workingHours
-                            const month = form.values.month;
-                            const holidays = form.values.holidays;
-                            const newWorkingHours = getWorkedDaysInMonth(newYear, month-1, holidays, [], []) * 8;
-                            console.log(holidays, newYear, month, newWorkingHours)
-                            form.setFieldValue("workingHours", newWorkingHours);
-                          }}
-                          error={Boolean(form.touched.year && form.errors.year)}
-                        />
-                      )}
-                    </Field>
-                    {touched.year && errors.year && (
-                      <FormHelperText error>{errors.year as string}</FormHelperText>
-                    )}
-                  </Stack>
+                  <FormikNumberField
+                    name="year"
+                    labelId="year"
+                    onChange={(newYear, form) => {
+                      const month = form.values.month;
+                      const holidays = form.values.holidays;
+                      const newWorkingHours = getWorkedDaysInMonth(newYear, month - 1, holidays, [], []) * 8;
+                      form.setFieldValue("workingHours", newWorkingHours);
+                    }}
+                  />
 
                   <MonthPicker
                     value={values.month}
@@ -619,70 +436,41 @@ export default function SalaryCalculator() {
                 infoText={intl.formatMessage({id: "rate-and-bonuses-info"})}
               >
                 <Stack spacing={2}>
-                  <Stack spacing={1}>
-                    <InputLabel>
-                      <FormattedMessage id={"rate-and-bonuses-work-rate-type"}/>
-                    </InputLabel>
-                    <Field name="workRateType">
-                      {({ field }: FieldProps<string>) => (
-                        <FormControl fullWidth error={Boolean(touched.workRateType && errors.workRateType)}>
-                          <Select
-                            {...field}
-                            value={values.workRateType}
-                            onChange={(e) => {
-                              if (e.target.value === 'contractOfMandate' ) {
-                                setDisabledTabs([3, 4, 5])
-                              } else {
-                                setDisabledTabs([])
-                              }
-                              setFieldValue('workRateType', e.target.value)}
-                            }
-                          >
-                            <MenuItem value="monthly">
-                              <FormattedMessage id={"rate-monthly"}/>
-                            </MenuItem>
-                            <MenuItem value="hourly">
-                              <FormattedMessage id={"rate-hourly"}/>
-                            </MenuItem>
-                            <MenuItem value="contractOfMandate">
-                              <FormattedMessage id={"rate-contract-of-mandate"}/>
-                            </MenuItem>
-                          </Select>
-                        </FormControl>
-                      )}
-                    </Field>
-                    {touched.workRateType && errors.workRateType && (
-                      <FormHelperText error>{errors.workRateType}</FormHelperText>
-                    )}
-                  </Stack>
+                  <FomrikSelectField
+                    name="workRateType"
+                    inputLabel="rate-and-bonuses-work-rate-type"
+                    menuItems={[
+                      { value: "monthly", text: <FormattedMessage id="rate-monthly" /> },
+                      { value: "hourly", text: <FormattedMessage id="rate-hourly" /> },
+                      { value: "contractOfMandate", text: <FormattedMessage id="rate-contract-of-mandate" /> },
+                    ]}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFieldValue("workRateType", value);                  
+                      if (value === "contractOfMandate") {
+                        setDisabledTabs([3, 4, 5]);
+                      } else {
+                        setDisabledTabs([]);
+                      }
+                    }}
+                  />
 
-                  {(['rate', 'attendanceBonus', 'discretionaryBonus', 'otherBonus'] as const).map((name) => { 
-                    console.log(errors)
-                    return (
-                    <Stack spacing={1} key={name}>
-                      <InputLabel>
-                        <FormattedMessage id={`rate-and-bonuses-${camelToKebabCase(name)}`}/>
-                        {
-                          (name === 'rate' && values.workRateType === 'monthly' && !errors['workingHours']) ? ` (${Math.round(values.rate / values.workingHours * 100) / 100} zł/h)` : ""
-                        }
-                        {
-                          (name === 'rate' && !errors['workingHours'] && (values.workRateType === 'hourly' || values.workRateType === 'contractOfMandate' )) ? ` (${Math.round(values.rate * values.workingHours * 100) / 100} zł)` : ""
-                        }
-                      </InputLabel>
-                      <Field name={name}>
-                        {({ field }: FieldProps<number>) => (
-                          <TextField
-                            {...field}
-                            type="number"
-                            error={Boolean(touched[name] && errors[name])}
-                          />
-                        )}
-                      </Field>
-                      {touched[name] && errors[name] && (
-                        <FormHelperText error>{errors[name] as string}</FormHelperText>
-                      )}
-                    </Stack>
-                  )})}
+                  {(['rate', 'attendanceBonus', 'discretionaryBonus', 'otherBonus'] as const).map((name) => (
+                    <FormikNumberField
+                      key={name}
+                      name={name}
+                      labelId={`rate-and-bonuses-${camelToKebabCase(name)}`}
+                      unit={
+                        name === 'rate' && !errors.workingHours
+                          ? values.workRateType === 'monthly'
+                            ? `${Math.round(values.rate / values.workingHours * 100) / 100} zł/h`
+                            : (values.workRateType === 'hourly' || values.workRateType === 'contractOfMandate')
+                              ? `${Math.round(values.rate * values.workingHours * 100) / 100} zł`
+                              : ''
+                          : undefined
+                      }
+                    />
+                  ))}
                 </Stack>
               </FormWithInfo>
             )}
@@ -709,23 +497,11 @@ export default function SalaryCalculator() {
                     'turnOfDayHours',
                     'overtimeLimit',
                   ] as const).map((name) => (
-                    <Stack spacing={1} key={name}>
-                      <InputLabel>
-                        <FormattedMessage id={`overtime-and-night-hours-${camelToKebabCase(name)}`}/>
-                      </InputLabel>
-                      <Field name={name}>
-                        {({ field }: FieldProps<number>) => (
-                          <TextField
-                            {...field}
-                            type="number"
-                            error={Boolean(touched[name] && errors[name])}
-                          />
-                        )}
-                      </Field>
-                      {touched[name] && errors[name] && (
-                        <FormHelperText error>{errors[name] as string}</FormHelperText>
-                      )}
-                    </Stack>
+                    <FormikNumberField
+                      key={name}
+                      name={name}
+                      labelId={`overtime-and-night-hours-${camelToKebabCase(name)}`}
+                    />
                   ))}
                 </Stack>
               </FormWithInfo>
