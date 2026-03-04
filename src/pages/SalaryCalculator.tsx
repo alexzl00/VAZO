@@ -250,9 +250,9 @@ export default function SalaryCalculator() {
   const [disabledTabs, setDisabledTabs] = useState<number[]>([]);
 
   const labels = [
+    intl.formatMessage({ id: 'tabs-rate-and-bonuses' }),
     intl.formatMessage({ id: 'tabs-taxes-and-deductions' }),
     intl.formatMessage({ id: 'tabs-calendar-and-working-time' }),
-    intl.formatMessage({ id: 'tabs-rate-and-bonuses' }),
     intl.formatMessage({ id: 'tabs-overtime-and-night-hours' }),
     intl.formatMessage({ id: 'tabs-sick-leave' }),
     intl.formatMessage({ id: 'tabs-vacation' })
@@ -293,8 +293,54 @@ export default function SalaryCalculator() {
           <CardTabs value={value} labels={labels} onChange={changeTab} disabledTabs={disabledTabs}/>
 
           <Box sx={{ mt: 3 }}>
-            {/* TAB 0: Podatki i potrącenia */}
+            {/* TAB 0: Stawka i premie */}
             {value === 0 && (
+              <FormWithInfo
+                title={intl.formatMessage({id: 'tabs-rate-and-bonuses' })}
+                infoText={intl.formatMessage({id: "rate-and-bonuses-info"})}
+              >
+                <Stack spacing={2}>
+                  <FomrikSelectField
+                    name="workRateType"
+                    inputLabel="rate-and-bonuses-work-rate-type"
+                    menuItems={[
+                      { value: "monthly", text: <FormattedMessage id="rate-monthly" /> },
+                      { value: "hourly", text: <FormattedMessage id="rate-hourly" /> },
+                      { value: "contractOfMandate", text: <FormattedMessage id="rate-contract-of-mandate" /> },
+                    ]}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFieldValue("workRateType", value);                  
+                      if (value === "contractOfMandate") {
+                        setDisabledTabs([3, 4, 5]);
+                      } else {
+                        setDisabledTabs([]);
+                      }
+                    }}
+                  />
+
+                  {(['rate', 'attendanceBonus', 'discretionaryBonus', 'otherBonus'] as const).map((name) => (
+                    <FormikNumberField
+                      key={name}
+                      name={name}
+                      labelId={`rate-and-bonuses-${camelToKebabCase(name)}`}
+                      unit={
+                        name === 'rate' && !errors.workingHours
+                          ? values.workRateType === 'monthly'
+                            ? `${Math.round(values.rate / values.workingHours * 100) / 100} zł/h`
+                            : (values.workRateType === 'hourly' || values.workRateType === 'contractOfMandate')
+                              ? `${Math.round(values.rate * values.workingHours * 100) / 100} zł`
+                              : ''
+                          : undefined
+                      }
+                    />
+                  ))}
+                </Stack>
+              </FormWithInfo>
+            )}
+
+            {/* TAB 1: Podatki i potrącenia */}
+            {value === 1 && (
               <FormWithInfo 
                 title={intl.formatMessage({id: 'tabs-taxes-and-deductions' })}
                 infoText={intl.formatMessage({id: "taxes-and-deductions-info"})}
@@ -371,8 +417,8 @@ export default function SalaryCalculator() {
               </FormWithInfo>
             )}
 
-            {/* TAB 1: Kalendarz i norma czasu */}
-            {value === 1 && (
+            {/* TAB 2: Kalendarz i norma czasu */}
+            {value === 2 && (
               <FormWithInfo
                 title={intl.formatMessage({id: 'tabs-calendar-and-working-time' })}
                 infoText={intl.formatMessage({id: "calendar-and-working-time-info"})}
@@ -426,52 +472,6 @@ export default function SalaryCalculator() {
                     )}
                   </Stack>
               </Stack>
-              </FormWithInfo>
-            )}
-
-            {/* TAB 2: Stawka i premie */}
-            {value === 2 && (
-              <FormWithInfo
-                title={intl.formatMessage({id: 'tabs-rate-and-bonuses' })}
-                infoText={intl.formatMessage({id: "rate-and-bonuses-info"})}
-              >
-                <Stack spacing={2}>
-                  <FomrikSelectField
-                    name="workRateType"
-                    inputLabel="rate-and-bonuses-work-rate-type"
-                    menuItems={[
-                      { value: "monthly", text: <FormattedMessage id="rate-monthly" /> },
-                      { value: "hourly", text: <FormattedMessage id="rate-hourly" /> },
-                      { value: "contractOfMandate", text: <FormattedMessage id="rate-contract-of-mandate" /> },
-                    ]}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setFieldValue("workRateType", value);                  
-                      if (value === "contractOfMandate") {
-                        setDisabledTabs([3, 4, 5]);
-                      } else {
-                        setDisabledTabs([]);
-                      }
-                    }}
-                  />
-
-                  {(['rate', 'attendanceBonus', 'discretionaryBonus', 'otherBonus'] as const).map((name) => (
-                    <FormikNumberField
-                      key={name}
-                      name={name}
-                      labelId={`rate-and-bonuses-${camelToKebabCase(name)}`}
-                      unit={
-                        name === 'rate' && !errors.workingHours
-                          ? values.workRateType === 'monthly'
-                            ? `${Math.round(values.rate / values.workingHours * 100) / 100} zł/h`
-                            : (values.workRateType === 'hourly' || values.workRateType === 'contractOfMandate')
-                              ? `${Math.round(values.rate * values.workingHours * 100) / 100} zł`
-                              : ''
-                          : undefined
-                      }
-                    />
-                  ))}
-                </Stack>
               </FormWithInfo>
             )}
 
