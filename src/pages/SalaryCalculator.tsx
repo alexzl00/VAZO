@@ -49,6 +49,13 @@ import { calculateTaxesContractOfMandate, calculateTaxesUoP } from '../utils/wor
 import type { DateRange } from '../components/DaysPicker';
 import type { ISODateRange } from '../utils/monthHelperFunc';
 
+// supabase api
+import { createUopSalary } from '../api/UoP';
+import { createMandateSalary } from '../api/CoM';
+
+// for test
+import { login } from '../api/authUser';
+
 export type SalaryCalculatorValues = {
   
   // podatki i potracenia
@@ -279,12 +286,69 @@ export default function SalaryCalculator() {
     return null;
   };
 
+  const handleSave = async () => {
+    // login
+    const session = await login('aleks19802@o2.pl', '123');
+
+    const mandate_save = await createMandateSalary({
+      year: 2026,
+      month: 3,
+
+      brutto: 8000,
+      netto: 6000,
+      workingHours: 168,
+
+      rate: 35,
+      kup: 20,
+      isStudent: true,
+      isUnder26: true,
+      pit2: false,
+
+      holidays: [{"start":"2026-03-02","end":"2026-03-09"}]
+    })
+
+    // save hipothetical UoP
+    // const UoP_save = await createUopSalary({
+    //   year: 2026,
+    //   month: 3,
+
+    //   workRateType: 'monthly',
+
+    //   brutto: 8500,
+    //   netto: 6100,
+    //   workingHours: 168,
+
+    //   rate: 8500,
+    //   taxRegime: 12,
+    //   pit2: true,
+
+    //   attendanceBonus: 300,
+    //   discretionaryBonus: 500,
+    //   otherBonus: 0,
+
+    //   dailyOvertime: 4,
+    //   weekendHolidayOvertime: 2,
+    //   nightOvertime: 3,
+
+    //   nightHours: 10,
+    //   turnOfDayHours: 8,
+
+    //   holidays: null,
+
+    //   l4: [{"start":"2026-03-02","end":"2026-03-09"}],
+
+    //   leave: [{"start":"2026-03-01","end":"2026-03-01"}]
+    // });
+  }
+
   return (
     <Formik
       initialValues={initialSalaryFormValues}
       validationSchema={SalarySchema}
       onSubmit={(values) => {
         console.log(calculateTaxes(values));
+        console.log(JSON.stringify(values.l4));
+        handleSave();
       }}
     >
       {({ values, handleChange, setFieldValue, errors, touched }) => (
