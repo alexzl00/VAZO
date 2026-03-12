@@ -1,4 +1,6 @@
 {
+  "error": "Coś poszło nie tak :(",
+
   "taxes-and-deductions-tax-regime": "Reżim podatkowy",
   "taxes-and-deductions-young-relief": "ulga dla młodych", 
   "taxes-and-deductions-pit-2": "PIT-2",
@@ -67,6 +69,9 @@
 
   "year": "Rok",
   "month": "Miesiąc",
+
+  "save": "Zapisz",
+  "salary-saved": "Wypłata została zapisana!",
 
   "calculate": "Oblicz",
   "clear": "Wyczyść"

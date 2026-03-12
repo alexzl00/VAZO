@@ -3,18 +3,13 @@ import { useState, useEffect } from 'react';
 // mui
 import {
   Box,
-  TextField,
-  MenuItem,
   FormControlLabel,
   Checkbox,
   Button,
   Stack
 } from '@mui/material';
-import InputLabel from '@mui/material/InputLabel';
+
 import FormHelperText from '@mui/material/FormHelperText';
-import FormControl from '@mui/material/FormControl';
-import Select from '@mui/material/Select';
-import Typography from '@mui/material/Typography';
 
 // third party
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -24,8 +19,6 @@ import {
   useFormikContext
 } from "formik";
 
-import type { FieldProps } from 'formik';
-
 import * as Yup from 'yup';
 
 import dayjs from "dayjs";
@@ -33,143 +26,30 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 
 dayjs.extend(isSameOrBefore);
 
+
 // project imports
-import CardTabs from '../components/CardTabs';
-import MonthPicker from '../components/MonthPikcer';
-import FormWithInfo from '../components/FormWithInfo';
-import { FormikNumberField, FomrikSelectField } from '../components/FormikFields';
+import CardTabs from '../../components/CardTabs';
+import MonthPicker from '../../components/MonthPikcer';
+import FormWithInfo from '../../components/FormWithInfo';
+import { FormikNumberField, FomrikSelectField } from '../../components/FormikFields';
 
 // utils 
-import camelToKebabCase from '../utils/camelToKebab';
-import { MultiRangeMonthPicker } from '../components/DaysPicker';
-import { isInMonth, isoToDayjsRanges, getWorkedDaysInMonth } from '../utils/monthHelperFunc';
+import camelToKebabCase from '../../utils/camelToKebab';
+import { MultiRangeMonthPicker } from '../../components/DaysPicker';
+import { isInMonth, isoToDayjsRanges, getWorkedDaysInMonth } from '../../utils/monthHelperFunc';
 
-import { calculateTaxesContractOfMandate, calculateTaxesUoP } from '../utils/workTypeSalaryCalc';
+import type { DateRange } from '../../components/DaysPicker';
 
-import type { DateRange } from '../components/DaysPicker';
-import type { ISODateRange } from '../utils/monthHelperFunc';
+// types
+import type { SalaryCalculatorValues } from '../../types/salaryCalculator';
 
-// supabase api
-import { createUopSalary } from '../api/UoP';
-import { createMandateSalary } from '../api/CoM';
 
-// for test
-import { login } from '../api/authUser';
-
-export type SalaryCalculatorValues = {
-  
-  // podatki i potracenia
-  taxRegime: 0 | 12;
-
-  // tylko na umowie o prace
-  pit2: boolean;
-
-  // tylko na umowie zlecenia
-  kup: 20 | 50;
-
-  isStudent: boolean, // tylko dla umowy zlecenia
-  isUnder26: boolean, // tylko dla umowy zlecenia
-
-  deductionAfterTax: number;
-  additionAfterTax: number;
-
-  // Kalendarz i norma czasu pracy
-  year: number;
-  month: number;
-  workingHours: number;
-
-  // Stawka i premie
-  workRateType: 'monthly' | 'hourly' | 'contractOfMandate';
-  rate: number;
-  attendanceBonus: number;
-  discretionaryBonus: number;
-  otherBonus: number;
-
-  holidays: ISODateRange[];
-
-  // Nadgodziny i godziny nocne
-  dailyOvertime: number;
-  weekendHolidayOvertime: number;
-  nightOvertime: number;
-
-  nightHours: number;
-  turnOfDayHours: number;
-
-  overtimeLimit: number;
-
-  // Zwolnienie lekarskie (L4)
-  l4: ISODateRange[];
-
-  l4Base: number;
-
-  // Urlop
-  leave: ISODateRange[];
-
-  leaveBase: number;
-
-  // virtual property for error
-  totalOvertime?: string;
-};
-
-const now = new Date();
-
-export const initialSalaryFormValues: SalaryCalculatorValues = {
-  // podatki i potracenia
-  taxRegime: 12,
-  pit2: false, // umowa o prace
-
-  kup: 20, // umowa zelcenia
-  isStudent: false, // tylko dla umowy zlecenia
-  isUnder26: false, // tylko dla umowy zlecenia
-
-  deductionAfterTax: 0,
-  additionAfterTax: 0,
-
-  // Kalendarz i norma czasu pracy
-  year: now.getFullYear(),
-  month: now.getMonth() + 1,
-  workingHours: getWorkedDaysInMonth(now.getFullYear(), now.getMonth(), [], [], [])*8,
-
-  // Stawka i premie
-  workRateType: 'monthly',
-  rate: 0,
-  attendanceBonus: 0,
-  discretionaryBonus: 0,
-  otherBonus: 0,
-
-  holidays: [],
-
-  // Nadgodziny i godziny nocne
-  dailyOvertime: 0,
-  weekendHolidayOvertime: 0,
-  nightOvertime: 0,
-
-  nightHours: 0,
-  turnOfDayHours: 0,
-
-  overtimeLimit: 30,
-
-  // Zwolnienie lekarskie (L4)
-  l4: [],
-
-  l4Base: 0,
-
-  // Urlop
-  leave: [],
-
-  leaveBase: 0
+type SalaryFormProps = {
+  initialValues: SalaryCalculatorValues;
+  onSubmit: (values: SalaryCalculatorValues) => Promise<void>;
 };
 
 
-const calculateTaxes = (values: SalaryCalculatorValues) => {
-  switch (values.workRateType) {
-    case 'contractOfMandate':
-      return calculateTaxesContractOfMandate(values);
-    case 'hourly':
-    case 'monthly':
-      return calculateTaxesUoP(values);
-  }
-}
 const positiveNumber = () =>
   Yup.number()
     .typeError('Must be a number')
@@ -249,8 +129,7 @@ const SalarySchema = Yup.object().shape({
   return true; // pass validation if sum is ok
 });
 
-export default function SalaryCalculator() {
-
+export default function SalaryForm({ initialValues, onSubmit }: SalaryFormProps) {
   const intl = useIntl();
   const [value, setValue] = useState(0);
 
@@ -286,69 +165,12 @@ export default function SalaryCalculator() {
     return null;
   };
 
-  const handleSave = async () => {
-    // login
-    const session = await login('aleks19802@o2.pl', '123');
-
-    const mandate_save = await createMandateSalary({
-      year: 2026,
-      month: 3,
-
-      brutto: 8000,
-      netto: 6000,
-      workingHours: 168,
-
-      rate: 35,
-      kup: 20,
-      isStudent: true,
-      isUnder26: true,
-      pit2: false,
-
-      holidays: [{"start":"2026-03-02","end":"2026-03-09"}]
-    })
-
-    // save hipothetical UoP
-    // const UoP_save = await createUopSalary({
-    //   year: 2026,
-    //   month: 3,
-
-    //   workRateType: 'monthly',
-
-    //   brutto: 8500,
-    //   netto: 6100,
-    //   workingHours: 168,
-
-    //   rate: 8500,
-    //   taxRegime: 12,
-    //   pit2: true,
-
-    //   attendanceBonus: 300,
-    //   discretionaryBonus: 500,
-    //   otherBonus: 0,
-
-    //   dailyOvertime: 4,
-    //   weekendHolidayOvertime: 2,
-    //   nightOvertime: 3,
-
-    //   nightHours: 10,
-    //   turnOfDayHours: 8,
-
-    //   holidays: null,
-
-    //   l4: [{"start":"2026-03-02","end":"2026-03-09"}],
-
-    //   leave: [{"start":"2026-03-01","end":"2026-03-01"}]
-    // });
-  }
-
   return (
     <Formik
-      initialValues={initialSalaryFormValues}
+      initialValues={initialValues}
       validationSchema={SalarySchema}
-      onSubmit={(values) => {
-        console.log(calculateTaxes(values));
-        console.log(JSON.stringify(values.l4));
-        handleSave();
+      onSubmit={ async (values) => {
+        await onSubmit(values);
       }}
     >
       {({ values, handleChange, setFieldValue, errors, touched }) => (
@@ -636,7 +458,7 @@ export default function SalaryCalculator() {
 
           <Box sx={{ mt: 4 }}>
             <Button type="submit" variant="contained">
-              <FormattedMessage id={"calculate"}/>
+              <FormattedMessage id={"save"}/>
             </Button>
           </Box>
         </Form>

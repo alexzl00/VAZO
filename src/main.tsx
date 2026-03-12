@@ -5,17 +5,21 @@ import router from "./routes";
 import { CssBaseline } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 
+import { SnackbarProvider } from "notistack";
+
 import theme from "./overrides/theme";
 
 import Translations from "./components/Translations";
 
 createRoot(document.getElementById("root")!).render(
   <ThemeProvider theme={theme}>
-    <Translations>
-      <StrictMode>
-        <CssBaseline />
-        <RouterProvider router={router} />
-      </StrictMode>
-    </Translations>
+    <SnackbarProvider maxSnack={3} autoHideDuration={3000} anchorOrigin={{ vertical: "bottom", horizontal: "right"}}>
+      <Translations>
+        <StrictMode>
+          <CssBaseline />
+          <RouterProvider router={router} />
+        </StrictMode>
+      </Translations>
+    </SnackbarProvider>
   </ThemeProvider>
 );

@@ -1,5 +1,5 @@
 import { countDays, getWorkedDaysInMonth } from '../utils/monthHelperFunc';
-import type { SalaryCalculatorValues } from '../pages/SalaryCalculator';
+import type { SalaryCalculatorValues } from '../types/salaryCalculator';
 
 export const taxes = {
   // Podatki PIT
@@ -37,9 +37,17 @@ export const calculateTaxesContractOfMandate = (values: SalaryCalculatorValues) 
     : (pitBase * 0.12);
   pit = values.pit2 ? Math.max(pit-taxes.PIT2_relief, 0) : pit
 
-  const netto = fullSalaryBrutto - zusTaxes - healthInsurance - pit;
+  const netto = fullSalaryBrutto - zusTaxes - healthInsurance - pit - values.deductionAfterTax + values.additionAfterTax;
 
-  console.log("ZUS "+zusTaxes, "healthInsurance " +healthInsurance, "pitBase "+pitBase, "pit "+pit, "netto " + netto)
+  console.log("ZUS "+zusTaxes, "healthInsurance " +healthInsurance, "pitBase "+pitBase, "pit "+pit, "netto " + netto);
+
+  return {
+    zusTaxes: zusTaxes,
+    healthInsurance: healthInsurance,
+    pitTax: pit,
+    brutto: fullSalaryBrutto,
+    netto: netto
+  }
 }
 
 export const calculateTaxesUoP = (values: SalaryCalculatorValues) => {
@@ -83,9 +91,7 @@ export const calculateTaxesUoP = (values: SalaryCalculatorValues) => {
   pitTax = Math.max(0, pitTax);
   pitTax = Math.round(pitTax * 100) / 100;
 
-  const netto = fullSalaryBrutto - zusTaxes - healthInsurance - pitTax;
-
-  const deductionAfterTax = netto - values.deductionAfterTax + values.additionAfterTax;
+  const netto = fullSalaryBrutto - zusTaxes - healthInsurance - pitTax - values.deductionAfterTax + values.additionAfterTax;
 
   const format = (v: number) =>
   new Intl.NumberFormat("pl-PL", {
@@ -143,7 +149,6 @@ export const calculateTaxesUoP = (values: SalaryCalculatorValues) => {
   console.table({
     netto: format(netto),
     deductionAfterTaxInput: format(values.deductionAfterTax),
-    finalPayout: format(deductionAfterTax),
   });
   console.groupEnd();
 
@@ -152,7 +157,7 @@ export const calculateTaxesUoP = (values: SalaryCalculatorValues) => {
     zusTaxes: zusTaxes,
     healthInsurance: healthInsurance,
     pitTax: pitTax,
-    netto: netto,
-    result: deductionAfterTax
+    brutto: fullSalaryBrutto,
+    netto: netto
   }
 }

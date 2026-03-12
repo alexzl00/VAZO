@@ -5,7 +5,8 @@ import Loadable from '../components/Loadable';
 import MainLayout from '../layouts/MainLayout';
 
 // pages routing
-const SalaryCalculator = Loadable(lazy(() => import('../pages/SalaryCalculator')))
+const SalaryCalculator = Loadable(lazy(() => import('../pages/CreateSalary')))
+const UpdateSalary = Loadable(lazy(() => import('../pages/UpdateSalary')))
 
 const MainRoutes = {
   path: '/',
@@ -18,6 +19,10 @@ const MainRoutes = {
     {
       path: 'salary-calculator',
       element: <SalaryCalculator />,
+    },
+    {
+      path: 'update-salary/:id',
+      element: <UpdateSalary />
     }
   ]
 };
