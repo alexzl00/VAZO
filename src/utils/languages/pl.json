@@ -69,5 +69,35 @@
   "month": "Miesiąc",
 
   "calculate": "Oblicz",
-  "clear": "Wyczyść"
+  "clear": "Wyczyść",
+
+
+  "salary-title": "Wynagrodzenie",
+  "salary-monthly-brutto": "Stawka miesięczna BRUTTO",
+  "salary-estimated-hourly": "Szacunkowa stawka godzinowa",
+  "salary-hourly-rate": "Stawka godzinowa",
+  "salary-bonuses-brutto": "Premie / dodatki (brutto)",
+  "salary-daily-overtimes": "Nadgodziny dzienne",
+  "salary-weekend-holiday-overtimes": "Nadgodz. w weekendy i święta",
+  "salary-night-overtimes": "Nadgodziny nocne",
+  "salary-night-hours": "Godziny nocne (dodatek)",
+  "salary-turn-of-day-hours": "Godziny na przełomie doby",
+  "salary-l4": "L4 (wynagrodzenie chorobowe)",
+  "salary-vacation": "Urlop",
+  "salary-brutto-total": "BRUTTO razem",
+
+  "taxes-title": "Podatki i potrącenia",
+  "taxes-zus-pension": "Składka emerytalna ZUS",
+  "taxes-zus-disability": "Składka rentowa ZUS",
+  "taxes-zus-sickness": "Składka chorobowa ZUS",
+  "taxes-zus-total": "Składki ZUS razem",
+  "taxes-health-base": "Podstawa składki zdrowotnej",
+  "taxes-health": "Składka zdrowotna",
+  "taxes-pit-base": "Podstawa PIT",
+  "taxes-pit": "Podatek PIT",
+  "taxes-netto": "Wynagrodzenie netto",
+  "taxes-deduction-after-tax": "Odliczenia po podatku",
+  "taxes-result": "Do wypłaty",
+
+  "calculation-summary" : "Podsumowanie"
 }
