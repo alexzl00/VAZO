@@ -44,10 +44,10 @@ const FormWithInfo: React.FC<FormWithInfoProps> = ({ children, title, infoText }
   };
 
   return (
-    <Grid container spacing={2} direction="column">
+    <Grid container spacing={2} direction="column" sx={{marginRight: '20px'}}>
       
       {/* Title row with Info button */}
-      <Grid size={{ xs: 12, md: 6 }}>
+      <Grid size={{ xs: 12, md: 12 }}>
         <Grid container alignItems="center" justifyContent="space-between">
           <Grid >
             <Typography variant="h6" sx={{color: "#23326D", fontWeight: '700'}}>{title}</Typography>
@@ -64,13 +64,13 @@ const FormWithInfo: React.FC<FormWithInfoProps> = ({ children, title, infoText }
       </Grid>
 
       {/* Form content */}
-      <Grid size={{ xs: 12, md: 6 }}>
+      <Grid size={{ xs: 12, md: 12 }}>
         {children}
       </Grid>
 
       {/* Explanatory info (render only after click) */}
       {isTextShown && (
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid size={{ xs: 12, md: 12 }}>
           <InfoText rawText={infoText} />
         </Grid>
       )}

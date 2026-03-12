@@ -1,6 +1,46 @@
 import { countDays, getWorkedDaysInMonth } from '../utils/monthHelperFunc';
 import type { SalaryCalculatorValues } from '../types/salaryCalculator';
 
+export type SalaryCalculationResult = {
+  fullSalaryBrutto: number;
+
+  // earnings
+  workDaysPayment?: number;
+  l4Payment?: number;
+  leavePayment?: number;
+  attendanceBonus?: number;
+  discretionaryBonus?: number;
+  otherBonus?: number;
+  overtimes?: number;
+  perHour: number;
+
+  // ZUS
+  zusPension?: number;
+  zusDisability?: number;
+  zusSickness?: number;
+  zusTaxes: number;
+
+  // health
+  healthInsuranceBase?: number;
+  healthInsurance: number;
+
+  // PIT
+  pitBase?: number;
+  pitTax: number;
+
+  // result
+  netto: number;
+  brutto: number;
+
+  dailyOvertimes?: number;
+  weekendHolidayOvertimes?: number;
+  nightOvertime?: number;
+  nightHours?: number;
+  turnOfDayHours?: number
+
+  calculationType: 'employment' | 'contractOfMandate';
+};
+
 export const taxes = {
   // Podatki PIT
   zusPensionInsurance: 9.76, // %
@@ -32,22 +72,38 @@ export const calculateTaxesContractOfMandate = (values: SalaryCalculatorValues) 
     : (fullSalaryBrutto-zusTaxes)*0.09;
 
   const pitBase = (fullSalaryBrutto-zusTaxes) * (100-values.kup) / 100;
-  let pit = values.isUnder26
+  let pitTax = values.isUnder26
     ? 0
     : (pitBase * 0.12);
-  pit = values.pit2 ? Math.max(pit-taxes.PIT2_relief, 0) : pit
+  pitTax = values.pit2 ? Math.max(pitTax-taxes.PIT2_relief, 0) : pitTax
 
-  const netto = fullSalaryBrutto - zusTaxes - healthInsurance - pit - values.deductionAfterTax + values.additionAfterTax;
+  const netto = fullSalaryBrutto - zusTaxes - healthInsurance - pitTax - values.deductionAfterTax + values.additionAfterTax;
 
-  console.log("ZUS "+zusTaxes, "healthInsurance " +healthInsurance, "pitBase "+pitBase, "pit "+pit, "netto " + netto);
+  console.log("ZUS "+zusTaxes, "healthInsurance " +healthInsurance, "pitBase "+pitBase, "pit "+pitTax, "netto " + netto);
 
   return {
-    zusTaxes: zusTaxes,
-    healthInsurance: healthInsurance,
-    pitTax: pit,
+    fullSalaryBrutto,
+
+    zusPension: Math.round(fullSalaryBrutto * taxes.zusPensionInsurance / 100),
+    zusDisability: Math.round(fullSalaryBrutto * taxes.zusDisability / 100),
+    zusTaxes,
+
+    healthInsuranceBase: fullSalaryBrutto - zusTaxes,
+    healthInsurance,
+
+    pitBase,
+    pitTax,
+    perHour: values.workRateType === 'hourly' ? values.rate : values.rate / values.workingHours,
+    rate: values.rate,
+
+    netto,
     brutto: fullSalaryBrutto,
-    netto: netto
-  }
+
+    isUnder26: values.isUnder26,
+    isStudent: values.isStudent,
+
+    calculationType: 'contractOfMandate' as const,
+  };
 }
 
 export const calculateTaxesUoP = (values: SalaryCalculatorValues) => {
@@ -93,71 +149,105 @@ export const calculateTaxesUoP = (values: SalaryCalculatorValues) => {
 
   const netto = fullSalaryBrutto - zusTaxes - healthInsurance - pitTax - values.deductionAfterTax + values.additionAfterTax;
 
-  const format = (v: number) =>
-  new Intl.NumberFormat("pl-PL", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(v);
+  // const format = (v: number) =>
+  // new Intl.NumberFormat("pl-PL", {
+  //   minimumFractionDigits: 2,
+  //   maximumFractionDigits: 2,
+  // }).format(v);
 
-  console.group("💰 Salary Calculation - FULL BREAKDOWN");
+  // console.group("💰 Salary Calculation - FULL BREAKDOWN");
 
-  console.group("📅 Month & Days");
-  console.table({
-    year: values.year,
-    month: values.month,
-    workingDaysInMonth,
-    l4DaysCount,
-    //l4WorkingDays,
-    leaveDaysCount,
-    actualWorkedDays: workingDaysInMonth
-      //workingDaysInMonth - l4WorkingDays - leaveDaysCount,
-  });
-  console.groupEnd();
+  // console.group("📅 Month & Days");
+  // console.table({
+  //   year: values.year,
+  //   month: values.month,
+  //   workingDaysInMonth,
+  //   l4DaysCount,
+  //   //l4WorkingDays,
+  //   leaveDaysCount,
+  //   actualWorkedDays: workingDaysInMonth
+  //     //workingDaysInMonth - l4WorkingDays - leaveDaysCount,
+  // });
+  // console.groupEnd();
 
-  console.group("⏱ Hour & Base Rates");
-  console.table({
-    monthlyRate: format(values.rate),
-    leaveBase: format(values.leaveBase),
-    workingHoursInMonth: values.workingHours,
-    perHour: format(perHour),
-    perWorkDay: format(perHour * 8),
-  });
-  console.groupEnd();
+  // console.group("⏱ Hour & Base Rates");
+  // console.table({
+  //   monthlyRate: format(values.rate),
+  //   leaveBase: format(values.leaveBase),
+  //   workingHoursInMonth: values.workingHours,
+  //   perHour: format(perHour),
+  //   perWorkDay: format(perHour * 8),
+  // });
+  // console.groupEnd();
 
-  console.group("💵 Earnings");
-  console.table({
-    workDaysPayment: format(workDaysPayment),
-    l4Payment: format(l4Payment),
-    leavePayment: format(leavePayment),
-    attendanceBonus: format(values.attendanceBonus),
-    discretionaryBonus: format(values.discretionaryBonus),
-    otherBonus: format(values.otherBonus),
-    overtimes: format(overtimes),
-    fullSalaryBrutto: format(fullSalaryBrutto),
-  });
-  console.groupEnd();
+  // console.group("💵 Earnings");
+  // console.table({
+  //   workDaysPayment: format(workDaysPayment),
+  //   l4Payment: format(l4Payment),
+  //   leavePayment: format(leavePayment),
+  //   attendanceBonus: format(values.attendanceBonus),
+  //   discretionaryBonus: format(values.discretionaryBonus),
+  //   otherBonus: format(values.otherBonus),
+  //   overtimes: format(overtimes),
+  //   fullSalaryBrutto: format(fullSalaryBrutto),
+  // });
+  // console.groupEnd();
 
-  console.group("🏛 Taxes");
-  console.table({
-    zusTaxes: format(zusTaxes),
-    healthInsurance: format(healthInsurance),
-    pitTax: format(pitTax),
-  });
-  console.groupEnd();
+  // console.group("🏛 Taxes");
+  // console.table({
+  //   zusTaxes: format(zusTaxes),
+  //   healthInsurance: format(healthInsurance),
+  //   pitTax: format(pitTax),
+  // });
+  // console.groupEnd();
 
-  console.group("🧾 Final Result");
-  console.table({
-    netto: format(netto),
-    deductionAfterTaxInput: format(values.deductionAfterTax),
-  });
-  console.groupEnd();
+  // console.group("🧾 Final Result");
+  // console.table({
+  //   netto: format(netto),
+  //   deductionAfterTaxInput: format(values.deductionAfterTax),
+  // });
+  // console.groupEnd();
 
-  console.groupEnd();
+  // console.groupEnd();
+
   return {
-    zusTaxes: zusTaxes,
-    healthInsurance: healthInsurance,
-    pitTax: pitTax,
+    fullSalaryBrutto,
+
+    workDaysPayment,
+    l4Payment,
+    leavePayment,
+
+    attendanceBonus: values.attendanceBonus,
+    discretionaryBonus: values.discretionaryBonus,
+    otherBonus: values.otherBonus,
+
+    overtimes,
+    dailyOvertimes: perHour*values.dailyOvertime*taxes.dailyOvertime / 100,
+    weekendHolidayOvertimes: perHour*values.weekendHolidayOvertime*taxes.weekendHolidayOvertime / 100,
+    nightOvertime: perHour*values.nightOvertime*taxes.nightOvertime / 100,
+    nightHours: perHour*values.nightHours*taxes.nightHours / 100,
+    turnOfDayHours : perHour*values.turnOfDayHours*taxes.turnOfDayHours / 100,
+
+    perHour: perHour,
+
+    isUnder26: values.isUnder26,
+    isStudent: values.isStudent,
+    forYoungPeople: values.taxRegime === 0,
+
+    // zusPension: fullSalaryBrutto * taxes.zusPensionInsurance / 100,
+    // zusDisability: fullSalaryBrutto * taxes.zusDisability / 100,
+    // zusSickness: fullSalaryBrutto * taxes.zusSicknessInsurance / 100,
+    zusTaxes,
+
+    // healthInsuranceBase: fullSalaryBrutto - zusTaxes,
+    healthInsurance,
+
+    // pitBase: fullSalaryBrutto - zusTaxes - taxes.taxDeductibaleExpenses,
+    pitTax,
+
+    netto,
     brutto: fullSalaryBrutto,
-    netto: netto
-  }
+
+    calculationType: 'employment' as const,
+  };
 }
