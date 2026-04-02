@@ -12,10 +12,16 @@ export async function createMandateSalary(values: any) {
     p_working_hours: values.workingHours,
 
     p_rate: values.rate,
+    p_addition_after_tax: values.additionAfterTax,
+    p_deduction_after_tax: values.deductionAfterTax,
     p_kup: values.kup,
     p_is_student: values.isStudent,
     p_is_under26: values.isUnder26,
     p_pit2: values.pit2,
+
+    p_attendance_bonus: values.attendanceBonus,
+    p_discretionary_bonus: values.discretionaryBonus,
+    p_other_bonus: values.otherBonus,
 
     p_holidays: values.holidays
   });
@@ -31,7 +37,6 @@ export async function updateMandateSalary(id: string, values: any) {
 
     p_year: values.year,
     p_month: values.month,
-    p_contract_type: 'mandate',
     p_payment_mode: 'hourly',
 
     p_gross_salary: values.brutto,
@@ -39,10 +44,16 @@ export async function updateMandateSalary(id: string, values: any) {
     p_working_hours: values.workingHours,
 
     p_rate: values.rate,
+    p_addition_after_tax: values.additionAfterTax,
+    p_deduction_after_tax: values.deductionAfterTax,
     p_kup: values.kup,
     p_is_student: values.isStudent,
     p_is_under26: values.isUnder26,
     p_pit2: values.pit2,
+
+    p_attendance_bonus: values.attendanceBonus,
+    p_discretionary_bonus: values.discretionaryBonus,
+    p_other_bonus: values.otherBonus,
 
     p_holidays: values.holidays
   });

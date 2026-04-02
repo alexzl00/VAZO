@@ -44,7 +44,7 @@ const FormWithInfo: React.FC<FormWithInfoProps> = ({ children, title, infoText }
   };
 
   return (
-    <Grid container spacing={2} direction="column" sx={{marginRight: '20px'}}>
+    <Grid container spacing={2} direction="column" >
       
       {/* Title row with Info button */}
       <Grid size={{ xs: 12, md: 12 }}>

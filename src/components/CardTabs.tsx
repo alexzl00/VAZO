@@ -19,7 +19,7 @@ export default function CardTabs({ value, labels, onChange, disabledTabs }: Card
 
         '& .MuiTabs-flexContainer': {
           display: 'grid',
-          gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)' },
+          gridTemplateColumns: { md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
           gap: 1,
         },
       }}
@@ -82,4 +82,5 @@ export default function CardTabs({ value, labels, onChange, disabledTabs }: Card
     </Tabs>
   );
 }
+
 

@@ -11,23 +11,24 @@ import { useSnackbar } from "notistack";
 import { useIntl } from 'react-intl';
 
 // project imports
-import SalaryForm from "../sections/salary-calculator-form/SalaryCalculatorForm";
+import SalaryForm from "../../sections/salary-calculator-form/SalaryCalculatorForm";
 
 // utils 
-import { getWorkedDaysInMonth } from '../utils/monthHelperFunc';
+import { getWorkedDaysInMonth } from '../../utils/monthHelperFunc';
 
-import { calculateTaxesContractOfMandate, calculateTaxesUoP } from '../utils/workTypeSalaryCalc';
+import { calculateTaxesContractOfMandate, calculateTaxesUoP } from '../../utils/workTypeSalaryCalc';
 
 // supabase api
-import { updateUopSalary } from '../api/UoP';
-import { updateMandateSalary } from '../api/CoM';
-import { getSalaryContract } from "../api/getSalaryContract";
+import { updateUopSalary } from '../../api/UoP';
+import { updateMandateSalary } from '../../api/CoM';
+import { getSalaryContract } from "../../api/getSalaryContract";
 
 // types
-import type { SalaryCalculatorValues } from '../types/salaryCalculator';
+import type { SalaryCalculatorValues } from '../../types/salaryCalculator';
+import type { WorkRate } from "../../types/salaryCalculator";
 
 // for test
-import { login } from '../api/authUser';
+import { login } from '../../api/authUser';
 
 export default function UpdateSalary() {
 
@@ -60,25 +61,27 @@ export default function UpdateSalary() {
           isStudent: inputs?.is_student ?? false,
           isUnder26: inputs?.is_under26 ?? false,
 
-          deductionAfterTax: 0,
-          additionAfterTax: 0,
+          deductionAfterTax: inputs?.deduction_after_tax ?? 0,
+          additionAfterTax: inputs?.addition_after_tax ?? 0,
 
           // Kalendarz
           year: salaryRecord?.year ?? now.getFullYear(),
           month: salaryRecord?.month ?? now.getMonth() + 1,
 
           workingHours:
-            salaryRecord?.working_hours ??
+            inputs?.working_hours ??
             getWorkedDaysInMonth(
-              now.getFullYear(),
-              now.getMonth(),
-              [],
-              [],
-              []
+              salaryRecord?.year ?? now.getFullYear(),
+              (salaryRecord?.month ?? now.getMonth() + 1) - 1,
+              inputs?.holidays ?? [],
+              inputs?.l4 ?? [],
+              inputs?.leave ?? []
             ) * 8,
 
           // Stawka
-          workRateType: salaryRecord?.payment_mode ?? "monthly",
+          workRateType: (salaryRecord?.contract_type && salaryRecord?.payment_mode) 
+              ? `${salaryRecord.contract_type}_${salaryRecord.payment_mode}` as WorkRate
+              : 'uop_monthly',
           rate: inputs?.rate ?? 0,
 
           attendanceBonus: inputs?.attendance_bonus ?? 0,
@@ -99,11 +102,11 @@ export default function UpdateSalary() {
 
           // L4
           l4: inputs?.l4 ?? [],
-          l4Base: 0,
+          l4Base: inputs?.l4_base ?? 0,
 
           // Urlop
           leave: inputs?.leave ?? [],
-          leaveBase: 0
+          leaveBase: inputs?.leave_base ?? 0
         });
       } catch (error) {
         console.error("Failed to load salary contract:", error);
@@ -119,7 +122,7 @@ export default function UpdateSalary() {
       // login
       const session = await login('aleks19802@o2.pl', '123');
 
-      if (values.workRateType === "contractOfMandate") {
+      if (values.workRateType === 'mandate_hourly') {
         const calculated = calculateTaxesContractOfMandate(values);
 
         await updateMandateSalary(id, {
@@ -131,14 +134,20 @@ export default function UpdateSalary() {
           workingHours: values.workingHours,
 
           rate: values.rate,
+          additionAfterTax: values.additionAfterTax,
+          deductionAfterTax: values.deductionAfterTax,
           kup: values.kup,
           isStudent: values.isStudent,
           isUnder26: values.isUnder26,
           pit2: values.pit2,
 
+          attendanceBonus: values.attendanceBonus,
+          discretionaryBonus: values.discretionaryBonus,
+          otherBonus: values.otherBonus,
+          
           holidays: values.holidays
         })
-      } else if (values.workRateType === 'monthly' || values.workRateType === 'hourly') {
+      } else if (values.workRateType === 'uop_monthly' || values.workRateType === 'uop_hourly') {
         const calculated = calculateTaxesUoP(values);
 
         await updateUopSalary(id, {
@@ -152,6 +161,8 @@ export default function UpdateSalary() {
           workingHours: values.workingHours,
 
           rate: values.rate,
+          additionAfterTax: values.additionAfterTax,
+          deductionAfterTax: values.deductionAfterTax,
           taxRegime: values.taxRegime,
           pit2: values.pit2,
 
@@ -169,8 +180,10 @@ export default function UpdateSalary() {
           holidays: values.holidays,
 
           l4: values.l4,
+          l4Base: values.l4Base,
 
-          leave: values.leave
+          leave: values.leave,
+          leaveBase: values.leaveBase
         });
       }
 

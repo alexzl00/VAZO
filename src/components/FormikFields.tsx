@@ -20,19 +20,36 @@ export const FormikNumberField = ({ name, labelId, unit, disabled, onChange }: N
         const hasError = Boolean(errorText);
 
         return (
-          <Stack spacing={1}>
+          <Stack spacing={1} width={"320px"}>
             <InputLabel>
               <FormattedMessage id={labelId} /> {unit && `(${unit})`}
             </InputLabel>
             <TextField
               {...field}
               type="number"
+              value={field.value === 0 ? '' : field.value}
               disabled={disabled}
               error={hasError}
+              onFocus={() => {
+                if (field.value === 0) {
+                  form.setFieldValue(name, 0);
+                }
+              }}
+              onBlur={(e) => {
+                if (e.target.value === '') {
+                  form.setFieldValue(name, 0);
+                }
+              }}
               onChange={(e) => {
-                const newValue = Number(e.target.value);
-                form.setFieldValue(name, newValue);
-                if (onChange) onChange(newValue, form);
+                const val = e.target.value;
+                
+                if (!/^\d*\.?\d*$/.test(val)) return;
+
+                form.setFieldValue(name, val === '' ? 0 : Number(val));
+
+                if (onChange && val !== '') {
+                  onChange(Number(val), form);
+                }
               }}
             />
             {hasError && <FormHelperText error>{errorText}</FormHelperText>}
@@ -42,7 +59,6 @@ export const FormikNumberField = ({ name, labelId, unit, disabled, onChange }: N
     </Field>
   );
 };
-
 type menuItemsT = {
   value: string | number;
   text: string | React.ReactNode;

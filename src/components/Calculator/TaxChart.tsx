@@ -196,7 +196,7 @@ export default React.memo(function TaxChart({calculation} : TaxChartProps) {
         const getSalaryItems = (calculation: any, intl: any) => {
             const items: BreakdownItem[] = [
             { label: intl.formatMessage({ id: 'salary-monthly-brutto' }), 
-                value: calculation.calculationType === 'employment'
+                value: calculation.calculationType === 'uop'
                 ? formatNumber(calculation.workDaysPayment)
                 : formatNumber(calculation.rate)
             },
@@ -209,7 +209,7 @@ export default React.memo(function TaxChart({calculation} : TaxChartProps) {
             },
             ];
 
-            if (calculation.calculationType === 'employment') {
+            if (calculation.calculationType === 'uop') {
                 items.push(
                     { label: intl.formatMessage({ id: 'salary-hourly-rate' }), 
                         value: formatNumber(calculation.perHour)
@@ -236,7 +236,7 @@ export default React.memo(function TaxChart({calculation} : TaxChartProps) {
             const items: BreakdownItem[] = [];
 
             // Checking on PIT
-            if (calculation.calculationType === 'contractOfMandate') {
+            if (calculation.calculationType === 'mandate') {
                 if (calculation.isUnder26 === false) {
                     items.push(
                         {
@@ -288,7 +288,7 @@ export default React.memo(function TaxChart({calculation} : TaxChartProps) {
                         }
                     );
                 }
-            } else if (calculation.calculationType === 'employment') {
+            } else if (calculation.calculationType === 'uop') {
                 if (calculation.forYoungPeople === false) {
                    items.push(
                         {
@@ -458,14 +458,6 @@ export default React.memo(function TaxChart({calculation} : TaxChartProps) {
                                 xs: 1.5,
                                 sm: 4
                             },
-                            borderTopRightRadius: {
-                                xs: 0,
-                                sm: 0
-                                },
-                            borderBottomRightRadius: {
-                                xs: 0,
-                                sm: 0
-                            },
                             bgcolor: 'white',
                             p: {
                                 xs: 1,
@@ -474,7 +466,7 @@ export default React.memo(function TaxChart({calculation} : TaxChartProps) {
                             },
                             position: 'absolute',
                             top: '50%',
-                            left: '50%',
+                            left: '55%',
                             transform: 'translate(-50%, -50%)',
                             width: {
                                 xs: "90%",
@@ -482,23 +474,28 @@ export default React.memo(function TaxChart({calculation} : TaxChartProps) {
                             },
                             maxWidth: 850,
                             maxHeight: '80vh',
-                            overflowY: 'auto',
                             fontFamily: 'Poppins',
-
-                            "&::-webkit-scrollbar": {
-                                width: "6px",
-                            },
-                            "&::-webkit-scrollbar-thumb": {
-                                background: "#475488",
-                                borderRadius: "10px",
-                                maxHeight: "40px"
-                            },
-                            "&::-webkit-scrollbar-thumb:hover": {
-                                transition: 'all 0.2s ease',
-                                background: "#23326D"
-                            }
                         }}>
-                            <Box>
+                            <Box
+                                sx={{
+                                    flex: 1,
+                                    overflowY: 'auto',
+                                    maxHeight: '75vh',
+                                    p: 2,
+                                    "&::-webkit-scrollbar": {
+                                        width: "6px",
+                                    },
+                                    "&::-webkit-scrollbar-thumb": {
+                                        background: "#475488",
+                                        borderRadius: "10px",
+                                        maxHeight: "40px"
+                                    },
+                                    "&::-webkit-scrollbar-thumb:hover": {
+                                        transition: 'all 0.2s ease',
+                                        background: "#23326D"
+                                    }
+                                }}
+                            >
                                 {breakdownConfig.map((section) => (
                                     <Box key={section.title} mb={4}>
                                     <Typography variant="h6" color='#23326D' sx={{

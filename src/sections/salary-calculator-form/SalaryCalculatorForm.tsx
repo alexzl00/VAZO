@@ -10,6 +10,8 @@ import {
 } from '@mui/material';
 
 import FormHelperText from '@mui/material/FormHelperText';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 
 // third party
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -72,7 +74,7 @@ const SalarySchema = Yup.object().shape({
   month: Yup.number().required().min(1).max(12),
   workingHours: positiveNumber().min(1),
 
-  workRateType: Yup.mixed<'monthly' | 'hourly' | 'contractOfMandate'>().required(),
+  workRateType: Yup.mixed<'uop_monthly' | 'uop_hourly' | 'mandate_hourly'>().required(),
   rate: positiveNumber(),
   attendanceBonus: positiveNumber(),
   discretionaryBonus: positiveNumber(),
@@ -136,7 +138,13 @@ export default function SalaryForm({ initialValues, onSubmit }: SalaryFormProps)
   const intl = useIntl();
   const [value, setValue] = useState(0);
 
-  const [disabledTabs, setDisabledTabs] = useState<number[]>([]);
+  const theme = useTheme();
+  const isMidScreen = useMediaQuery(theme.breakpoints.down('lg'));
+
+  const [disabledTabs, setDisabledTabs] = useState<number[]>(initialValues.workRateType === 'mandate_hourly' 
+    ? [3, 4, 5]
+    : []
+  );
 
   const labels = [
     intl.formatMessage({ id: 'tabs-rate-and-bonuses' }),
@@ -156,8 +164,8 @@ export default function SalaryForm({ initialValues, onSubmit }: SalaryFormProps)
 
     const isDisabled =
       values.taxRegime === 0 &&
-      (values.workRateType === "hourly" ||
-        values.workRateType === "monthly");
+      (values.workRateType === "uop_hourly" ||
+        values.workRateType === "uop_monthly");
 
     useEffect(() => {
       if (isDisabled && values.pit2) {
@@ -180,9 +188,13 @@ export default function SalaryForm({ initialValues, onSubmit }: SalaryFormProps)
         {({ values, handleChange, setFieldValue, errors, touched }) => {
 
           const calculations = useMemo(() => {
-            if (values.workRateType === 'contractOfMandate') {
+            console.log(values)
+            if (values.workRateType === 'mandate_hourly') {
+              console.log(calculateTaxesContractOfMandate(values))
               return calculateTaxesContractOfMandate(values);
-            } return calculateTaxesUoP(values);
+            } 
+            console.log(calculateTaxesUoP(values))
+            return calculateTaxesUoP(values);
           }, [values])
 
           return (
@@ -190,286 +202,288 @@ export default function SalaryForm({ initialValues, onSubmit }: SalaryFormProps)
               <Pit2AutoReset/>
               <CardTabs value={value} labels={labels} onChange={changeTab} disabledTabs={disabledTabs}/>
 
-              <Stack direction={'row'}>
-                <Box sx={{ mt: 3, width: '400px' }}>
-                  {/* TAB 0: Stawka i premie */}
-                  {value === 0 && (
-                    <FormWithInfo
-                      title={intl.formatMessage({id: 'tabs-rate-and-bonuses' })}
-                      infoText={intl.formatMessage({id: "rate-and-bonuses-info"})}
-                    >
-                      <Stack spacing={2}>
-                        <FomrikSelectField
-                          name="workRateType"
-                          inputLabel="rate-and-bonuses-work-rate-type"
-                          menuItems={[
-                            { value: "monthly", text: <FormattedMessage id="rate-monthly" /> },
-                            { value: "hourly", text: <FormattedMessage id="rate-hourly" /> },
-                            { value: "contractOfMandate", text: <FormattedMessage id="rate-contract-of-mandate" /> },
-                          ]}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setFieldValue("workRateType", value);                  
-                            if (value === "contractOfMandate") {
-                              setDisabledTabs([3, 4, 5]);
-                            } else {
-                              setDisabledTabs([]);
-                            }
-                          }}
-                        />
-
-                        {(['rate', 'attendanceBonus', 'discretionaryBonus', 'otherBonus'] as const).map((name) => (
-                          <FormikNumberField
-                            key={name}
-                            name={name}
-                            labelId={`rate-and-bonuses-${camelToKebabCase(name)}`}
-                            unit={
-                              name === 'rate' && !errors.workingHours
-                                ? values.workRateType === 'monthly'
-                                  ? `${Math.round(values.rate / values.workingHours * 100) / 100} zł/h`
-                                  : (values.workRateType === 'hourly' || values.workRateType === 'contractOfMandate')
-                                    ? `${Math.round(values.rate * values.workingHours * 100) / 100} zł`
-                                    : ''
-                                : undefined
-                            }
-                          />
-                        ))}
-                      </Stack>
-                    </FormWithInfo>
-                  )}
-
-                  {/* TAB 1: Podatki i potrącenia */}
-                  {value === 1 && (
-                    <FormWithInfo 
-                      title={intl.formatMessage({id: 'tabs-taxes-and-deductions' })}
-                      infoText={intl.formatMessage({id: "taxes-and-deductions-info"})}
-                    >
-                      <Stack spacing={2}>
-                        {(values.workRateType === 'hourly' || values.workRateType === 'monthly') && (
-                          <FomrikSelectField 
-                            name="taxRegime"
-                            inputLabel="taxes-and-deductions-tax-regime"
+              <Box sx={{display:'flex', justifyContent: 'cetner'}}>
+                <Stack direction={isMidScreen ? 'column' : 'row'} >
+                  <Box sx={{ mt: 3, width: '400px' }}>
+                    {/* TAB 0: Stawka i premie */}
+                    {value === 0 && (
+                      <FormWithInfo
+                        title={intl.formatMessage({id: 'tabs-rate-and-bonuses' })}
+                        infoText={intl.formatMessage({id: "rate-and-bonuses-info"})}
+                      >
+                        <Stack spacing={2}>
+                          <FomrikSelectField
+                            name="workRateType"
+                            inputLabel="rate-and-bonuses-work-rate-type"
                             menuItems={[
-                              {value: 12, text: 'PIT 12%'}, { value: 0, text: (<> PIT 0% (<FormattedMessage id="taxes-and-deductions-young-relief" />)</>)}
+                              { value: "uop_monthly", text: <FormattedMessage id="rate-monthly" /> },
+                              { value: "uop_hourly", text: <FormattedMessage id="rate-hourly" /> },
+                              { value: "mandate_hourly", text: <FormattedMessage id="rate-contract-of-mandate" /> },
                             ]}
                             onChange={(e) => {
-                              const newTaxRegime = Number(e.target.value);
-                              setFieldValue("taxRegime", newTaxRegime);
+                              const value = e.target.value;
+                              setFieldValue("workRateType", value);                  
+                              if (value === "mandate_hourly") {
+                                setDisabledTabs([3, 4, 5]);
+                              } else {
+                                setDisabledTabs([]);
+                              }
                             }}
                           />
-                        )}
 
-                        {(values.workRateType === 'contractOfMandate') && (      
-                          <FomrikSelectField 
-                            name="kup"
-                            inputLabel="taxes-and-deductions-kup"
-                            menuItems={[
-                              {value: 20, text: '20%'}, { value: 50, text: "50%"}
-                            ]}
-                            onChange={(e) => {
-                              const kup = Number(e.target.value);
-                              setFieldValue("kup", kup);
-                            }}
-                          />
-                        )}
-
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              disabled={values.taxRegime === 0 && (values.workRateType === 'hourly' || values.workRateType === 'monthly')}
-                              name="pit2"
-                              checked={values.pit2}
-                              onChange={handleChange}
-                            />
-                          }
-                          label="PIT-2"
-                        />
-
-                        {(values.workRateType === 'contractOfMandate') && (
-                          <>
-                            <FormControlLabel
-                              control={
-                                <Checkbox
-                                  name="isStudent"
-                                  checked={values.isStudent}
-                                  onChange={handleChange}
-                                />
+                          {(['rate', 'attendanceBonus', 'discretionaryBonus', 'otherBonus'] as const).map((name) => (
+                            <FormikNumberField
+                              key={name}
+                              name={name}
+                              labelId={`rate-and-bonuses-${camelToKebabCase(name)}`}
+                              unit={
+                                name === 'rate' && !errors.workingHours
+                                  ? values.workRateType === 'uop_monthly'
+                                    ? `${Math.round(values.rate / values.workingHours * 100) / 100} zł/h`
+                                    : (values.workRateType === 'uop_hourly' || values.workRateType === 'mandate_hourly')
+                                      ? `${Math.round(values.rate * values.workingHours * 100) / 100} zł`
+                                      : ''
+                                  : undefined
                               }
-                              label={intl.formatMessage({id: 'taxes-and-deductions-student-status'})}
                             />
-                            <FormControlLabel
-                              control={
-                                <Checkbox
-                                  name="isUnder26"
-                                  checked={values.isUnder26}
-                                  onChange={handleChange}
-                                />
-                              }
-                              label={intl.formatMessage({id: 'taxes-and-deductions-age-status'})}
+                          ))}
+                        </Stack>
+                      </FormWithInfo>
+                    )}
+
+                    {/* TAB 1: Podatki i potrącenia */}
+                    {value === 1 && (
+                      <FormWithInfo 
+                        title={intl.formatMessage({id: 'tabs-taxes-and-deductions' })}
+                        infoText={intl.formatMessage({id: "taxes-and-deductions-info"})}
+                      >
+                        <Stack spacing={2}>
+                          {(values.workRateType === 'uop_hourly' || values.workRateType === 'uop_monthly') && (
+                            <FomrikSelectField 
+                              name="taxRegime"
+                              inputLabel="taxes-and-deductions-tax-regime"
+                              menuItems={[
+                                {value: 12, text: 'PIT 12%'}, { value: 0, text: (<> PIT 0% (<FormattedMessage id="taxes-and-deductions-young-relief" />)</>)}
+                              ]}
+                              onChange={(e) => {
+                                const newTaxRegime = Number(e.target.value);
+                                setFieldValue("taxRegime", newTaxRegime);
+                              }}
                             />
-                          </>
-                        )}
-
-                        <FormikNumberField name="deductionAfterTax" labelId="taxes-and-deductions-deduction-after-tax" unit='zł'/>
-                        <FormikNumberField name="additionAfterTax" labelId="taxes-and-deductions-addition-after-tax" unit='zł'/>
-                      </Stack>
-                    </FormWithInfo>
-                  )}
-
-                  {/* TAB 2: Kalendarz i norma czasu */}
-                  {value === 2 && (
-                    <FormWithInfo
-                      title={intl.formatMessage({id: 'tabs-calendar-and-working-time' })}
-                      infoText={intl.formatMessage({id: "calendar-and-working-time-info"})}
-                    >
-                      <Stack spacing={2} width={'320px'}>
-                        <FormikNumberField
-                          name="year"
-                          labelId="year"
-                          onChange={(newYear, form) => {
-                            const month = form.values.month;
-                            const holidays = form.values.holidays;
-                            const newWorkingHours = getWorkedDaysInMonth(newYear, month - 1, holidays, [], []) * 8;
-                            form.setFieldValue("workingHours", newWorkingHours);
-                          }}
-                        />
-
-                        <MonthPicker
-                          value={values.month}
-                          onChange={(val) => {
-                            setFieldValue("month", val)
-                            setFieldValue("workingHours", getWorkedDaysInMonth(values.year, val-1, values.holidays, [], []) * 8)
-                          }}
-                          label={intl.formatMessage({id: "month-picker-label"})}
-                          error={Boolean(touched.month && errors.month)}
-                          helperText={touched.month && errors.month ? errors.month : ""}
-                        />
-
-                        <Stack spacing={1}>
-                          <FormikNumberField name="workingHours" labelId="calendar-and-working-time-working-hours"/>
-
-                          {(values.workRateType === 'hourly' || values.workRateType === 'monthly') && (
-                            <Box sx={{paddingTop: '10px'}}>
-                              <MultiRangeMonthPicker
-                                singleClick
-                                initialMonth={dayjs(
-                                  `${values.year}-${String(values.month).padStart(2, "0")}-01`
-                                )}
-                                defaultValue={isoToDayjsRanges(values.holidays)}
-                                disableMonthSwitching={true}
-                                onChange={(ranges: DateRange[]) => {
-                                  const isoRanges = ranges.map(r => ({
-                                    start: r.start.format("YYYY-MM-DD"),
-                                    end: r.end.format("YYYY-MM-DD"),
-                                  }));
-                                  setFieldValue("holidays", isoRanges);
-                                  setFieldValue("workingHours", getWorkedDaysInMonth(values.year, values.month-1, isoRanges, [], []) * 8)
-                                }} 
-                              />
-                              {errors.holidays && <FormHelperText error>{errors.holidays as string}</FormHelperText>}
-                            </Box>
                           )}
+
+                          {(values.workRateType === 'mandate_hourly') && (      
+                            <FomrikSelectField 
+                              name="kup"
+                              inputLabel="taxes-and-deductions-kup"
+                              menuItems={[
+                                {value: 20, text: '20%'}, { value: 50, text: "50%"}
+                              ]}
+                              onChange={(e) => {
+                                const kup = Number(e.target.value);
+                                setFieldValue("kup", kup);
+                              }}
+                            />
+                          )}
+
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                disabled={values.taxRegime === 0 && (values.workRateType === 'uop_hourly' || values.workRateType === 'uop_monthly')}
+                                name="pit2"
+                                checked={values.pit2}
+                                onChange={handleChange}
+                              />
+                            }
+                            label="PIT-2"
+                          />
+
+                          {(values.workRateType === 'mandate_hourly') && (
+                            <>
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
+                                    name="isStudent"
+                                    checked={values.isStudent}
+                                    onChange={handleChange}
+                                  />
+                                }
+                                label={intl.formatMessage({id: 'taxes-and-deductions-student-status'})}
+                              />
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
+                                    name="isUnder26"
+                                    checked={values.isUnder26}
+                                    onChange={handleChange}
+                                  />
+                                }
+                                label={intl.formatMessage({id: 'taxes-and-deductions-age-status'})}
+                              />
+                            </>
+                          )}
+
+                          <FormikNumberField name="deductionAfterTax" labelId="taxes-and-deductions-deduction-after-tax" unit='zł'/>
+                          <FormikNumberField name="additionAfterTax" labelId="taxes-and-deductions-addition-after-tax" unit='zł'/>
                         </Stack>
-                    </Stack>
-                    </FormWithInfo>
-                  )}
+                      </FormWithInfo>
+                    )}
 
-                  {/* TAB 3: Nadgodziny */}
-                  {value === 3 && (
-                    <FormWithInfo
-                      title={intl.formatMessage({id: 'tabs-overtime-and-night-hours' })}
-                      infoText={intl.formatMessage({id: "overtime-and-night-hours-info"})}
-                    >
-                      <Stack spacing={2}>
-                        {/* Show total overtime sum error once at the top */}
-                        {(['dailyOvertime', 'weekendHolidayOvertime', 'nightOvertime'] as const).some(
-                          (name) => touched[name]
-                        ) && errors.totalOvertime && (
-                          <FormHelperText error>{errors.totalOvertime}</FormHelperText>
-                        )}
-
-                        {([
-                          'dailyOvertime',
-                          'weekendHolidayOvertime',
-                          'nightOvertime',
-                          'nightHours',
-                          'turnOfDayHours',
-                          'overtimeLimit',
-                        ] as const).map((name) => (
+                    {/* TAB 2: Kalendarz i norma czasu */}
+                    {value === 2 && (
+                      <FormWithInfo
+                        title={intl.formatMessage({id: 'tabs-calendar-and-working-time' })}
+                        infoText={intl.formatMessage({id: "calendar-and-working-time-info"})}
+                      >
+                        <Stack spacing={2} width={'320px'}>
                           <FormikNumberField
-                            key={name}
-                            name={name}
-                            labelId={`overtime-and-night-hours-${camelToKebabCase(name)}`}
+                            name="year"
+                            labelId="year"
+                            onChange={(newYear, form) => {
+                              const month = form.values.month;
+                              const holidays = form.values.holidays;
+                              const newWorkingHours = getWorkedDaysInMonth(newYear, month - 1, holidays, [], []) * 8;
+                              form.setFieldValue("workingHours", newWorkingHours);
+                            }}
                           />
-                        ))}
-                      </Stack>
-                    </FormWithInfo>
-                  )}
 
-                  {/* TAB 4: L4 */}
-                  {value === 4 && (
-                    <FormWithInfo
-                      title={intl.formatMessage({id: 'tabs-sick-leave' })}
-                      infoText={intl.formatMessage({id: "sick-leave-info"})
-                    }>
-                      <Stack spacing={2}>
-                        <Stack spacing={0} width={'320px'}>
-                          <FormikNumberField name="l4Base" labelId="l4-base"/>
-                        </Stack>
-                        <Box>
-                          <MultiRangeMonthPicker
-                            initialMonth={dayjs(
-                              `${values.year}-${String(values.month).padStart(2, "0")}-01`
-                            )}
-                            defaultValue={isoToDayjsRanges(values.l4)}
-                            disableMonthSwitching={true}
-                            onChange={(ranges: DateRange[]) => {
-                              const isoRanges = ranges.map(r => ({
-                                start: r.start.format("YYYY-MM-DD"),
-                                end: r.end.format("YYYY-MM-DD"),
-                              }));
-                              setFieldValue("l4", isoRanges);
-                            }} 
+                          <MonthPicker
+                            value={values.month}
+                            onChange={(val) => {
+                              setFieldValue("month", val)
+                              setFieldValue("workingHours", getWorkedDaysInMonth(values.year, val-1, values.holidays, [], []) * 8)
+                            }}
+                            label={intl.formatMessage({id: "month-picker-label"})}
+                            error={Boolean(touched.month && errors.month)}
+                            helperText={touched.month && errors.month ? errors.month : ""}
                           />
-                          {errors.l4 && <FormHelperText error>{errors.l4 as string}</FormHelperText>}
-                        </Box>
-                      </Stack>
-                    </FormWithInfo>
-                  )}
 
-                  {/* TAB 5: Urlop */}
-                  {value === 5 && (
-                    <FormWithInfo
-                      title={intl.formatMessage({id: 'tabs-vacation' })}
-                      infoText={intl.formatMessage({id: "vacation-leave-info"})}
-                    >
-                      <Stack spacing={2}>
-                        <Stack spacing={1} width={'320px'}>
-                          <FormikNumberField name="leaveBase" labelId="vacation-leave-base"/>
-                        </Stack>
-                        <Box>
-                          <MultiRangeMonthPicker
-                            initialMonth={dayjs(
-                              `${values.year}-${String(values.month).padStart(2, "0")}-01`
+                          <Stack spacing={1}>
+                            <FormikNumberField name="workingHours" labelId="calendar-and-working-time-working-hours"/>
+
+                            {(values.workRateType === 'uop_hourly' || values.workRateType === 'uop_monthly') && (
+                              <Box sx={{paddingTop: '10px'}}>
+                                <MultiRangeMonthPicker
+                                  singleClick
+                                  initialMonth={dayjs(
+                                    `${values.year}-${String(values.month).padStart(2, "0")}-01`
+                                  )}
+                                  defaultValue={isoToDayjsRanges(values.holidays)}
+                                  disableMonthSwitching={true}
+                                  onChange={(ranges: DateRange[]) => {
+                                    const isoRanges = ranges.map(r => ({
+                                      start: r.start.format("YYYY-MM-DD"),
+                                      end: r.end.format("YYYY-MM-DD"),
+                                    }));
+                                    setFieldValue("holidays", isoRanges);
+                                    setFieldValue("workingHours", getWorkedDaysInMonth(values.year, values.month-1, isoRanges, [], []) * 8)
+                                  }} 
+                                />
+                                {errors.holidays && <FormHelperText error>{errors.holidays as string}</FormHelperText>}
+                              </Box>
                             )}
-                            defaultValue={isoToDayjsRanges(values.leave)}
-                            disableMonthSwitching={true}
-                            onChange={(ranges: DateRange[]) => {
-                              const isoRanges = ranges.map(r => ({
-                                start: r.start.format("YYYY-MM-DD"),
-                                end: r.end.format("YYYY-MM-DD"),
-                              }));
-                              setFieldValue("leave", isoRanges);
-                            }} 
-                          />
-                          {errors.leave && <FormHelperText error>{errors.leave as string}</FormHelperText>}
-                        </Box>
+                          </Stack>
                       </Stack>
-                    </FormWithInfo>
-                  )}
-                </Box>
-                <TaxChart calculation={calculations}/>
-              </Stack>
+                      </FormWithInfo>
+                    )}
+
+                    {/* TAB 3: Nadgodziny */}
+                    {value === 3 && (
+                      <FormWithInfo
+                        title={intl.formatMessage({id: 'tabs-overtime-and-night-hours' })}
+                        infoText={intl.formatMessage({id: "overtime-and-night-hours-info"})}
+                      >
+                        <Stack spacing={2}>
+                          {/* Show total overtime sum error once at the top */}
+                          {(['dailyOvertime', 'weekendHolidayOvertime', 'nightOvertime'] as const).some(
+                            (name) => touched[name]
+                          ) && errors.totalOvertime && (
+                            <FormHelperText error>{errors.totalOvertime}</FormHelperText>
+                          )}
+
+                          {([
+                            'dailyOvertime',
+                            'weekendHolidayOvertime',
+                            'nightOvertime',
+                            'nightHours',
+                            'turnOfDayHours',
+                            'overtimeLimit',
+                          ] as const).map((name) => (
+                            <FormikNumberField
+                              key={name}
+                              name={name}
+                              labelId={`overtime-and-night-hours-${camelToKebabCase(name)}`}
+                            />
+                          ))}
+                        </Stack>
+                      </FormWithInfo>
+                    )}
+
+                    {/* TAB 4: L4 */}
+                    {value === 4 && (
+                      <FormWithInfo
+                        title={intl.formatMessage({id: 'tabs-sick-leave' })}
+                        infoText={intl.formatMessage({id: "sick-leave-info"})
+                      }>
+                        <Stack spacing={2}>
+                          <Stack spacing={0} width={'320px'}>
+                            <FormikNumberField name="l4Base" labelId="l4-base"/>
+                          </Stack>
+                          <Box>
+                            <MultiRangeMonthPicker
+                              initialMonth={dayjs(
+                                `${values.year}-${String(values.month).padStart(2, "0")}-01`
+                              )}
+                              defaultValue={isoToDayjsRanges(values.l4)}
+                              disableMonthSwitching={true}
+                              onChange={(ranges: DateRange[]) => {
+                                const isoRanges = ranges.map(r => ({
+                                  start: r.start.format("YYYY-MM-DD"),
+                                  end: r.end.format("YYYY-MM-DD"),
+                                }));
+                                setFieldValue("l4", isoRanges);
+                              }} 
+                            />
+                            {errors.l4 && <FormHelperText error>{errors.l4 as string}</FormHelperText>}
+                          </Box>
+                        </Stack>
+                      </FormWithInfo>
+                    )}
+
+                    {/* TAB 5: Urlop */}
+                    {value === 5 && (
+                      <FormWithInfo
+                        title={intl.formatMessage({id: 'tabs-vacation' })}
+                        infoText={intl.formatMessage({id: "vacation-leave-info"})}
+                      >
+                        <Stack spacing={2}>
+                          <Stack spacing={1} width={'320px'}>
+                            <FormikNumberField name="leaveBase" labelId="vacation-leave-base"/>
+                          </Stack>
+                          <Box>
+                            <MultiRangeMonthPicker
+                              initialMonth={dayjs(
+                                `${values.year}-${String(values.month).padStart(2, "0")}-01`
+                              )}
+                              defaultValue={isoToDayjsRanges(values.leave)}
+                              disableMonthSwitching={true}
+                              onChange={(ranges: DateRange[]) => {
+                                const isoRanges = ranges.map(r => ({
+                                  start: r.start.format("YYYY-MM-DD"),
+                                  end: r.end.format("YYYY-MM-DD"),
+                                }));
+                                setFieldValue("leave", isoRanges);
+                              }} 
+                            />
+                            {errors.leave && <FormHelperText error>{errors.leave as string}</FormHelperText>}
+                          </Box>
+                        </Stack>
+                      </FormWithInfo>
+                    )}
+                  </Box>
+                  <TaxChart calculation={calculations}/>
+                </Stack>
+              </Box>
 
               <Box sx={{ mt: 4 }}>
                 <Button type="submit" variant="contained">

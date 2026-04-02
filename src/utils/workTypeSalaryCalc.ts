@@ -38,7 +38,7 @@ export type SalaryCalculationResult = {
   nightHours?: number;
   turnOfDayHours?: number
 
-  calculationType: 'employment' | 'contractOfMandate';
+  calculationType: 'uop' | 'mandate';
 };
 
 export const taxes = {
@@ -60,7 +60,10 @@ export const taxes = {
 }
 
 export const calculateTaxesContractOfMandate = (values: SalaryCalculatorValues) => {
-  const fullSalaryBrutto = values.rate * values.workingHours;
+  const fullSalaryBrutto = values.rate * values.workingHours + 
+    values.attendanceBonus + 
+    values.discretionaryBonus + 
+    values.otherBonus;
 
   const zusTaxes = (values.isStudent && values.isUnder26)
     ? 0
@@ -93,7 +96,7 @@ export const calculateTaxesContractOfMandate = (values: SalaryCalculatorValues) 
 
     pitBase,
     pitTax,
-    perHour: values.workRateType === 'hourly' ? values.rate : values.rate / values.workingHours,
+    perHour: values.workRateType === 'uop_hourly' ? values.rate : values.rate / values.workingHours,
     rate: values.rate,
 
     netto,
@@ -102,7 +105,7 @@ export const calculateTaxesContractOfMandate = (values: SalaryCalculatorValues) 
     isUnder26: values.isUnder26,
     isStudent: values.isStudent,
 
-    calculationType: 'contractOfMandate' as const,
+    calculationType: 'mandate' as const,
   };
 }
 
@@ -110,12 +113,12 @@ export const calculateTaxesUoP = (values: SalaryCalculatorValues) => {
   const workingDaysInMonth = getWorkedDaysInMonth(values.year, values.month-1, values.holidays, values.l4, values.leave)
 
   const l4DaysCount = countDays(values.l4)
-  const l4Payment = (values.l4Base / 30) * l4DaysCount * 0.8;
+  const l4Payment = Math.round((values.l4Base / 30) * l4DaysCount * 0.8 * 100) / 100;;
 
   const leaveDaysCount = countDays(values.leave);
   const leavePayment = (values.leaveBase / getWorkedDaysInMonth(values.year, values.month-1, values.holidays, [], [])) * leaveDaysCount;
 
-  const perHour = values.workRateType === 'hourly' ? values.rate : values.rate / values.workingHours
+  const perHour = values.workRateType === 'uop_hourly' ? values.rate : values.rate / values.workingHours
 
   const workDaysPayment = workingDaysInMonth * perHour * 8;
 
@@ -147,7 +150,7 @@ export const calculateTaxesUoP = (values: SalaryCalculatorValues) => {
   pitTax = Math.max(0, pitTax);
   pitTax = Math.round(pitTax * 100) / 100;
 
-  const netto = fullSalaryBrutto - zusTaxes - healthInsurance - pitTax - values.deductionAfterTax + values.additionAfterTax;
+  const netto =  Math.round((fullSalaryBrutto - zusTaxes - healthInsurance - pitTax - values.deductionAfterTax + values.additionAfterTax) * 100) / 100;
 
   // const format = (v: number) =>
   // new Intl.NumberFormat("pl-PL", {
@@ -248,6 +251,6 @@ export const calculateTaxesUoP = (values: SalaryCalculatorValues) => {
     netto,
     brutto: fullSalaryBrutto,
 
-    calculationType: 'employment' as const,
+    calculationType: 'uop' as const,
   };
 }

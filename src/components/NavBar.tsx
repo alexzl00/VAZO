@@ -25,12 +25,13 @@ import { useTheme, useMediaQuery } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import MenuIcon from "@mui/icons-material/MenuOutlined";
+import ListIcon from '@mui/icons-material/List';
 
 const navbarItems = [
     {text: 'Profil', path: '/feature-chart', icon: ProfileSVG},
-    {text: 'Kalkulator', path: '/', icon: CalculatorSVG},
-    {text: 'Sekcja1', path: '/', icon: SettingsSVG},
-    {text: 'Sekcja2', path: '/', icon: SettingsSVG},
+    {text: 'Kalkulator', path: '/salary-calculator', icon: CalculatorSVG},
+    {text: 'Lista', path: '/salaries', icon: SettingsSVG},
+    // {text: 'Sekcja2', path: '/', icon: SettingsSVG},
 ]
 
 
