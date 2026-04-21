@@ -14,24 +14,34 @@ import TableRow from '@mui/material/TableRow';
 import Tooltip from '@mui/material/Tooltip';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
+import Button from '@mui/material/Button';
 
 import EditIcon from '@mui/icons-material/Edit';
+
+import { useTheme, useMediaQuery } from "@mui/material";
 
 // project imports
 import { formatMoneyPl } from '../../utils/money-format';
 import SalariesTableHead from './SalariesTableHead';
+import MobileSalaryList from './MobileSalaryList';
+import ConfirmActionDialog from '../../components/ConfirmActionDialog';
 
 // third-party
 import { FormattedMessage, useIntl } from 'react-intl';
+import { useSnackbar } from "notistack";
 
 // types
 import type { SalaryFilters, ContractType, SalaryRecord } from '../../api/Salaries';
+import type { DialogConfig } from '../../components/ConfirmActionDialog';
 
 // assets
 import DeleteOutlined from '@ant-design/icons/DeleteOutlined';
 
 // api 
 import { getSalaries } from '../../api/Salaries';
+import { deleteSalaryContract } from '../../api/deleteSalaryContract';
+
+type DialogType = 'delete' | null;
 
 export const contractTypes: ContractType[] = ['uop', 'mandate'] as const;
 
@@ -47,17 +57,26 @@ interface TableProps {
 
 export default function SalariesTable({ editClick }: TableProps) {
   const intl = useIntl();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  const { enqueueSnackbar } = useSnackbar();
+
   const [searchParams, setSearchParams] = useSearchParams();
 
   const now = new Date();
 
   const [loading, setLoading] = useState(true);
 
+  const [salaryToDelete, setSalaryToDelete] = useState<string | null>(null);
+  const [dialogType, setDialogType] = useState<DialogType>(null);
+
   //const [order, setOrder] = useState<ArrangementOrder>('desc');
   const [globalFilter, setGlobalFilter] = useState<SalaryFilters>({
     id: searchParams.get('id') || '',
     year: Number(searchParams.get('year')) || now.getFullYear(),
-    month: Number(searchParams.get('month')) || now.getMonth(),
+    monthFrom: Number(searchParams.get('monthFrom')) || 1,
+    monthTo: Number(searchParams.get('monthTo')) || now.getMonth() + 1,
     contractType: asContractType(searchParams.get('contractType') || '')
   });
 
@@ -67,6 +86,20 @@ export default function SalariesTable({ editClick }: TableProps) {
   const [dense] = useState(false);
 
   const [items, setItems] = useState<{data: SalaryRecord[], count: number}>({data: [], count: 0});
+
+
+  const dialogMap: Record<string, DialogConfig> = {
+    delete: {
+      variant: 'danger' as const,
+      title: <FormattedMessage id="dialog-delete-salary-title" />,
+      message: <FormattedMessage id="dialog-delete-salary-message" />,
+      confirmText: <FormattedMessage id="dialog-delete-salary-confirm" />,
+      getAction: (closeDialog: () => void, deleteSalary: () => void) => () => {
+        deleteSalary();
+        closeDialog();
+      },
+    },
+  };
 
   useEffect(()=> {
     setLoading(true);
@@ -88,7 +121,9 @@ export default function SalariesTable({ editClick }: TableProps) {
     };
 
     Object.entries(globalFilter).forEach(([key, value]) => {
-      if (value) params[key] = value;
+      if (value !== '' && value !== undefined && value !== null) {
+        params[key] = value;
+      }
     });
 
     setSearchParams(params);
@@ -103,9 +138,6 @@ export default function SalariesTable({ editClick }: TableProps) {
     setPage(0);
   };
 
-  const deleteApproved = async () => {
-  };
-
   const handleGlobalFilter = <K extends keyof SalaryFilters>(
     key: K,
     value: SalaryFilters[K]
@@ -116,86 +148,179 @@ export default function SalariesTable({ editClick }: TableProps) {
     });
   };
 
-  return (
-    <Box>
-      {/* table */}
-      <TableContainer>
-        <MUITable sx={{ minWidth: 750, '& .MuiTableRow-root .MuiTableCell-root:first-of-type': {paddingLeft: '12px'} }} aria-labelledby="tableTitle" size={dense ? 'small' : 'medium'}>
-          <SalariesTableHead globalFilter={globalFilter} onFilterChange={handleGlobalFilter}/>
-          {loading ? (
-            <TableBody>
-              <TableRow>
-                <TableCell colSpan={7}>
-                  <Stack alignItems={'center'}>
-                    <CircularProgress />
-                  </Stack>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          ) : (
-            <TableBody>
-              {items.data.map((
-                { id, year, month, contractType, paymentMode, 
-                  grossSalaryCalculated, netSalaryCalculated,
-                  grossSalaryActual, netSalaryActual, 
-                  isOverridden
-                }) => { 
-                return (
-                  <TableRow
-                    tabIndex={-1}
-                    key={id}
-                    sx={{
-                      backgroundColor: 'inherit',
-                      boxShadow: '0px 2px 2px 0px rgba(0, 0, 0, 0.21)',
-                      borderBottom: null
-                    }}
-                  >
-                    <TableCell align="center"> {contractType}</TableCell>
-                    <TableCell align="center"> {paymentMode}</TableCell>
-                    <TableCell scope="row" padding="none" align="center">
-                      {year}
-                    </TableCell>
-                    <TableCell align="center"> {month}</TableCell>
-                    <TableCell align="center">
-                      { formatMoneyPl(isOverridden ? grossSalaryActual ?? grossSalaryCalculated : grossSalaryCalculated ) }
-                    </TableCell>
-                    <TableCell align="center">
-                      { formatMoneyPl(isOverridden ? netSalaryActual ?? netSalaryCalculated : netSalaryCalculated) }
-                    </TableCell>
-                    <TableCell align="center">
-                      <Stack flexDirection={'row'} justifyContent="center" alignItems="center">
-                        <Tooltip title={<FormattedMessage id={'salary-edit'} />}>
-                          <IconButton
-                            color="secondary"
-                            sx={{ color: 'text.primary', bgcolor: 'transparent', padding: 0 }}
-                            onClick={() => editClick(id)}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          )}
-        </MUITable>
-      </TableContainer>
-      {/* <Divider /> */}
+  const openDialog = (type: DialogType) => {
+    setDialogType(type);
+  };
 
-      {/* table pagination */}
-      <TablePagination
-        labelRowsPerPage={<FormattedMessage id={'rows-per-page'} />}
-        labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${intl.formatMessage({ id: 'of' })} ${count}`}
-        rowsPerPageOptions={[15, 25, 50]}
-        component="div"
-        count={items.count}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
+  const closeDialog = () => {
+    setDialogType(null);
+  };
+
+  const deleteApproved = async (id: string) => {
+    const error = await deleteSalaryContract(id)
+
+    if (error) {
+      console.error(error);
+      enqueueSnackbar(intl.formatMessage({id: 'error'}), { variant: "error" });
+      return;
+    }
+
+    setItems((prev) => ({
+      ...prev,
+      data: prev.data.filter((item) => item.id !== id),
+      count: prev.count - 1,
+    }));
+
+    enqueueSnackbar(intl.formatMessage({id: 'salary-deleted'}), { variant: "success" });
+  };
+
+  const deleteSalary = (id: string) => {
+    console.log(id)
+    setDialogType("delete");
+    setSalaryToDelete(id);
+  }
+
+  return (
+    <>
+      <Box
+        sx={{
+          mt: '2rem',
+        }}
+      >
+      {isMobile || 1 ? (
+        <>
+          <MobileSalaryList
+            items={items.data}
+            loading={loading}
+            editClick={editClick}
+            deleteClick={deleteSalary}
+            globalFilter={globalFilter}
+            onFilterChange={handleGlobalFilter}
+            setPage={setPage}
+          />
+
+          {items.data.length < items.count && (
+            <Button
+              fullWidth
+              variant="contained"
+              sx={{ mt: 2 }}
+              onClick={() => setPage((prev) => prev + 1)}
+            >
+              Load more
+            </Button>
+          )}
+
+        </>
+      ) : (
+        <>
+        {/* table */}
+        <TableContainer  sx={{
+            backgroundColor: '#F7F6FF',
+            borderRadius: "1rem",
+            overflowX: 'auto',
+            maxWidth: '100%'
+          }}
+        >
+          <MUITable sx={{ minWidth: isMobile ? 500 : 750, '& .MuiTableRow-root .MuiTableCell-root:first-of-type': {paddingLeft: '12px'} }} aria-labelledby="tableTitle" size={dense ? 'small' : 'medium'}>
+            <SalariesTableHead globalFilter={globalFilter} onFilterChange={handleGlobalFilter}/>
+            {loading ? (
+              <TableBody>
+                <TableRow>
+                  <TableCell colSpan={isMobile ? 5 : 7}>
+                    <Stack alignItems={'center'}>
+                      <CircularProgress />
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            ) : (
+              <TableBody>
+                {items.data.map((
+                  { id, year, month, contractType, paymentMode, 
+                    grossSalaryCalculated, netSalaryCalculated,
+                    grossSalaryActual, netSalaryActual, 
+                    isOverridden
+                  }) => { 
+                  return (
+                    <TableRow
+                      tabIndex={-1}
+                      key={id}
+                      sx={{
+                        backgroundColor: 'inherit',
+                        boxShadow: '0px 2px 2px 0px rgba(0, 0, 0, 0.21)',
+                        borderBottom: null
+                      }}
+                    >
+                      <TableCell align="center"> {contractType}</TableCell>
+                      {!isMobile && <TableCell align="center"> {paymentMode}</TableCell>}
+                      <TableCell scope="row" padding="none" align="center">
+                        {year}
+                      </TableCell>
+                      <TableCell align="center"> {month}</TableCell>
+                      { !isMobile &&
+                        <TableCell align="center">
+                          { formatMoneyPl(isOverridden ? grossSalaryActual ?? grossSalaryCalculated : grossSalaryCalculated ) }
+                        </TableCell>
+                      }
+                      <TableCell align="center">
+                        { formatMoneyPl(isOverridden ? netSalaryActual ?? netSalaryCalculated : netSalaryCalculated) }
+                      </TableCell>
+                      <TableCell align="center">
+                        <Stack flexDirection={'row'} justifyContent="center" alignItems="center">
+                          <Tooltip title={<FormattedMessage id={'salary-edit'} />}>
+                            <IconButton
+                              color="secondary"
+                              sx={{ color: 'text.primary', bgcolor: 'transparent', padding: 0 }}
+                              onClick={() => editClick(id)}
+                            >
+                              <EditIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            )}
+          </MUITable>
+        </TableContainer>
+        {/* <Divider /> */}
+
+        {/* table pagination */}
+        <TablePagination
+          labelRowsPerPage={<FormattedMessage id={'rows-per-page'} />}
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${intl.formatMessage({ id: 'of' })} ${count}`}
+          rowsPerPageOptions={[15, 25, 50]}
+          component="div"
+          count={items.count}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+        </>
+      )}
+      </Box>
+
+      <ConfirmActionDialog
+        open={!!dialogType}
+        form={false}
+        extraContent={dialogType ? dialogMap[dialogType].extraContent : undefined}
+        title={dialogType ? dialogMap[dialogType].title : ''}
+        message={dialogType ? dialogMap[dialogType].message : ''}
+        confirmText={dialogType ? dialogMap[dialogType].confirmText : ''}
+        variant={dialogType ? dialogMap[dialogType].variant : 'default'}
+        onConfirm={() => {
+          if (!dialogType) return;
+
+          if (dialogType === 'delete' && salaryToDelete) {
+            const action = dialogMap["delete"].getAction(closeDialog, () => deleteApproved(salaryToDelete));
+            action();
+          }
+        }}
+        onCancel={closeDialog}
       />
-    </Box>
+    </>
   );
 }

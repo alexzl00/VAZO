@@ -1,6 +1,10 @@
 {
   "error": "Coś poszło nie tak :(",
 
+  "dialog-delete-salary-title": "Usuń wynagrodzenie",
+  "dialog-delete-salary-message": "Czy na pewno chcesz usunąć to wynagrodzenie?",
+  "dialog-delete-salary-confirm": "Usuń",
+
   "taxes-and-deductions-tax-regime": "Reżim podatkowy",
   "taxes-and-deductions-young-relief": "ulga dla młodych", 
   "taxes-and-deductions-pit-2": "PIT-2",
@@ -72,6 +76,7 @@
 
   "save": "Zapisz",
   "salary-saved": "Wypłata została zapisana!",
+  "salary-deleted": "Wypłata została usunięta!",
 
   "salary-title": "Wynagrodzenie",
   "salary-monthly-brutto": "Stawka miesięczna BRUTTO",
@@ -99,6 +104,8 @@
   "taxes-netto": "Wynagrodzenie netto",
   "taxes-deduction-after-tax": "Odliczenia po podatku",
   "taxes-result": "Do wypłaty",
+
+  "of": "z", 
 
   "calculate": "Oblicz",
   "clear": "Wyczyść"

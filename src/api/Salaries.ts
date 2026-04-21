@@ -4,11 +4,12 @@ export type ContractType = 'uop' | 'mandate';
 export type PaymentMode = 'hourly' | 'month'
 
 export type SalaryFilters = {
-  id: string | '',
-  year: number,
-  month: number,
-  contractType: ContractType | ''
-}
+  id: string | '';
+  year: number;
+  monthFrom?: number;
+  monthTo?: number;
+  contractType: ContractType | '';
+};
 
 export interface SalaryRecord {
   id: string;
@@ -27,7 +28,6 @@ export interface SalaryRecord {
 }
 
 export async function getSalaries(filters: SalaryFilters, page = 1, pageSize = 10) {
-  console.log(filters, page, pageSize)
   let query = supabase.from('salary_records').select('*')
 
   // --- Dynamic Filters --
@@ -36,8 +36,8 @@ export async function getSalaries(filters: SalaryFilters, page = 1, pageSize = 1
   if (filters.year) query = query.gte('year', filters.year)
   if (filters.year) query = query.lte('year', filters.year)
 
-  if (filters.month) query = query.gte('month', filters.month)
-  if (filters.month) query = query.lte('month', filters.month)
+  if (filters.monthFrom) query = query.gte('month', filters.monthFrom);
+  if (filters.monthTo) query = query.lte('month', filters.monthTo);
 
   if (filters.contractType) query = query.eq('contract_type', filters.contractType)
 
