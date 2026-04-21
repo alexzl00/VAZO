@@ -129,14 +129,6 @@ export default function SalariesTable({ editClick }: TableProps) {
     setSearchParams(params);
   }, [page, rowsPerPage, globalFilter]);
 
-  const handleChangePage = (event: React.MouseEvent<HTMLButtonElement, MouseEvent> | null, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | undefined) => {
-    setRowsPerPage(parseInt(event?.target.value!, 10));
-    setPage(0);
-  };
 
   const handleGlobalFilter = <K extends keyof SalaryFilters>(
     key: K,
@@ -187,120 +179,26 @@ export default function SalariesTable({ editClick }: TableProps) {
           mt: '2rem',
         }}
       >
-      {isMobile || 1 ? (
-        <>
-          <MobileSalaryList
-            items={items.data}
-            loading={loading}
-            editClick={editClick}
-            deleteClick={deleteSalary}
-            globalFilter={globalFilter}
-            onFilterChange={handleGlobalFilter}
-            setPage={setPage}
-          />
-
-          {items.data.length < items.count && (
-            <Button
-              fullWidth
-              variant="contained"
-              sx={{ mt: 2 }}
-              onClick={() => setPage((prev) => prev + 1)}
-            >
-              Load more
-            </Button>
-          )}
-
-        </>
-      ) : (
-        <>
-        {/* table */}
-        <TableContainer  sx={{
-            backgroundColor: '#F7F6FF',
-            borderRadius: "1rem",
-            overflowX: 'auto',
-            maxWidth: '100%'
-          }}
-        >
-          <MUITable sx={{ minWidth: isMobile ? 500 : 750, '& .MuiTableRow-root .MuiTableCell-root:first-of-type': {paddingLeft: '12px'} }} aria-labelledby="tableTitle" size={dense ? 'small' : 'medium'}>
-            <SalariesTableHead globalFilter={globalFilter} onFilterChange={handleGlobalFilter}/>
-            {loading ? (
-              <TableBody>
-                <TableRow>
-                  <TableCell colSpan={isMobile ? 5 : 7}>
-                    <Stack alignItems={'center'}>
-                      <CircularProgress />
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            ) : (
-              <TableBody>
-                {items.data.map((
-                  { id, year, month, contractType, paymentMode, 
-                    grossSalaryCalculated, netSalaryCalculated,
-                    grossSalaryActual, netSalaryActual, 
-                    isOverridden
-                  }) => { 
-                  return (
-                    <TableRow
-                      tabIndex={-1}
-                      key={id}
-                      sx={{
-                        backgroundColor: 'inherit',
-                        boxShadow: '0px 2px 2px 0px rgba(0, 0, 0, 0.21)',
-                        borderBottom: null
-                      }}
-                    >
-                      <TableCell align="center"> {contractType}</TableCell>
-                      {!isMobile && <TableCell align="center"> {paymentMode}</TableCell>}
-                      <TableCell scope="row" padding="none" align="center">
-                        {year}
-                      </TableCell>
-                      <TableCell align="center"> {month}</TableCell>
-                      { !isMobile &&
-                        <TableCell align="center">
-                          { formatMoneyPl(isOverridden ? grossSalaryActual ?? grossSalaryCalculated : grossSalaryCalculated ) }
-                        </TableCell>
-                      }
-                      <TableCell align="center">
-                        { formatMoneyPl(isOverridden ? netSalaryActual ?? netSalaryCalculated : netSalaryCalculated) }
-                      </TableCell>
-                      <TableCell align="center">
-                        <Stack flexDirection={'row'} justifyContent="center" alignItems="center">
-                          <Tooltip title={<FormattedMessage id={'salary-edit'} />}>
-                            <IconButton
-                              color="secondary"
-                              sx={{ color: 'text.primary', bgcolor: 'transparent', padding: 0 }}
-                              onClick={() => editClick(id)}
-                            >
-                              <EditIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            )}
-          </MUITable>
-        </TableContainer>
-        {/* <Divider /> */}
-
-        {/* table pagination */}
-        <TablePagination
-          labelRowsPerPage={<FormattedMessage id={'rows-per-page'} />}
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${intl.formatMessage({ id: 'of' })} ${count}`}
-          rowsPerPageOptions={[15, 25, 50]}
-          component="div"
-          count={items.count}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
+        <MobileSalaryList
+          items={items.data}
+          loading={loading}
+          editClick={editClick}
+          deleteClick={deleteSalary}
+          globalFilter={globalFilter}
+          onFilterChange={handleGlobalFilter}
+          setPage={setPage}
         />
-        </>
-      )}
+
+        {items.data.length < items.count && (
+          <Button
+            fullWidth
+            variant="contained"
+            sx={{ mt: 2 }}
+            onClick={() => setPage((prev) => prev + 1)}
+          >
+            Load more
+          </Button>
+        )}
       </Box>
 
       <ConfirmActionDialog

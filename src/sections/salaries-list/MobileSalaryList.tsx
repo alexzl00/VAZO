@@ -11,6 +11,7 @@ import {
   Modal,
   Button
 } from "@mui/material";
+import Grid from '@mui/material/Grid';
 
 import FilterListIcon from "@mui/icons-material/FilterList";
 import EditIcon from "@mui/icons-material/Edit";
@@ -54,15 +55,16 @@ export default function MobileSalaryList({
   return (
     <Box>
       {/* FILTER BUTTON */}
-      <Button
-        fullWidth
-        variant="outlined"
-        startIcon={<FilterListIcon />}
-        onClick={() => setOpenFilters(true)}
-        sx={{ mb: 2 }}
-      >
-        Filters
-      </Button>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <Button
+          variant="outlined"
+          startIcon={<FilterListIcon />}
+          onClick={() => setOpenFilters(true)}
+          sx={{ width: 100 }}
+        >
+          Filters
+        </Button>
+      </Box>
 
       {/* FILTER MODAL */}
       <Modal open={openFilters} onClose={() => setOpenFilters(false)}>
@@ -173,7 +175,7 @@ export default function MobileSalaryList({
           No data
         </Box>
       ) : (
-        <Stack spacing={2}>
+        <Grid container spacing={2}>
           {items.map((item) => {
             const {
               id,
@@ -197,93 +199,100 @@ export default function MobileSalaryList({
               : grossSalaryCalculated;
 
             return (
-              <Box
+              <Grid 
+                size={{ xs: 12, md: 6, lg: 4 }} 
                 key={id}
-                sx={{
-                  width: "100%",
-                  p: 2.5,
-                  borderRadius: 5,
-                  background:
-                    "linear-gradient(135deg, #F7F6FF 0%, #FFFFFF 100%)",
-                  boxShadow: "0 6px 16px rgba(0,0,0,0.1)"
-                }}
               >
-                {/* HEADER */}
-                <Stack
-                  spacing={2}
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
+                <Box
+                  key={id}
+                  sx={{
+                    width: "100%",
+                    p: 2.5,
+                    borderRadius: 5,
+                    background:
+                      "linear-gradient(135deg, #F7F6FF 0%, #FFFFFF 100%)",
+                    boxShadow: "0 6px 16px rgba(0,0,0,0.1)"
+                  }}
                 >
-                  <Chip
-                    label={contractType.toUpperCase()}
-                    sx={{
-                      minWidth: 100,
-                      fontWeight: 600,
-                      backgroundColor: "#E6E4FF",
-                      color: "#4A3AFF"
-                    }}
-                  />
-
-                  <Typography variant="body2" color="text.secondary">
-                    {month}/{year}
-                  </Typography>
-
-                  <IconButton
-                    onClick={() => editClick(id)}
-                    sx={{ p: 1, backgroundColor: "#EFEFFF" }}
+                  {/* HEADER */}
+                  <Stack
+                    spacing={2}
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
                   >
-                    <EditIcon />
-                  </IconButton>
+                    <Chip
+                      label={contractType.toUpperCase()}
+                      sx={{
+                        minWidth: 100,
+                        fontWeight: 600,
+                        backgroundColor: "#E6E4FF",
+                        color: "#4A3AFF"
+                      }}
+                    />
 
-                  <IconButton
-                    onClick={() => deleteClick(id)}
-                    sx={{ p: 1, backgroundColor: "#EFEFFF" }}
-                  >
-                    <DeleteIcon sx={{ color: "rgb(250, 70, 70)" }} />
-                  </IconButton>
-                </Stack>
+                    <Typography variant="body2" color="text.secondary">
+                      {month}/{year}
+                    </Typography>
 
-                {/* SALARY */}
-                <Stack direction="row" justifyContent="space-between" mt={2}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Net
-                    </Typography>
-                    <Typography variant="h6" fontWeight={700}>
-                      {formatMoneyPl(net)}
-                    </Typography>
-                  </Box>
+                    <Stack direction={'row'} spacing={0.5}>
+                      <IconButton
+                        onClick={() => editClick(id)}
+                        sx={{ p: 1, backgroundColor: "#EFEFFF" }}
+                      >
+                        <EditIcon />
+                      </IconButton>
 
-                  <Box textAlign="right">
-                    <Typography variant="caption" color="text.secondary">
-                      Gross
-                    </Typography>
-                    <Typography variant="h6" fontWeight={700}>
-                      {formatMoneyPl(gross)}
-                    </Typography>
-                  </Box>
-                </Stack>
+                      <IconButton
+                        onClick={() => deleteClick(id)}
+                        sx={{ p: 1, backgroundColor: "#EFEFFF" }}
+                      >
+                        <DeleteIcon sx={{ color: "rgb(250, 70, 70)" }} />
+                      </IconButton>
+                    </Stack>
+                  </Stack>
 
-                {/* FOOTER */}
-                <Stack direction="row" justifyContent="space-between" mt={2}>
-                  <Typography variant="body2" color="text.secondary">
-                    Payment mode: {paymentMode}
-                  </Typography>
+                  {/* SALARY */}
+                  <Stack direction="row" justifyContent="space-between" mt={2}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Net
+                      </Typography>
+                      <Typography variant="h6" fontWeight={700}>
+                        {formatMoneyPl(net)}
+                      </Typography>
+                    </Box>
 
-                  {isOverridden && (
-                    <Typography
-                      variant="caption"
-                      sx={{ color: "#D32F2F", fontWeight: 600 }}
-                    >
-                      manual
+                    <Box textAlign="right">
+                      <Typography variant="caption" color="text.secondary">
+                        Gross
+                      </Typography>
+                      <Typography variant="h6" fontWeight={700}>
+                        {formatMoneyPl(gross)}
+                      </Typography>
+                    </Box>
+                  </Stack>
+
+                  {/* FOOTER */}
+                  <Stack direction="row" justifyContent="space-between" mt={2}>
+                    <Typography variant="body2" color="text.secondary">
+                      Payment mode: {paymentMode}
                     </Typography>
-                  )}
-                </Stack>
-              </Box>
+
+                    {isOverridden && (
+                      <Typography
+                        variant="caption"
+                        sx={{ color: "#D32F2F", fontWeight: 600 }}
+                      >
+                        manual
+                      </Typography>
+                    )}
+                  </Stack>
+                </Box>
+              </Grid>
             );
           })}
-        </Stack>
+        </Grid>
       )}
     </Box>
   );

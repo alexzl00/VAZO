@@ -1,45 +1,53 @@
-// src/layouts/MainLayout.tsx
-import { Box, Container } from '@mui/material';
+import { useState } from 'react';
+import { Box, useMediaQuery, useTheme } from '@mui/material';
 import { Outlet } from 'react-router-dom';
-
-import { useTheme, useMediaQuery } from "@mui/material";
-
 import Navbar from '../components/NavBar';
 
-const MainLayout = () => {
+const COLLAPSED_WIDTH = 80;
+const EXPANDED_WIDTH = 250;
+
+export default function MainLayout() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
+  const [collapsed, setCollapsed] = useState(false);
+
+  const drawerWidth = collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH;
+
   return (
-    <Box sx={{ display: 'flex', width: '100%', bgcolor: '#DFDCFD', overscrollBehavior: 'none', fontFamily: "Montserrat" }}>
-      <Navbar />
-      <Box component="main" sx={{ height: '100vh', width: !isMobile ? 'calc(100% - 260px)' : '100%', mt: isMobile ? '70px' : '15px', flexGrow: 1 }}>
-        <Box
-          sx={{
-            //mt: `${250}px`,
-            //height: `calc(100% - ${250}px)`,
-            overflowY: 'auto',
-            //backgroundImage: `url(${bgPattern})`,
-            bgcolor: '#DFDCFD',
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'top',
-            backgroundSize: { xs: 'cover', md: '120%' },
-            transition: "width 0.3s ease"
-          }}
-        >
-          <Container
-            //maxWidth="md"
-            sx={{
-              display: 'flex',
-              justifyContent: 'center',
-            }}
-          >
-            <Outlet />
-          </Container>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#DFDCFD' }}>
+      
+      {/* SIDEBAR WRAPPER (controls width!) */}
+      <Box
+        sx={{
+          width: isMobile ? 0 : drawerWidth,
+          transition: (theme) =>
+            theme.transitions.create('width', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.standard,
+            }),
+          flexShrink: 0,
+        }}
+      >
+        <Navbar collapsed={collapsed} setCollapsed={setCollapsed} />
+      </Box>
+
+      {/* MAIN CONTENT (no margin-left EVER) */}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          minHeight: '100vh',
+          mt: isMobile ? '70px' : '15px',
+
+          display: 'flex',
+          justifyContent: 'center',
+        }}
+      >
+        <Box sx={{ width: '100%', maxWidth: 1200, px: 2 }}>
+          <Outlet />
         </Box>
       </Box>
     </Box>
   );
-};
-
-export default MainLayout;
+}

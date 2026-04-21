@@ -35,13 +35,18 @@ const navbarItems = [
 ]
 
 
-export default function Navbar() {
-
+export default function Navbar({
+  collapsed,
+  setCollapsed
+}: {
+  collapsed: boolean;
+  setCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-    const [collapsed, setCollapsed] = useState(false);
 
     const drawerWidth = collapsed ? 80 : 250;
+
     return (
         !isMobile ? (
             <Drawer
@@ -55,7 +60,11 @@ export default function Navbar() {
                 bgcolor: "#211331",
                 color: "#fff",
                 fontFamily: "Montserrat",
-                transition: "width 0.3s ease",
+                transition: (theme) =>
+                    theme.transitions.create('width', {
+                        easing: theme.transitions.easing.sharp,
+                        duration: theme.transitions.duration.standard,
+                    }),
                 overflowX: "hidden",
                 display: "flex",
                 flexDirection: "column",
