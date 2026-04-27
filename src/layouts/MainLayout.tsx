@@ -38,7 +38,8 @@ export default function MainLayout() {
         sx={{
           flexGrow: 1,
           minHeight: '100vh',
-          mt: isMobile ? '70px' : '15px',
+          mt: isMobile ? '100px' : '15px',
+          mb: '30px',
 
           display: 'flex',
           justifyContent: 'center',

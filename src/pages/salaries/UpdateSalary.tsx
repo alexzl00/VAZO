@@ -16,11 +16,13 @@ import SalaryForm from "../../sections/salary-calculator-form/SalaryCalculatorFo
 // utils 
 import { getWorkedDaysInMonth } from '../../utils/monthHelperFunc';
 
-import { calculateTaxesContractOfMandate, calculateTaxesUoP } from '../../utils/workTypeSalaryCalc';
+import { calculateTaxesContractOfMandate, calculateTaxesUoD, calculateTaxesUoP } from '../../utils/workTypeSalaryCalc';
 
 // supabase api
 import { updateUopSalary } from '../../api/UoP';
 import { updateMandateSalary } from '../../api/CoM';
+import { updateUoDSalary } from "../../api/UoD";
+
 import { getSalaryContract } from "../../api/getSalaryContract";
 
 // types
@@ -185,6 +187,24 @@ export default function UpdateSalary() {
           leave: values.leave,
           leaveBase: values.leaveBase
         });
+      } else if (values.workRateType === 'uod_fixed') {
+        const calculated = calculateTaxesUoD(values);
+
+        await updateUoDSalary(id, {
+          year: values.year,
+          month: values.month,
+
+          brutto: calculated.brutto,
+          netto: calculated.netto,
+
+          rate: values.rate,
+          additionAfterTax: values.additionAfterTax,
+          deductionAfterTax: values.deductionAfterTax,
+          kup: values.kup,
+          pit2: values.pit2,
+
+          discretionaryBonus: values.discretionaryBonus,
+        })
       }
 
       enqueueSnackbar(intl.formatMessage({id: 'salary-saved'}), { variant: "success" });
@@ -200,6 +220,7 @@ export default function UpdateSalary() {
     <SalaryForm
       initialValues={initialValues as SalaryCalculatorValues}
       onSubmit={handleUpdate}
+      type={'update'}
     />
   );
 }

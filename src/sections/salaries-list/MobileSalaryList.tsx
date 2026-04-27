@@ -134,6 +134,7 @@ export default function MobileSalaryList({
               <MenuItem value="">All</MenuItem>
               <MenuItem value="uop">UoP</MenuItem>
               <MenuItem value="mandate">Mandate</MenuItem>
+              <MenuItem value="uod">UoD</MenuItem>
             </TextField>
 
             <Stack direction="row" spacing={1}>

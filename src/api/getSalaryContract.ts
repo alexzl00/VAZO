@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient";
 
-export type ContractType = 'uop' | 'mandate';
+export type ContractType = 'uop' | 'mandate' | 'uod';
 
 export interface SalaryContract {
   salary_record: any;
@@ -86,20 +86,30 @@ export async function getSalaryContract(id: string): Promise<SalaryContract | nu
     inputs = smi;
   }
 
+  if (sr.contract_type === "uod") {
+    const { data: uod, error } = await supabase
+      .from("salary_uod_inputs")
+      .select(`
+        rate,
+        kup,
+        pit2,
+        addition_after_tax,
+        deduction_after_tax,
+        discretionary_bonus
+      `)
+      .eq("salary_id", sr.id)
+      .single();
+
+    if (error) {
+      console.error(error);
+      return null;
+    }
+
+    inputs = uod;
+  }
+
   return {
     salary_record: sr,
     inputs
   };
 }
-
-// export async function getSalaryContract(id: string) {
-//   const { data, error } = await supabase.rpc('get_salary_contract', {
-//     p_salary_id: id
-//   });
-
-//   console.log(data)
-
-//   if (error) throw error;
-
-//   return data;
-// }

@@ -350,7 +350,7 @@ export default React.memo(function TaxChart({calculation} : TaxChartProps) {
             );
 
             return {
-                title: intl.formatMessage({ id: 'calculation-summary' }),
+                title: intl.formatMessage({ id: 'taxes-calculation-summary' }),
                 items,
             };
         }

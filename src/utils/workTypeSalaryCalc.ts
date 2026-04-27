@@ -38,7 +38,7 @@ export type SalaryCalculationResult = {
   nightHours?: number;
   turnOfDayHours?: number
 
-  calculationType: 'uop' | 'mandate';
+  calculationType: 'uop' | 'mandate' | 'uod_fixed';
 };
 
 export const taxes = {
@@ -49,6 +49,8 @@ export const taxes = {
   taxDeductibaleExpenses: 250, // KUP zł
   PIT2_relief: 300, // zł
 
+  healthInsurance: 9, // %
+
   // overtimes
   dailyOvertime: 150, // +50%
   weekendHolidayOvertime: 200, // +100%
@@ -57,6 +59,31 @@ export const taxes = {
   nightHours: 20, // +20%
 
   turnOfDayHours: 50, // it will be counted separately as extra +50%
+}
+
+export const calculateTaxesUoD = (values: SalaryCalculatorValues) => {
+  const fullSalaryBrutto = values.rate + values.discretionaryBonus;
+
+  const pitBase = fullSalaryBrutto * (100-values.kup) / 100;
+  let pitTax = pitBase * 0.12;
+  pitTax = values.pit2 ? Math.max(pitTax-taxes.PIT2_relief, 0) : pitTax;
+
+  const netto = fullSalaryBrutto - pitTax - values.deductionAfterTax + values.additionAfterTax;
+
+  return {
+    rate: values.rate,
+    fullSalaryBrutto: fullSalaryBrutto,
+    pitBase,
+    pitTax,
+    netto,
+    brutto: fullSalaryBrutto,
+
+    perHour: 0,
+    zusTaxes: 0,
+    healthInsurance: 0,
+
+    calculationType: 'uod_fixed' as const,
+  }
 }
 
 export const calculateTaxesContractOfMandate = (values: SalaryCalculatorValues) => {
@@ -72,7 +99,7 @@ export const calculateTaxesContractOfMandate = (values: SalaryCalculatorValues) 
 
   const healthInsurance = (values.isStudent && values.isUnder26)
     ? 0
-    : (fullSalaryBrutto-zusTaxes)*0.09;
+    : (fullSalaryBrutto-zusTaxes) * taxes.healthInsurance / 100;
 
   const pitBase = (fullSalaryBrutto-zusTaxes) * (100-values.kup) / 100;
   let pitTax = values.isUnder26
@@ -141,7 +168,7 @@ export const calculateTaxesUoP = (values: SalaryCalculatorValues) => {
     fullSalaryBrutto*taxes.zusSicknessInsurance
   )/100
 
-  const healthInsurance = Math.round((fullSalaryBrutto-zusTaxes)*9) / 100;
+  const healthInsurance = Math.round((fullSalaryBrutto-zusTaxes)*taxes.healthInsurance) / 100;
 
   let pitTax = (fullSalaryBrutto-zusTaxes-taxes.taxDeductibaleExpenses) * (values.taxRegime/100);
   if (values.pit2) {

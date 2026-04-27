@@ -46,12 +46,13 @@ import type { DateRange } from '../../components/DaysPicker';
 
 // types
 import type { SalaryCalculatorValues } from '../../types/salaryCalculator';
-import { calculateTaxesUoP, calculateTaxesContractOfMandate } from '../../utils/workTypeSalaryCalc';
+import { calculateTaxesUoP, calculateTaxesContractOfMandate, calculateTaxesUoD} from '../../utils/workTypeSalaryCalc';
 
 
 type SalaryFormProps = {
   initialValues: SalaryCalculatorValues;
   onSubmit: (values: SalaryCalculatorValues) => Promise<void>;
+  type?: 'create' | 'update';
 };
 
 
@@ -134,16 +135,19 @@ const SalarySchema = Yup.object().shape({
   return true; // pass validation if sum is ok
 });
 
-export default function SalaryForm({ initialValues, onSubmit }: SalaryFormProps) {
+export default function SalaryForm({ initialValues, onSubmit, type }: SalaryFormProps) {
   const intl = useIntl();
   const [value, setValue] = useState(0);
 
   const theme = useTheme();
   const isMidScreen = useMediaQuery(theme.breakpoints.down('lg'));
 
-  const [disabledTabs, setDisabledTabs] = useState<number[]>(initialValues.workRateType === 'mandate_hourly' 
-    ? [3, 4, 5]
-    : []
+  console.log('Initial values:', initialValues.workRateType);
+
+  const [disabledTabs, setDisabledTabs] = useState<number[]>(
+    initialValues.workRateType === 'mandate_hourly' || initialValues.workRateType === 'uod_fixed'
+      ? [3, 4, 5]
+      : []
   );
 
   const labels = [
@@ -177,7 +181,12 @@ export default function SalaryForm({ initialValues, onSubmit }: SalaryFormProps)
   };
 
   return (
-    <Box>
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center',
+      }}
+    >
       <Formik
         initialValues={initialValues}
         validationSchema={SalarySchema}
@@ -188,13 +197,13 @@ export default function SalaryForm({ initialValues, onSubmit }: SalaryFormProps)
         {({ values, handleChange, setFieldValue, errors, touched }) => {
 
           const calculations = useMemo(() => {
-            console.log(values)
             if (values.workRateType === 'mandate_hourly') {
-              console.log(calculateTaxesContractOfMandate(values))
               return calculateTaxesContractOfMandate(values);
-            } 
-            console.log(calculateTaxesUoP(values))
-            return calculateTaxesUoP(values);
+            } else if (values.workRateType === 'uop_hourly' || values.workRateType === 'uop_monthly') {
+              return calculateTaxesUoP(values);
+            } else {
+              return calculateTaxesUoD(values);
+            }
           }, [values])
 
           return (
@@ -202,9 +211,20 @@ export default function SalaryForm({ initialValues, onSubmit }: SalaryFormProps)
               <Pit2AutoReset/>
               <CardTabs value={value} labels={labels} onChange={changeTab} disabledTabs={disabledTabs}/>
 
-              <Box sx={{display:'flex', justifyContent: 'cetner'}}>
-                <Stack direction={isMidScreen ? 'column' : 'row'} >
-                  <Box sx={{ mt: 3, width: '400px' }}>
+              <Box 
+                sx={{
+                  display:'flex', 
+                  justifyContent: isMidScreen ? 'center' : 'flex-start', 
+                  mt: 3
+                }}
+              >
+                <Stack 
+                  direction={isMidScreen ? 'column' : 'row'}
+                  spacing={isMidScreen ? 2 : 0}
+                  justifyContent={isMidScreen ? 'center' : 'space-between'}
+                  sx={{ width: '100%' }}
+                >
+                  <Box sx={{ mt: 3, width: '320px' }}>
                     {/* TAB 0: Stawka i premie */}
                     {value === 0 && (
                       <FormWithInfo
@@ -215,15 +235,17 @@ export default function SalaryForm({ initialValues, onSubmit }: SalaryFormProps)
                           <FomrikSelectField
                             name="workRateType"
                             inputLabel="rate-and-bonuses-work-rate-type"
+                            disabled={type === 'update'}
                             menuItems={[
                               { value: "uop_monthly", text: <FormattedMessage id="rate-monthly" /> },
                               { value: "uop_hourly", text: <FormattedMessage id="rate-hourly" /> },
                               { value: "mandate_hourly", text: <FormattedMessage id="rate-contract-of-mandate" /> },
+                              { value: "uod_fixed", text: <FormattedMessage id="rate-contract-for-specific-work" /> },
                             ]}
                             onChange={(e) => {
                               const value = e.target.value;
                               setFieldValue("workRateType", value);                  
-                              if (value === "mandate_hourly") {
+                              if (value === "mandate_hourly" || value === "uod_fixed") {
                                 setDisabledTabs([3, 4, 5]);
                               } else {
                                 setDisabledTabs([]);
@@ -231,22 +253,27 @@ export default function SalaryForm({ initialValues, onSubmit }: SalaryFormProps)
                             }}
                           />
 
-                          {(['rate', 'attendanceBonus', 'discretionaryBonus', 'otherBonus'] as const).map((name) => (
-                            <FormikNumberField
-                              key={name}
-                              name={name}
-                              labelId={`rate-and-bonuses-${camelToKebabCase(name)}`}
-                              unit={
-                                name === 'rate' && !errors.workingHours
-                                  ? values.workRateType === 'uop_monthly'
-                                    ? `${Math.round(values.rate / values.workingHours * 100) / 100} zł/h`
-                                    : (values.workRateType === 'uop_hourly' || values.workRateType === 'mandate_hourly')
-                                      ? `${Math.round(values.rate * values.workingHours * 100) / 100} zł`
-                                      : ''
-                                  : undefined
-                              }
-                            />
-                          ))}
+                          {(['rate', 'attendanceBonus', 'discretionaryBonus', 'otherBonus'] as const).map((name) => {
+                            if ( values.workRateType === 'uod_fixed' && (name === 'attendanceBonus' || name === 'otherBonus') ) {
+                              return null; // we consider only discretionary bonus for CSW, so we hide attendance and other bonus fields
+                            }
+                            return (
+                              <FormikNumberField
+                                key={name}
+                                name={name}
+                                labelId={`rate-and-bonuses-${camelToKebabCase(name)}`}
+                                unit={
+                                  name === 'rate' && !errors.workingHours
+                                    ? values.workRateType === 'uop_monthly'
+                                      ? `${Math.round(values.rate / values.workingHours * 100) / 100} zł/h`
+                                      : (values.workRateType === 'uop_hourly' || values.workRateType === 'mandate_hourly')
+                                        ? `${Math.round(values.rate * values.workingHours * 100) / 100} zł`
+                                        : ''
+                                    : undefined
+                                }
+                              />
+                            )
+                          })}
                         </Stack>
                       </FormWithInfo>
                     )}
@@ -272,8 +299,8 @@ export default function SalaryForm({ initialValues, onSubmit }: SalaryFormProps)
                             />
                           )}
 
-                          {(values.workRateType === 'mandate_hourly') && (      
-                            <FomrikSelectField 
+                          {(values.workRateType === 'mandate_hourly' || values.workRateType === 'uod_fixed') && (      
+                            <FomrikSelectField
                               name="kup"
                               inputLabel="taxes-and-deductions-kup"
                               menuItems={[
@@ -359,7 +386,13 @@ export default function SalaryForm({ initialValues, onSubmit }: SalaryFormProps)
                           />
 
                           <Stack spacing={1}>
-                            <FormikNumberField name="workingHours" labelId="calendar-and-working-time-working-hours"/>
+                            {/* // For UoP and Mandate we show working hours field, for CSW we hide it as it's not relevant (CSW is based on fixed price, not hourly rate) */}
+                            { (values.workRateType === 'uop_hourly' 
+                                || values.workRateType === 'uop_monthly' 
+                                || values.workRateType === 'mandate_hourly'
+                              ) &&
+                              <FormikNumberField name="workingHours" labelId="calendar-and-working-time-working-hours"/>
+                            }
 
                             {(values.workRateType === 'uop_hourly' || values.workRateType === 'uop_monthly') && (
                               <Box sx={{paddingTop: '10px'}}>
@@ -383,7 +416,7 @@ export default function SalaryForm({ initialValues, onSubmit }: SalaryFormProps)
                               </Box>
                             )}
                           </Stack>
-                      </Stack>
+                        </Stack>
                       </FormWithInfo>
                     )}
 
@@ -481,11 +514,13 @@ export default function SalaryForm({ initialValues, onSubmit }: SalaryFormProps)
                       </FormWithInfo>
                     )}
                   </Box>
-                  <TaxChart calculation={calculations}/>
+                  <Box sx={{ mt: 7}}>
+                    <TaxChart calculation={calculations}/>
+                  </Box>
                 </Stack>
               </Box>
 
-              <Box sx={{ mt: 4 }}>
+              <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
                 <Button type="submit" variant="contained">
                   <FormattedMessage id={"save"}/>
                 </Button>

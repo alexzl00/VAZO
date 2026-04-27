@@ -1,7 +1,7 @@
 import { supabase } from "./supabaseClient";
 
-export type ContractType = 'uop' | 'mandate';
-export type PaymentMode = 'hourly' | 'month'
+export type ContractType = 'uop' | 'mandate' | 'uod';
+export type PaymentMode = 'hourly' | 'month' | 'fixed';
 
 export type SalaryFilters = {
   id: string | '';

@@ -3,17 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 // material-ui
-import CircularProgress from '@mui/material/CircularProgress';
-import MUITable from '@mui/material/Table';
-import Stack from '@mui/material/Stack';
-import TableBody from '@mui/material/TableBody';
-import TableContainer from '@mui/material/TableContainer';
-import TableCell from '@mui/material/TableCell';
-import TablePagination from '@mui/material/TablePagination';
-import TableRow from '@mui/material/TableRow';
-import Tooltip from '@mui/material/Tooltip';
 import Box from '@mui/material/Box';
-import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
 
 import EditIcon from '@mui/icons-material/Edit';
@@ -21,8 +11,6 @@ import EditIcon from '@mui/icons-material/Edit';
 import { useTheme, useMediaQuery } from "@mui/material";
 
 // project imports
-import { formatMoneyPl } from '../../utils/money-format';
-import SalariesTableHead from './SalariesTableHead';
 import MobileSalaryList from './MobileSalaryList';
 import ConfirmActionDialog from '../../components/ConfirmActionDialog';
 
@@ -33,9 +21,6 @@ import { useSnackbar } from "notistack";
 // types
 import type { SalaryFilters, ContractType, SalaryRecord } from '../../api/Salaries';
 import type { DialogConfig } from '../../components/ConfirmActionDialog';
-
-// assets
-import DeleteOutlined from '@ant-design/icons/DeleteOutlined';
 
 // api 
 import { getSalaries } from '../../api/Salaries';
@@ -58,7 +43,6 @@ interface TableProps {
 export default function SalariesTable({ editClick }: TableProps) {
   const intl = useIntl();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const { enqueueSnackbar } = useSnackbar();
 
@@ -83,7 +67,6 @@ export default function SalariesTable({ editClick }: TableProps) {
  // const [orderBy, setOrderBy] = useState(searchParams.get('sortBy') ?? 'created_at');
   const [page, setPage] = useState(Number(searchParams.get('page')) || 0);
   const [rowsPerPage, setRowsPerPage] = useState(Number(searchParams.get('limit')) || 15);
-  const [dense] = useState(false);
 
   const [items, setItems] = useState<{data: SalaryRecord[], count: number}>({data: [], count: 0});
 

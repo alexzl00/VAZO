@@ -69,15 +69,16 @@ type SelectFieldProps = {
   inputLabel: string;
   menuItems: menuItemsT[];
   onChange: (e: any) => void;
+  disabled?: boolean;
 }
 
-export const FomrikSelectField = ({ name, inputLabel, menuItems, onChange } : SelectFieldProps) => {
+export const FomrikSelectField = ({ name, inputLabel, menuItems, onChange, disabled }: SelectFieldProps) => {
   const MenuItems = menuItems.map((item) => (
     <MenuItem value={item.value}>{item.text}</MenuItem>    
   ))
 
   return (
-    <Stack spacing={1}>
+    <Stack spacing={1} width={"320px"}>
       <InputLabel>
         <FormattedMessage id={inputLabel}/>
       </InputLabel>
@@ -94,6 +95,7 @@ export const FomrikSelectField = ({ name, inputLabel, menuItems, onChange } : Se
                   sx={{ backgroundColor: 'white' }}
                   value={form.values[name]}
                   onChange={(e) => onChange(e)}
+                  disabled={disabled}
                 >
                   {MenuItems}
                 </Select>

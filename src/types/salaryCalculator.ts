@@ -1,7 +1,7 @@
 
 import type { ISODateRange } from '../utils/monthHelperFunc';
 
-export type WorkRate = 'uop_monthly' | 'uop_hourly' | 'mandate_hourly';
+export type WorkRate = 'uop_monthly' | 'uop_hourly' | 'mandate_hourly' | 'uod_fixed';
 
 export type SalaryCalculatorValues = {
   

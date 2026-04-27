@@ -14,11 +14,12 @@ import SalaryForm from "../../sections/salary-calculator-form/SalaryCalculatorFo
 // utils 
 import { getWorkedDaysInMonth } from '../../utils/monthHelperFunc';
 
-import { calculateTaxesContractOfMandate, calculateTaxesUoP } from '../../utils/workTypeSalaryCalc';
+import { calculateTaxesContractOfMandate, calculateTaxesUoP, calculateTaxesUoD } from '../../utils/workTypeSalaryCalc';
 
 // supabase api
 import { createUopSalary } from '../../api/UoP';
 import { createMandateSalary } from '../../api/CoM';
+import { createUoDSalary } from "../../api/UoD";
 
 // types
 import type { SalaryCalculatorValues } from '../../types/salaryCalculator';
@@ -149,6 +150,26 @@ export default function CreateSalaryPage() {
           leave: values.leave,
           leaveBase: values.leaveBase
         });
+      } else if (values.workRateType === 'uod_fixed') {
+        const calculated = calculateTaxesUoD(values);
+
+        await createUoDSalary({
+          year: values.year,
+          month: values.month,
+          contractType: 'uod',
+          paymentMode: 'fixed',
+
+          brutto: calculated.brutto,
+          netto: calculated.netto,
+
+          rate: values.rate,
+          additionAfterTax: values.additionAfterTax,
+          deductionAfterTax: values.deductionAfterTax,
+          kup: values.kup,
+          pit2: values.pit2,
+
+          discretionaryBonus: values.discretionaryBonus,
+        })
       }
 
       enqueueSnackbar(intl.formatMessage({id: 'salary-saved'}), { variant: "success" });

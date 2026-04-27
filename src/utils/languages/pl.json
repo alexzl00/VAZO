@@ -22,6 +22,7 @@
   "rate-monthly": "Miesięczna BRUTTO (Umowa o pracę)",
   "rate-hourly": "Godzinowa BRUTTO (Umowa o pracę)",
   "rate-contract-of-mandate": "Umowa zlecenia (BRUTTO/h)",
+  "rate-contract-for-specific-work": "Umowa o dzieło (BRUTTO)",
   "rate-and-bonuses-rate": "Stawka",
   "rate-and-bonuses-attendance-bonus": "Premia frekwencyjna",
   "rate-and-bonuses-discretionary-bonus": "Premia uznaniowa",
@@ -104,6 +105,7 @@
   "taxes-netto": "Wynagrodzenie netto",
   "taxes-deduction-after-tax": "Odliczenia po podatku",
   "taxes-result": "Do wypłaty",
+  "taxes-calculation-summary": "Podsumowanie obliczeń",
 
   "of": "z", 
 
