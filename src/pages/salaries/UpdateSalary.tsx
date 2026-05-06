@@ -25,6 +25,8 @@ import { updateUoDSalary } from "../../api/UoD";
 
 import { getSalaryContract } from "../../api/getSalaryContract";
 
+import { overrideSalaryCalculations, deleteSalaryOverride } from "../../api/overrideSalaryCalculations";
+
 // types
 import type { SalaryCalculatorValues } from '../../types/salaryCalculator';
 import type { WorkRate } from "../../types/salaryCalculator";
@@ -49,10 +51,10 @@ export default function UpdateSalary() {
     const loadData = async () => {
       try {
         const data = await getSalaryContract(id);
-        console.log("Loaded salary contract:", data);
 
         const salaryRecord = data?.salary_record ?? {};
         const inputs = data?.inputs ?? {};
+        const override = data?.override ?? null;
 
         setInitialValues({
           // Podatki i potrącenia
@@ -108,7 +110,13 @@ export default function UpdateSalary() {
 
           // Urlop
           leave: inputs?.leave ?? [],
-          leaveBase: inputs?.leave_base ?? 0
+          leaveBase: inputs?.leave_base ?? 0,
+
+          // --- For edit form ---
+          isOverride: override ? true : false,
+          netSalaryOverride: override?.netSalaryOverride ?? null,
+          grossSalaryOverride: override?.grossSalaryOverride ?? null,
+          reason: override?.reason ?? null
         });
       } catch (error) {
         console.error("Failed to load salary contract:", error);
@@ -117,6 +125,24 @@ export default function UpdateSalary() {
 
     loadData();
   }, [id]);
+
+  const deleteOverride = async () => {
+    if (!id || (initialValues?.isOverride === undefined || !initialValues?.isOverride )) return;
+    try {
+      await deleteSalaryOverride(id);
+      setInitialValues(prev => prev ? {
+        ...prev,
+        isOverride: false,
+        netSalaryOverride: null,
+        grossSalaryOverride: null,
+        reason: null
+      } : prev);
+      enqueueSnackbar(intl.formatMessage({id: "salary-override-deleted"}), { variant: "success" });
+    } catch (e) {
+      console.error(e);
+      enqueueSnackbar(intl.formatMessage({id: 'error'}), { variant: "error" });
+    }
+  };
 
   const handleUpdate = async (values: SalaryCalculatorValues) => {
     if (!id) return;
@@ -205,6 +231,20 @@ export default function UpdateSalary() {
 
           discretionaryBonus: values.discretionaryBonus,
         })
+      };
+
+      const isChanged = initialValues && (
+        values.netSalaryOverride !== initialValues.netSalaryOverride ||
+        values.grossSalaryOverride !== initialValues.grossSalaryOverride ||
+        values.reason !== initialValues.reason
+      );
+
+      if (isChanged) {
+        await overrideSalaryCalculations(id, {
+          netSalaryOverride: values.netSalaryOverride,
+          grossSalaryOverride: values.grossSalaryOverride,
+          reason: values.reason
+        });
       }
 
       enqueueSnackbar(intl.formatMessage({id: 'salary-saved'}), { variant: "success" });
@@ -219,6 +259,7 @@ export default function UpdateSalary() {
   return (
     <SalaryForm
       initialValues={initialValues as SalaryCalculatorValues}
+      deleteOverride={deleteOverride}
       onSubmit={handleUpdate}
       type={'update'}
     />

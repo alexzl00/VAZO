@@ -20,6 +20,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { formatMoneyPl } from "../../utils/money-format";
 
 import type { SalaryRecord, SalaryFilters } from "../../api/Salaries";
+import { FormattedMessage } from "react-intl";
 
 interface Props {
   items: SalaryRecord[];
@@ -184,19 +185,27 @@ export default function MobileSalaryList({
               month,
               contractType,
               paymentMode,
-              netSalaryCalculated,
-              netSalaryActual,
+
               grossSalaryCalculated,
-              grossSalaryActual,
-              isOverridden
+              netSalaryCalculated,
+
+              isOverridden,
+              grossSalaryOverride,
+              netSalaryOverride,
+              
+              overrideReason,
+              overrideCreatedAt,
+
+              createdAt,
+              updatedAt
             } = item;
 
             const net = isOverridden
-              ? netSalaryActual ?? netSalaryCalculated
+              ? netSalaryOverride ?? netSalaryCalculated
               : netSalaryCalculated;
 
             const gross = isOverridden
-              ? grossSalaryActual ?? grossSalaryCalculated
+              ? grossSalaryOverride ?? grossSalaryCalculated
               : grossSalaryCalculated;
 
             return (
@@ -283,9 +292,9 @@ export default function MobileSalaryList({
                     {isOverridden && (
                       <Typography
                         variant="caption"
-                        sx={{ color: "#D32F2F", fontWeight: 600 }}
+                        sx={{ color: "#D32F2F", fontWeight: 600, fontSize: 14 }}
                       >
-                        manual
+                        <FormattedMessage id="salaries-is-overridden" />
                       </Typography>
                     )}
                   </Stack>

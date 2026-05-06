@@ -56,4 +56,10 @@ export type SalaryCalculatorValues = {
 
   // virtual property for error
   totalOvertime?: string;
+
+  // --- For edit form ---
+  isOverride: boolean;
+  netSalaryOverride: number | null;
+  grossSalaryOverride: number | null;
+  reason: string | null;
 };

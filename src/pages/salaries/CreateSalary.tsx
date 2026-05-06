@@ -26,6 +26,7 @@ import type { SalaryCalculatorValues } from '../../types/salaryCalculator';
 
 // for test
 import { login } from '../../api/authUser';
+import { overrideSalaryCalculations } from "../../api/overrideSalaryCalculations";
 
 const now = new Date();
 
@@ -67,13 +68,17 @@ export const initialSalaryFormValues: SalaryCalculatorValues = {
 
   // Zwolnienie lekarskie (L4)
   l4: [],
-
   l4Base: 0,
 
   // Urlop
   leave: [],
+  leaveBase: 0,
 
-  leaveBase: 0
+  // --- For edit form ---
+  isOverride: false,
+  netSalaryOverride: null,
+  grossSalaryOverride: null,
+  reason: null
 };
 
 export default function CreateSalaryPage() {
@@ -81,16 +86,28 @@ export default function CreateSalaryPage() {
   const intl = useIntl();
   const { enqueueSnackbar } = useSnackbar();
 
+  const handleOverride = async (id: string, values: SalaryCalculatorValues) => {
+    if (values.netSalaryOverride || values.grossSalaryOverride) {
+      await overrideSalaryCalculations(id, {
+        netSalaryOverride: values.netSalaryOverride,
+        grossSalaryOverride: values.grossSalaryOverride,
+        reason: values.reason
+      });
+    }
+  };
+
   const handleCreate = async (values: SalaryCalculatorValues) => {
 
     try {
       // login
       const session = await login('aleks19802@o2.pl', '123');
 
+      let salary_id: string | null = null;
+
       if (values.workRateType === 'mandate_hourly') {
         const calculated = calculateTaxesContractOfMandate(values);
 
-        await createMandateSalary({
+        salary_id = await createMandateSalary({
           year: values.year,
           month: values.month,
 
@@ -111,11 +128,12 @@ export default function CreateSalaryPage() {
           otherBonus: values.otherBonus,
           
           holidays: values.holidays
-        })
+        });
+
       } else if (values.workRateType === 'uop_monthly' || values.workRateType === 'uop_hourly') {
         const calculated = calculateTaxesUoP(values);
 
-        await createUopSalary({
+        salary_id = await createUopSalary({
           year: values.year,
           month: values.month,
 
@@ -153,7 +171,7 @@ export default function CreateSalaryPage() {
       } else if (values.workRateType === 'uod_fixed') {
         const calculated = calculateTaxesUoD(values);
 
-        await createUoDSalary({
+        salary_id = await createUoDSalary({
           year: values.year,
           month: values.month,
           contractType: 'uod',
@@ -172,6 +190,12 @@ export default function CreateSalaryPage() {
         })
       }
 
+      if (!salary_id) {
+        throw new Error("Failed to create salary");
+      }
+
+      await handleOverride(salary_id, values);
+
       enqueueSnackbar(intl.formatMessage({id: 'salary-saved'}), { variant: "success" });
 
     } catch (e) {
@@ -184,6 +208,7 @@ export default function CreateSalaryPage() {
     <SalaryForm
       initialValues={initialSalaryFormValues}
       onSubmit={handleCreate}
+      type="create"
     />
   );
 }

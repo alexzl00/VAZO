@@ -5,13 +5,28 @@ export type ContractType = 'uop' | 'mandate' | 'uod';
 export interface SalaryContract {
   salary_record: any;
   inputs: any;
+
+  override: {
+    netSalaryOverride: number | null;
+    grossSalaryOverride: number | null;
+    reason: string | null;
+    createdAt: string | null;
+  } | null;
 }
 
 export async function getSalaryContract(id: string): Promise<SalaryContract | null> {
-  // --- 1. Get salary record ---
+  // --- 1. Get salary record + override ---
   const { data: sr, error: srError } = await supabase
     .from('salary_records')
-    .select('*')
+    .select(`
+      *,
+      salary_overrides (
+        net_salary_override,
+        gross_salary_override,
+        reason,
+        created_at
+      )
+    `)
     .eq('id', id)
     .single();
 
@@ -19,6 +34,8 @@ export async function getSalaryContract(id: string): Promise<SalaryContract | nu
     console.error(srError);
     return null;
   }
+
+  const override = sr.salary_overrides ?? null;
 
   let inputs = null;
 
@@ -110,6 +127,15 @@ export async function getSalaryContract(id: string): Promise<SalaryContract | nu
 
   return {
     salary_record: sr,
-    inputs
+    inputs,
+
+    override: override
+      ? {
+          netSalaryOverride: override.net_salary_override,
+          grossSalaryOverride: override.gross_salary_override,
+          reason: override.reason ?? null,
+          createdAt: override.created_at ?? null
+        }
+      : null
   };
 }

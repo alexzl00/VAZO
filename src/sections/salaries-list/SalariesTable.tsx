@@ -12,7 +12,7 @@ import { useTheme, useMediaQuery } from "@mui/material";
 
 // project imports
 import MobileSalaryList from './MobileSalaryList';
-import ConfirmActionDialog from '../../components/ConfirmActionDialog';
+import ConfirmActionDialog from '../../components/Modals/ConfirmActionDialog';
 
 // third-party
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -20,7 +20,7 @@ import { useSnackbar } from "notistack";
 
 // types
 import type { SalaryFilters, ContractType, SalaryRecord } from '../../api/Salaries';
-import type { DialogConfig } from '../../components/ConfirmActionDialog';
+import type { DialogConfig } from '../../components/Modals/ConfirmActionDialog';
 
 // api 
 import { getSalaries } from '../../api/Salaries';

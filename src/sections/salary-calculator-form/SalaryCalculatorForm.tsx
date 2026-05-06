@@ -37,6 +37,8 @@ import { FormikNumberField, FomrikSelectField } from '../../components/FormikFie
 
 import TaxChart from '../../components/Calculator/TaxChart';
 
+import EditSalaryCalculation from '../../components/Modals/EditSalaryCalculation';
+
 // utils 
 import camelToKebabCase from '../../utils/camelToKebab';
 import { MultiRangeMonthPicker } from '../../components/DaysPicker';
@@ -49,11 +51,14 @@ import type { SalaryCalculatorValues } from '../../types/salaryCalculator';
 import { calculateTaxesUoP, calculateTaxesContractOfMandate, calculateTaxesUoD} from '../../utils/workTypeSalaryCalc';
 
 
-type SalaryFormProps = {
+type BaseProps = {
   initialValues: SalaryCalculatorValues;
   onSubmit: (values: SalaryCalculatorValues) => Promise<void>;
-  type?: 'create' | 'update';
 };
+
+type SalaryFormProps =
+  | (BaseProps & { type: "create" })
+  | (BaseProps & { type: "update"; deleteOverride: () => void });
 
 
 const positiveNumber = () =>
@@ -135,14 +140,17 @@ const SalarySchema = Yup.object().shape({
   return true; // pass validation if sum is ok
 });
 
-export default function SalaryForm({ initialValues, onSubmit, type }: SalaryFormProps) {
+export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: SalaryFormProps) {
   const intl = useIntl();
   const [value, setValue] = useState(0);
+
+  const [editCalculationOpen, setEditCalculationOpen] = useState(false);
 
   const theme = useTheme();
   const isMidScreen = useMediaQuery(theme.breakpoints.down('lg'));
 
-  console.log('Initial values:', initialValues.workRateType);
+  const isInitiallyOverride = initialValues.isOverride ?? false;
+  const deleteOverride = 'deleteOverride' in rest ? rest.deleteOverride : undefined;
 
   const [disabledTabs, setDisabledTabs] = useState<number[]>(
     initialValues.workRateType === 'mandate_hourly' || initialValues.workRateType === 'uod_fixed'
@@ -521,10 +529,34 @@ export default function SalaryForm({ initialValues, onSubmit, type }: SalaryForm
               </Box>
 
               <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
-                <Button type="submit" variant="contained">
-                  <FormattedMessage id={"save"}/>
-                </Button>
+                <Stack direction="row" spacing={2} justifyContent="center">
+                  <Button type="submit" variant="contained" sx={{backgroundColor: 'rgb(7, 173, 82)'}}>
+                    <FormattedMessage id={"save"}/>
+                  </Button>
+
+                  <Button variant="contained" onClick={() => setEditCalculationOpen(true)}>
+                    <FormattedMessage id={"calculation-edit"}/>
+                  </Button>
+                </Stack>
               </Box>
+
+              <EditSalaryCalculation 
+                open={editCalculationOpen} 
+                setFieldValue={setFieldValue} 
+                onClose={() => setEditCalculationOpen(false)}
+                isInitiallyOverride={isInitiallyOverride}
+                deleteOverride={deleteOverride}
+                values={{
+                  grossSalaryOverride: values.grossSalaryOverride, 
+                  netSalaryOverride: values.netSalaryOverride, 
+                  reason: values.reason
+                }}
+                initialValues={{
+                  grossSalaryOverride: initialValues.grossSalaryOverride,
+                  netSalaryOverride: initialValues.netSalaryOverride,
+                  reason: initialValues.reason
+                }}
+              />
             </Form>
           )
         }}
