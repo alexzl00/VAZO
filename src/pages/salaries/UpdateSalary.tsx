@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from 'react-router';
 
 // third parties
 import dayjs from "dayjs";
@@ -37,6 +38,9 @@ import { login } from '../../api/authUser';
 export default function UpdateSalary() {
 
   const { id } = useParams();
+
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const intl = useIntl();
   const { enqueueSnackbar } = useSnackbar();
@@ -125,6 +129,13 @@ export default function UpdateSalary() {
 
     loadData();
   }, [id]);
+
+  const navigateToSalaries = () => {
+    navigate({
+      pathname: '/salaries',
+      search: searchParams.toString()
+    })
+  }
 
   const deleteOverride = async () => {
     if (!id || (initialValues?.isOverride === undefined || !initialValues?.isOverride )) return;
@@ -248,6 +259,8 @@ export default function UpdateSalary() {
       }
 
       enqueueSnackbar(intl.formatMessage({id: 'salary-saved'}), { variant: "success" });
+
+      navigateToSalaries();
 
     } catch (e) {
       console.error(e);

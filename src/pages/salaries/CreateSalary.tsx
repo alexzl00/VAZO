@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 
 // third parties
 import dayjs from "dayjs";
@@ -85,6 +86,14 @@ export default function CreateSalaryPage() {
 
   const intl = useIntl();
   const { enqueueSnackbar } = useSnackbar();
+
+  const navigate = useNavigate();
+
+  const navigateToSalaries = () => {
+    navigate({
+      pathname: '/salaries'
+    })
+  }
 
   const handleOverride = async (id: string, values: SalaryCalculatorValues) => {
     if (values.netSalaryOverride || values.grossSalaryOverride) {
@@ -195,8 +204,8 @@ export default function CreateSalaryPage() {
       }
 
       await handleOverride(salary_id, values);
-
       enqueueSnackbar(intl.formatMessage({id: 'salary-saved'}), { variant: "success" });
+      navigateToSalaries();
 
     } catch (e) {
       console.error(e);

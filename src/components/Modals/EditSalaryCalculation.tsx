@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { FormattedMessage } from 'react-intl';
 
+// mui
 import {
   Dialog,
   DialogTitle,
@@ -20,10 +22,15 @@ import { alpha } from '@mui/material/styles';
 import { CheckCircleOutlined, CloseOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { Field } from 'formik';
 import type { FieldProps, FormikErrors } from 'formik';
-import { FormattedMessage } from 'react-intl';
 
 import { FormikNumberField } from '../FormikFields';
+
+// types
 import type { SalaryCalculatorValues } from '../../types/salaryCalculator';
+import type { DialogConfig } from './ConfirmActionDialog';
+
+// project
+import ConfirmActionDialog from "./ConfirmActionDialog";
 
 const palette = {
   accent: '#5ddfcc',
@@ -57,14 +64,25 @@ const EditSalaryCalculation: React.FC<Props> = ({ open, onClose, setFieldValue, 
     reason: values.reason ?? null,
   });
 
+  const [dialogType, setDialogType] = useState<"delete" | null>(null);
+
   const hasChanges = 
     overrides.netSalaryOverride !== initialValues.netSalaryOverride ||
     overrides.grossSalaryOverride !== initialValues.grossSalaryOverride ||
     overrides.reason !== initialValues.reason;
 
-  console.log("Initial values:", initialValues);
-  console.log("Current override values:", overrides);
-  console.log("Has changes:", hasChanges);
+  const dialogMap: Record<string, DialogConfig> = {
+    delete: {
+      variant: 'danger' as const,
+      title: <FormattedMessage id="dialog-delete-salary-override-title" />,
+      message: <FormattedMessage id="dialog-delete-salary-override-message" />,
+      confirmText: <FormattedMessage id="dialog-delete-salary-override-confirm" />,
+      getAction: (closeDialog: () => void, deleteSalaryOverride: () => void) => () => {
+        deleteSalaryOverride();
+        closeDialog();
+      },
+    },
+  };
 
   useEffect(() => {
       if (!values) return;
@@ -109,176 +127,214 @@ const EditSalaryCalculation: React.FC<Props> = ({ open, onClose, setFieldValue, 
     setFieldValue('reason', initialValues.reason);
   }
 
+  const closeDialog = () => {
+    setDialogType(null);
+  }
+
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      PaperProps={{
-        sx: {
-          width: 400,
-          borderRadius: 4,
-          backdropFilter: 'blur(8px)',
-          boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
-          backgroundColor: alpha('#ffffff', 0.95),
-        },
-      }}
-    >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.25,
-          fontWeight: 800,
-          color: palette.textDark,
+    <>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        PaperProps={{
+          sx: {
+            width: 400,
+            borderRadius: 4,
+            backdropFilter: 'blur(8px)',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
+            backgroundColor: alpha('#ffffff', 0.95),
+          },
         }}
       >
-        <ExclamationCircleOutlined style={{ color: palette.accent, fontSize: 22 }} />
-        <FormattedMessage id={"calculation-edit-title"} />
-      </DialogTitle>
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.25,
+            fontWeight: 800,
+            color: palette.textDark,
+          }}
+        >
+          <ExclamationCircleOutlined style={{ color: palette.accent, fontSize: 22 }} />
+          <FormattedMessage id={"calculation-edit-title"} />
+        </DialogTitle>
 
-      <DialogContent>
-        <Stack spacing={2} mt={1}>
+        <DialogContent>
+          <Stack spacing={2} mt={1}>
 
-          <Stack spacing={1}>
-            <InputLabel>
-              <FormattedMessage id={"calculation-edit-net-salary-override"}/>
-            </InputLabel>
-            <TextField
-              fullWidth
-              type="number"
-              value={overrides.netSalaryOverride ?? ""}
-              onChange={(e) =>
-                handleOverrideChange(
-                  "netSalaryOverride",
-                  e.target.value === "" ? null : Number(e.target.value)
-                )
-              }
-            />
+            <Stack spacing={1}>
+              <InputLabel>
+                <FormattedMessage id={"calculation-edit-net-salary-override"}/>
+              </InputLabel>
+              <TextField
+                fullWidth
+                type="number"
+                value={overrides.netSalaryOverride ?? ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  
+                  const number = Number(value);
+                  if (number < 0) return;
+
+                  handleOverrideChange(
+                    "netSalaryOverride",
+                    value === "" ? null : number
+                  )
+                }}
+              />
+            </Stack>
+
+            <Stack spacing={1}>
+              <InputLabel>
+                <FormattedMessage id={"calculation-edit-gross-salary-override"}/>
+              </InputLabel>
+              <TextField
+                fullWidth
+                type="number"
+                value={overrides.grossSalaryOverride ?? ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  
+                  const number = Number(value);
+                  if (number < 0) return;
+
+                  handleOverrideChange(
+                    "grossSalaryOverride",
+                    value === "" ? null : number
+                  )
+                }}
+              />
+            </Stack>
+
+            <Stack spacing={1}>
+              <InputLabel>
+                <FormattedMessage id={"calculation-edit-reason"}/>
+              </InputLabel>
+              <TextField
+                fullWidth
+                multiline
+                value={overrides.reason ?? ""}
+                minRows={4}
+                onChange={(e) =>
+                  handleOverrideChange(
+                    "reason",
+                    e.target.value === "" ? null : e.target.value
+                  )
+                }
+              />
+            </Stack>
+
           </Stack>
+        </DialogContent>
 
-          <Stack spacing={1}>
-            <InputLabel>
-              <FormattedMessage id={"calculation-edit-gross-salary-override"}/>
-            </InputLabel>
-            <TextField
-              fullWidth
-              type="number"
-              value={overrides.grossSalaryOverride ?? ""}
-              onChange={(e) =>
-                handleOverrideChange(
-                  "grossSalaryOverride",
-                  e.target.value === "" ? null : Number(e.target.value)
-                )
-              }
-            />
-          </Stack>
-
-          <Stack spacing={1}>
-            <InputLabel>
-              <FormattedMessage id={"calculation-edit-reason"}/>
-            </InputLabel>
-            <TextField
-              fullWidth
-              multiline
-              value={overrides.reason ?? ""}
-              minRows={4}
-              onChange={(e) =>
-                handleOverrideChange(
-                  "reason",
-                  e.target.value === "" ? null : e.target.value
-                )
-              }
-            />
-          </Stack>
-
-        </Stack>
-      </DialogContent>
-
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Stack direction={'row'} spacing={2} sx={{ flexGrow: 1, alignItems: 'center', justifyContent: 'space-between' }}>
-        
-          <Stack direction={'row'} spacing={1} alignItems={'center'} height={'48px'}>
-            {isInitiallyOverride &&
-              (
-                <Tooltip
-                  title={<FormattedMessage id="calculation-edit-delete-override" />}
-                >
-                  <IconButton 
-                    onClick={
-                      () => {
-                        if (!deleteOverride) return;
-                        clearOverrides();
-                        deleteOverride();
-                      }
-                  }
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Stack direction={'row'} spacing={2} sx={{ flexGrow: 1, alignItems: 'center', justifyContent: 'space-between' }}>
+          
+            <Stack direction={'row'} spacing={1} alignItems={'center'} height={'48px'}>
+              {isInitiallyOverride &&
+                (
+                  <Tooltip
+                    title={<FormattedMessage id="calculation-edit-delete-override" />}
                   >
-                    <DeleteIcon 
-                      fontSize="small" 
-                      sx={{ fontSize: 32, color: "rgb(250, 70, 70)", padding: 0 }} 
-                    />
-                  </IconButton>
-                </Tooltip>
-              )
-            }
+                    <IconButton 
+                      onClick={() => {
+                        setDialogType("delete");
+                      }}
+                    >
+                      <DeleteIcon 
+                        fontSize="small" 
+                        sx={{ fontSize: 32, color: "rgb(250, 70, 70)", padding: 0 }} 
+                      />
+                    </IconButton>
+                  </Tooltip>
+                )
+              }
 
-            {hasChanges &&
-              (
-                <Tooltip
-                  title={<FormattedMessage id="calculation-edit-reset-override" />}
-                >
-                  <IconButton 
-                    onClick={
-                      () => {
-                        resetToInitialValues();
-                      }
-                  }
+              {hasChanges &&
+                (
+                  <Tooltip
+                    title={<FormattedMessage id="calculation-edit-reset-override" />}
                   >
-                    <RestartAlt 
-                      fontSize="small"
-                      sx={{ fontSize: 32, color: "grey", padding: 0 }} 
-                    />
-                  </IconButton>
-                </Tooltip>
-              )
-            }
-          </Stack>
+                    <IconButton 
+                      onClick={
+                        () => {
+                          resetToInitialValues();
+                        }
+                    }
+                    >
+                      <RestartAlt 
+                        fontSize="small"
+                        sx={{ fontSize: 32, color: "grey", padding: 0 }} 
+                      />
+                    </IconButton>
+                  </Tooltip>
+                )
+              }
+            </Stack>
 
-          <Stack direction={'row'} spacing={1} height={'40px'}>
-            <Button
-              variant="outlined"
-              onClick={onClose}
-              startIcon={<CloseOutlined />}
-              sx={{
-                border: `2px solid ${alpha(palette.accent, 0.7)}`,
-                color: palette.accent,
-                borderRadius: '24px',
-                fontWeight: 700,
-              }}
-            >
-              <FormattedMessage id="no" />
-            </Button>
+            <Stack direction={'row'} spacing={1} height={'40px'}>
+              <Button
+                variant="outlined"
+                onClick={onClose}
+                startIcon={<CloseOutlined />}
+                sx={{
+                  border: `2px solid ${alpha(palette.accent, 0.7)}`,
+                  color: palette.accent,
+                  borderRadius: '24px',
+                  fontWeight: 700,
+                }}
+              >
+                <FormattedMessage id="no" />
+              </Button>
 
-            <Button
-              variant="contained"
-              startIcon={<CheckCircleOutlined />}
-              sx={{
-                backgroundColor: alpha(palette.accent, 0.25),
-                color: palette.textDark,
-                border: `2px solid ${palette.accent}`,
-                borderRadius: '24px',
-                fontWeight: 700,
-                ':hover': {
-                  backgroundColor: palette.accent,
-                },
-              }}
-              onClick={handleSave}
-            >
-              <FormattedMessage id="save" />
-            </Button>
+              <Button
+                variant="contained"
+                startIcon={<CheckCircleOutlined />}
+                sx={{
+                  backgroundColor: alpha(palette.accent, 0.25),
+                  color: palette.textDark,
+                  border: `2px solid ${palette.accent}`,
+                  borderRadius: '24px',
+                  fontWeight: 700,
+                  ':hover': {
+                    backgroundColor: palette.accent,
+                  },
+                }}
+                onClick={handleSave}
+              >
+                <FormattedMessage id="save" />
+              </Button>
+            </Stack>
           </Stack>
-        </Stack>
-      </DialogActions>
-    </Dialog>
+        </DialogActions>
+      </Dialog>
+
+      <ConfirmActionDialog
+        open={!!dialogType}
+        form={false}
+        extraContent={dialogType ? dialogMap[dialogType].extraContent : undefined}
+        title={dialogType ? dialogMap[dialogType].title : ''}
+        message={dialogType ? dialogMap[dialogType].message : ''}
+        confirmText={dialogType ? dialogMap[dialogType].confirmText : ''}
+        variant={dialogType ? dialogMap[dialogType].variant : 'default'}
+        onConfirm={() => {
+          if (!dialogType) return;
+
+          if (dialogType === 'delete' && deleteOverride) {
+            const action = dialogMap["delete"].getAction(
+              closeDialog,
+              () => {
+                if (!deleteOverride) return;
+                clearOverrides();
+                deleteOverride();
+              }
+            );
+            action();
+          }
+        }}
+        onCancel={closeDialog}
+      />
+    </>
   );
 };
 

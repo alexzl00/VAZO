@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { FormattedMessage } from "react-intl";
+
+// mui
 import {
   Box,
   Stack,
@@ -17,10 +20,12 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from '@mui/icons-material/Delete';
 
+// utils
 import { formatMoneyPl } from "../../utils/money-format";
 
+// api
 import type { SalaryRecord, SalaryFilters } from "../../api/Salaries";
-import { FormattedMessage } from "react-intl";
+
 
 interface Props {
   items: SalaryRecord[];

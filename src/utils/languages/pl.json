@@ -6,6 +6,7 @@
   "of": "z",
 
   "save": "Zapisz",
+  "reset": "Resetuj",
   "clear": "Wyczyść",
   "calculate": "Oblicz",
 
@@ -112,6 +113,16 @@
   "dialog-delete-salary-title": "Usuń wynagrodzenie",
   "dialog-delete-salary-message": "Czy na pewno chcesz usunąć to wynagrodzenie?",
   "dialog-delete-salary-confirm": "Usuń",
+
+  "dialog-delete-salary-override-title": "Usuń nadpisanie wynagrodzenia",
+  "dialog-delete-salary-override-message": "Czy na pewno chcesz usunąć to nadpisanie wynagrodzenia? Operacja nastąpi natychmiast po potwierdzeniu.",
+  "dialog-delete-salary-override-confirm": "Usuń",
+
+  "dialog-save-salary-update-title": "Zapisz aktualizację wynagrodzenia",
+  "dialog-save-salary-update-message": "Czy na pewno chcesz zapisać zmiany w wynagrodzeniu?",
+  
+  "dialog-reset-salary-update-title": "Zresetuj aktualizację wynagrodzenia",
+  "dialog-reset-salary-update-message": "Czy na pewno chcesz zresetować zmiany w wynagrodzeniu?",
 
   "salary-saved": "Wypłata została zapisana!",
   "salary-deleted": "Wypłata została usunięta!",
