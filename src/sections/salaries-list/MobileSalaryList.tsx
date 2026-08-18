@@ -14,18 +14,17 @@ import {
   Modal,
   Button
 } from "@mui/material";
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid";
 
 import FilterListIcon from "@mui/icons-material/FilterList";
 import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from '@mui/icons-material/Delete';
+import DeleteIcon from "@mui/icons-material/Delete";
 
 // utils
 import { formatMoneyPl } from "../../utils/money-format";
 
 // api
 import type { SalaryRecord, SalaryFilters } from "../../api/Salaries";
-
 
 interface Props {
   items: SalaryRecord[];
@@ -40,6 +39,46 @@ interface Props {
   setPage: React.Dispatch<React.SetStateAction<number>>;
 }
 
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
+
+function getCurrentYearMonth() {
+  const now = new Date();
+
+  return {
+    year: now.getFullYear(),
+    month: now.getMonth() + 1
+  };
+}
+
+function createDefaultSalaryFilters(): SalaryFilters {
+  const current = getCurrentYearMonth();
+
+  return {
+    id: "",
+    startYear: current.year,
+    startMonth: 1,
+    endYear: current.year,
+    endMonth: current.month,
+    contractType: ""
+  };
+}
+
+function isInvalidRange(filters: SalaryFilters) {
+  if (
+    !filters.startYear ||
+    !filters.startMonth ||
+    !filters.endYear ||
+    !filters.endMonth
+  ) {
+    return true;
+  }
+
+  const startValue = filters.startYear * 100 + filters.startMonth;
+  const endValue = filters.endYear * 100 + filters.endMonth;
+
+  return startValue > endValue;
+}
+
 export default function MobileSalaryList({
   items,
   loading,
@@ -50,18 +89,27 @@ export default function MobileSalaryList({
   setPage
 }: Props) {
   const [openFilters, setOpenFilters] = useState(false);
-  const [draft, setDraft] = useState<SalaryFilters>(globalFilter);
+
+  const [draft, setDraft] = useState<SalaryFilters>(() => ({
+    ...createDefaultSalaryFilters(),
+    ...globalFilter
+  }));
 
   useEffect(() => {
     if (openFilters) {
-      setDraft(globalFilter);
+      setDraft({
+        ...createDefaultSalaryFilters(),
+        ...globalFilter
+      });
     }
   }, [openFilters, globalFilter]);
+
+  const rangeError = isInvalidRange(draft);
 
   return (
     <Box>
       {/* FILTER BUTTON */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
         <Button
           variant="outlined"
           startIcon={<FilterListIcon />}
@@ -93,37 +141,117 @@ export default function MobileSalaryList({
           </Typography>
 
           <Stack spacing={2}>
-            <TextField
-              label="Year"
-              type="number"
-              value={draft.year || ""}
-              onChange={(e) =>
-                setDraft((p) => ({ ...p, year: Number(e.target.value) }))
-              }
-              fullWidth
-            />
+            {/* START */}
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block", mb: 0.75 }}
+              >
+                Start
+              </Typography>
 
-            <Stack direction={'row'} spacing={1}>
-              <TextField
-                label="From month"
-                type="number"
-                value={draft.monthFrom || ""}
-                onChange={(e) =>
-                  setDraft((p) => ({ ...p, monthFrom: Number(e.target.value) }))
-                }
-                fullWidth
-              />
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  label="Year"
+                  type="number"
+                  value={draft.startYear}
+                  onChange={(e) =>
+                    setDraft((p) => ({
+                      ...p,
+                      startYear: Number(e.target.value)
+                    }))
+                  }
+                  fullWidth
+                  required
+                  slotProps={{
+                    htmlInput: {
+                      min: 2000,
+                      max: 2100
+                    }
+                  }}
+                />
 
-              <TextField
-                label="To month"
-                type="number"
-                value={draft.monthTo || ""}
-                onChange={(e) =>
-                  setDraft((p) => ({ ...p, monthTo: Number(e.target.value) }))
-                }
-                fullWidth
-              />
-            </Stack>
+                <TextField
+                  select
+                  label="Month"
+                  value={draft.startMonth}
+                  onChange={(e) =>
+                    setDraft((p) => ({
+                      ...p,
+                      startMonth: Number(e.target.value)
+                    }))
+                  }
+                  fullWidth
+                  required
+                >
+                  {MONTH_OPTIONS.map((month) => (
+                    <MenuItem key={month} value={month}>
+                      {String(month).padStart(2, "0")}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Stack>
+            </Box>
+
+            {/* END */}
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block", mb: 0.75 }}
+              >
+                End
+              </Typography>
+
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  label="Year"
+                  type="number"
+                  value={draft.endYear}
+                  onChange={(e) =>
+                    setDraft((p) => ({
+                      ...p,
+                      endYear: Number(e.target.value)
+                    }))
+                  }
+                  fullWidth
+                  required
+                  slotProps={{
+                    htmlInput: {
+                      min: 2000,
+                      max: 2100
+                    }
+                  }}
+                />
+
+                <TextField
+                  select
+                  label="Month"
+                  value={draft.endMonth}
+                  onChange={(e) =>
+                    setDraft((p) => ({
+                      ...p,
+                      endMonth: Number(e.target.value)
+                    }))
+                  }
+                  fullWidth
+                  required
+                >
+                  {MONTH_OPTIONS.map((month) => (
+                    <MenuItem key={month} value={month}>
+                      {String(month).padStart(2, "0")}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Stack>
+            </Box>
+
+            {rangeError && (
+              <Typography variant="caption" color="error">
+                Start date cannot be later than end date.
+              </Typography>
+            )}
 
             <TextField
               select
@@ -132,7 +260,7 @@ export default function MobileSalaryList({
               onChange={(e) =>
                 setDraft((p) => ({
                   ...p,
-                  contractType: e.target.value as any
+                  contractType: e.target.value as SalaryFilters["contractType"]
                 }))
               }
               fullWidth
@@ -155,10 +283,12 @@ export default function MobileSalaryList({
               <Button
                 fullWidth
                 variant="contained"
+                disabled={rangeError}
                 onClick={() => {
-                  onFilterChange("year", draft.year);
-                  onFilterChange("monthFrom", draft.monthFrom);
-                  onFilterChange("monthTo", draft.monthTo);
+                  onFilterChange("startYear", draft.startYear);
+                  onFilterChange("startMonth", draft.startMonth);
+                  onFilterChange("endYear", draft.endYear);
+                  onFilterChange("endMonth", draft.endMonth);
                   onFilterChange("contractType", draft.contractType);
 
                   setPage(0);
@@ -190,19 +320,11 @@ export default function MobileSalaryList({
               month,
               contractType,
               paymentMode,
-
               grossSalaryCalculated,
               netSalaryCalculated,
-
               isOverridden,
               grossSalaryOverride,
-              netSalaryOverride,
-              
-              overrideReason,
-              overrideCreatedAt,
-
-              createdAt,
-              updatedAt
+              netSalaryOverride
             } = item;
 
             const net = isOverridden
@@ -214,12 +336,8 @@ export default function MobileSalaryList({
               : grossSalaryCalculated;
 
             return (
-              <Grid 
-                size={{ xs: 12, md: 6, lg: 4 }} 
-                key={id}
-              >
+              <Grid size={{ xs: 12, md: 6, lg: 4 }} key={id}>
                 <Box
-                  key={id}
                   sx={{
                     width: "100%",
                     p: 2.5,
@@ -247,10 +365,10 @@ export default function MobileSalaryList({
                     />
 
                     <Typography variant="body2" color="text.secondary">
-                      {month}/{year}
+                      {String(month).padStart(2, "0")}/{year}
                     </Typography>
 
-                    <Stack direction={'row'} spacing={0.5}>
+                    <Stack direction="row" spacing={0.5}>
                       <IconButton
                         onClick={() => editClick(id)}
                         sx={{ p: 1, backgroundColor: "#EFEFFF" }}
@@ -273,6 +391,7 @@ export default function MobileSalaryList({
                       <Typography variant="caption" color="text.secondary">
                         Net
                       </Typography>
+
                       <Typography variant="h6" fontWeight={700}>
                         {formatMoneyPl(net)}
                       </Typography>
@@ -282,6 +401,7 @@ export default function MobileSalaryList({
                       <Typography variant="caption" color="text.secondary">
                         Gross
                       </Typography>
+
                       <Typography variant="h6" fontWeight={700}>
                         {formatMoneyPl(gross)}
                       </Typography>
@@ -297,7 +417,11 @@ export default function MobileSalaryList({
                     {isOverridden && (
                       <Typography
                         variant="caption"
-                        sx={{ color: "#D32F2F", fontWeight: 600, fontSize: 14 }}
+                        sx={{
+                          color: "#D32F2F",
+                          fontWeight: 600,
+                          fontSize: 14
+                        }}
                       >
                         <FormattedMessage id="salaries-is-overridden" />
                       </Typography>

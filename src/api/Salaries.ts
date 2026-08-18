@@ -1,14 +1,15 @@
 import { supabase } from "./supabaseClient";
 
-export type ContractType = 'uop' | 'mandate' | 'uod';
-export type PaymentMode = 'hourly' | 'month' | 'fixed';
+export type ContractType = "uop" | "mandate" | "uod";
+export type PaymentMode = "hourly" | "month" | "fixed";
 
 export type SalaryFilters = {
-  id: string | '';
-  year: number;
-  monthFrom?: number;
-  monthTo?: number;
-  contractType: ContractType | '';
+  id: string | "";
+  startYear: number;
+  startMonth: number;
+  endYear: number;
+  endMonth: number;
+  contractType: ContractType | "";
 };
 
 export interface SalaryRecord {
@@ -32,13 +33,26 @@ export interface SalaryRecord {
   updatedAt: string;
 }
 
+export type GetSalariesResult = {
+  res: SalaryRecord[];
+  hasMore: boolean;
+};
+
 export async function getSalaries(
   filters: SalaryFilters,
   page = 1,
   pageSize = 10
-) {
+): Promise<GetSalariesResult> {
+  const safePage = Math.max(page, 1);
+  const safePageSize = Math.max(pageSize, 1);
+
+  const from = (safePage - 1) * safePageSize;
+
+  // Fetch one extra row to detect if there is another page.
+  const to = from + safePageSize;
+
   let query = supabase
-    .from('salary_records')
+    .from("salary_records")
     .select(`
       *,
       salary_overrides (
@@ -49,44 +63,48 @@ export async function getSalaries(
       )
     `);
 
-  // --- Filters ---
   if (filters.id) {
-    query = query.eq('id', filters.id);
+    query = query.eq("id", filters.id);
   }
 
-  if (filters.year) {
-    query = query.eq('year', filters.year);
-  }
+  query = query.or(
+    `year.gt.${filters.startYear},and(year.eq.${filters.startYear},month.gte.${filters.startMonth})`
+  );
 
-  if (filters.monthFrom) {
-    query = query.gte('month', filters.monthFrom);
-  }
-
-  if (filters.monthTo) {
-    query = query.lte('month', filters.monthTo);
-  }
+  query = query.or(
+    `year.lt.${filters.endYear},and(year.eq.${filters.endYear},month.lte.${filters.endMonth})`
+  );
 
   if (filters.contractType) {
-    query = query.eq('contract_type', filters.contractType);
+    query = query.eq("contract_type", filters.contractType);
   }
 
-  // --- Pagination ---
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
+  query = query
+    .order("year", { ascending: false })
+    .order("month", { ascending: false })
+    .range(from, to);
 
-  query = query.range(from, to);
-
-  // --- Execute ---
   const { data, error } = await query;
 
   if (error) {
     console.error(error);
-    return { res: [], count: 0 };
+
+    return {
+      res: [],
+      hasMore: false
+    };
   }
 
-  // --- Map response ---
-  const res: SalaryRecord[] = (data ?? []).map((salary: any) => {
-    const override = salary.salary_overrides;
+  const rows = data ?? [];
+
+  const hasMore = rows.length > safePageSize;
+
+  const visibleRows = hasMore ? rows.slice(0, safePageSize) : rows;
+
+  const res: SalaryRecord[] = visibleRows.map((salary: any) => {
+    const override = Array.isArray(salary.salary_overrides)
+      ? salary.salary_overrides[0]
+      : salary.salary_overrides;
 
     return {
       id: salary.id,
@@ -101,7 +119,7 @@ export async function getSalaries(
       isOverridden: salary.is_overridden,
       grossSalaryOverride: override?.gross_salary_override ?? null,
       netSalaryOverride: override?.net_salary_override ?? null,
-      
+
       overrideReason: override?.reason ?? null,
       overrideCreatedAt: override?.created_at ?? null,
 
@@ -112,6 +130,6 @@ export async function getSalaries(
 
   return {
     res,
-    count: res.length
+    hasMore
   };
 }

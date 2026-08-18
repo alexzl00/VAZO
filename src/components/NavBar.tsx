@@ -12,7 +12,12 @@ import {
   AppBar
 } from "@mui/material";
 
+// auth 
+import { supabase } from "../lib/supabase";
+
 import { NavLink } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+
 import Logo from '../assets/images/VAZO-logo.png';
 import ProfileSVG from '../assets/icons/profile.svg';
 import CalculatorSVG from '../assets/icons/calculator.svg';
@@ -46,6 +51,18 @@ export default function Navbar({
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     const drawerWidth = collapsed ? 80 : 250;
+
+    const navigate = useNavigate();
+
+    const logout = async () => {
+        const { error } = await supabase.auth.signOut()
+
+        if (error) {
+            console.error(error.message)
+        } else {
+            navigate('/login');
+        }
+    }
 
     return (
         !isMobile ? (
@@ -148,6 +165,7 @@ export default function Navbar({
                         justifyContent: 'center',
                         gap: 2
                     }}
+                    onClick={logout}
                     >
                         <Box
                         component="img"

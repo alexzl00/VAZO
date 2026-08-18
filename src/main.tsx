@@ -11,14 +11,18 @@ import theme from "./overrides/theme";
 
 import Translations from "./components/Translations";
 
+import { AuthProvider } from "./auth/AuthContext";
+
 createRoot(document.getElementById("root")!).render(
   <ThemeProvider theme={theme}>
     <SnackbarProvider maxSnack={3} autoHideDuration={3000} anchorOrigin={{ vertical: "bottom", horizontal: "right"}}>
       <Translations>
-        <StrictMode>
-          <CssBaseline />
-          <RouterProvider router={router} />
-        </StrictMode>
+        <AuthProvider>
+          <StrictMode>
+            <CssBaseline />
+            <RouterProvider router={router} />
+          </StrictMode>
+        </AuthProvider>
       </Translations>
     </SnackbarProvider>
   </ThemeProvider>

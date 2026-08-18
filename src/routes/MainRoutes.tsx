@@ -4,6 +4,8 @@ import { lazy } from 'react';
 import Loadable from '../components/Loadable';
 import MainLayout from '../layouts/MainLayout';
 
+import ProtectedRoute from '../auth/ProtectedRoute';
+
 // pages routing
 const SalaryCalculator = Loadable(lazy(() => import('../pages/salaries/CreateSalary')))
 const UpdateSalary = Loadable(lazy(() => import('../pages/salaries/UpdateSalary')))
@@ -23,13 +25,18 @@ const MainRoutes = {
       element: <SalaryCalculator />,
     },
     {
-      path: 'salaries',
-      element: <Salaries />,
+      element: <ProtectedRoute />,
+      children: [
+        {
+          path: 'salaries',
+          element: <Salaries />,
+        },
+        {
+          path: 'update-salary/:id',
+          element: <UpdateSalary />,
+        },
+      ],
     },
-    {
-      path: 'update-salary/:id',
-      element: <UpdateSalary />
-    }
   ]
 };
 
