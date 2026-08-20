@@ -289,6 +289,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                     direction={isMidScreen ? 'column' : 'row'}
                     spacing={isMidScreen ? 2 : 0}
                     justifyContent={isMidScreen ? 'center' : 'space-between'}
+                    alignItems={'center'}
                     sx={{ width: '100%' }}
                   >
                     <Box sx={{ mt: 3, width: '320px' }}>

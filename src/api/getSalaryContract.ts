@@ -1,4 +1,4 @@
-import { supabase } from "./supabaseClient";
+import { supabase } from "../lib/supabase";
 
 export type ContractType = 'uop' | 'mandate' | 'uod';
 

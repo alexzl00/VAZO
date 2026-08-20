@@ -1,4 +1,4 @@
-import { supabase } from "./supabaseClient";
+import { supabase } from "../lib/supabase";
 
 export async function createUopSalary(values: any) {
   const { data, error } = await supabase.rpc('insert_uop_salary', {

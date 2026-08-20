@@ -1,4 +1,4 @@
-import { supabase } from "./supabaseClient";
+import { supabase } from "../lib/supabase";
 
 export async function overrideSalaryCalculations(id: string, values: any) {
   const { data, error } = await supabase.rpc('override_salary_calculations', {

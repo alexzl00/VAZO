@@ -12,6 +12,8 @@ const UpdateSalary = Loadable(lazy(() => import('../pages/salaries/UpdateSalary'
 
 const Salaries = Loadable(lazy(() => import('../pages/salaries/Salaries')))
 
+const Profile = Loadable(lazy(() => import('../pages/user/Profile')))
+
 const MainRoutes = {
   path: '/',
   element: <MainLayout />, // wrap all children with MainLayout
@@ -35,6 +37,10 @@ const MainRoutes = {
           path: 'update-salary/:id',
           element: <UpdateSalary />,
         },
+        {
+          path: 'profile',
+          element: <Profile />
+        }
       ],
     },
   ]

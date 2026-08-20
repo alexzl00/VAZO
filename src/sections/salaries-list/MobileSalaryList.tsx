@@ -23,6 +23,9 @@ import DeleteIcon from "@mui/icons-material/Delete";
 // utils
 import { formatMoneyPl } from "../../utils/money-format";
 
+// third-party
+import { useIntl } from "react-intl";
+
 // api
 import type { SalaryRecord, SalaryFilters } from "../../api/Salaries";
 
@@ -95,6 +98,8 @@ export default function MobileSalaryList({
     ...globalFilter
   }));
 
+  const intl = useIntl();
+
   useEffect(() => {
     if (openFilters) {
       setDraft({
@@ -116,7 +121,7 @@ export default function MobileSalaryList({
           onClick={() => setOpenFilters(true)}
           sx={{ width: 100 }}
         >
-          Filters
+          {intl.formatMessage({ id: "salaries-filters" })}
         </Button>
       </Box>
 
@@ -137,7 +142,7 @@ export default function MobileSalaryList({
           }}
         >
           <Typography variant="h6" mb={2}>
-            Filters
+            {intl.formatMessage({ id: "salaries-filters" })}
           </Typography>
 
           <Stack spacing={2}>
@@ -148,12 +153,12 @@ export default function MobileSalaryList({
                 color="text.secondary"
                 sx={{ display: "block", mb: 0.75 }}
               >
-                Start
+                {intl.formatMessage({ id: "salaries-start" })}
               </Typography>
 
               <Stack direction="row" spacing={1}>
                 <TextField
-                  label="Year"
+                  label={intl.formatMessage({ id: "salaries-year" })}
                   type="number"
                   value={draft.startYear}
                   onChange={(e) =>
@@ -174,7 +179,7 @@ export default function MobileSalaryList({
 
                 <TextField
                   select
-                  label="Month"
+                  label={intl.formatMessage({ id: "salaries-month" })}
                   value={draft.startMonth}
                   onChange={(e) =>
                     setDraft((p) => ({
@@ -201,12 +206,12 @@ export default function MobileSalaryList({
                 color="text.secondary"
                 sx={{ display: "block", mb: 0.75 }}
               >
-                End
+                {intl.formatMessage({ id: "salaries-end" })}
               </Typography>
 
               <Stack direction="row" spacing={1}>
                 <TextField
-                  label="Year"
+                  label={intl.formatMessage({ id: "salaries-year" })}
                   type="number"
                   value={draft.endYear}
                   onChange={(e) =>
@@ -227,7 +232,7 @@ export default function MobileSalaryList({
 
                 <TextField
                   select
-                  label="Month"
+                  label={intl.formatMessage({ id: "salaries-month" })}
                   value={draft.endMonth}
                   onChange={(e) =>
                     setDraft((p) => ({
@@ -249,13 +254,13 @@ export default function MobileSalaryList({
 
             {rangeError && (
               <Typography variant="caption" color="error">
-                Start date cannot be later than end date.
+                {intl.formatMessage({ id: "salaries-invalid-date-range" })}
               </Typography>
             )}
 
             <TextField
               select
-              label="Contract type"
+              label={intl.formatMessage({ id: "salaries-contract-type" })}
               value={draft.contractType}
               onChange={(e) =>
                 setDraft((p) => ({
@@ -265,10 +270,10 @@ export default function MobileSalaryList({
               }
               fullWidth
             >
-              <MenuItem value="">All</MenuItem>
-              <MenuItem value="uop">UoP</MenuItem>
-              <MenuItem value="mandate">Mandate</MenuItem>
-              <MenuItem value="uod">UoD</MenuItem>
+              <MenuItem value="">{intl.formatMessage({ id: "salaries-all" })}</MenuItem>
+              <MenuItem value="uop">{intl.formatMessage({ id: "salaries-contract-uop" })}</MenuItem>
+              <MenuItem value="mandate">{intl.formatMessage({ id: "salaries-contract-mandate" })}</MenuItem>
+              <MenuItem value="uod">{intl.formatMessage({ id: "salaries-contract-uod" })}</MenuItem>
             </TextField>
 
             <Stack direction="row" spacing={1}>
@@ -277,7 +282,7 @@ export default function MobileSalaryList({
                 variant="outlined"
                 onClick={() => setOpenFilters(false)}
               >
-                Cancel
+                {intl.formatMessage({ id: "salaries-cancel" })}
               </Button>
 
               <Button
@@ -295,7 +300,7 @@ export default function MobileSalaryList({
                   setOpenFilters(false);
                 }}
               >
-                Apply
+                {intl.formatMessage({ id: "salaries-apply" })}
               </Button>
             </Stack>
           </Stack>
@@ -308,8 +313,31 @@ export default function MobileSalaryList({
           <CircularProgress />
         </Stack>
       ) : items.length === 0 ? (
-        <Box textAlign="center" mt={4}>
-          No data
+        <Box
+          sx={{
+            py: 6,
+            textAlign: 'center',
+          }}
+        >
+          <Typography
+            variant="h6"
+            sx={{
+              color: '#2F2A4A',
+              fontWeight: 600,
+              mb: 1,
+            }}
+          >
+            {intl.formatMessage({ id: 'salaries-no-results' })}
+          </Typography>
+
+          <Typography
+            variant="body2"
+            sx={{
+              color: '#77728D',
+            }}
+          >
+            {intl.formatMessage({ id: 'salaries-no-results-description' })}
+          </Typography>
         </Box>
       ) : (
         <Grid container spacing={2}>
@@ -389,7 +417,7 @@ export default function MobileSalaryList({
                   <Stack direction="row" justifyContent="space-between" mt={2}>
                     <Box>
                       <Typography variant="caption" color="text.secondary">
-                        Net
+                        {intl.formatMessage({ id: "salaries-net" })}
                       </Typography>
 
                       <Typography variant="h6" fontWeight={700}>
@@ -399,7 +427,7 @@ export default function MobileSalaryList({
 
                     <Box textAlign="right">
                       <Typography variant="caption" color="text.secondary">
-                        Gross
+                        {intl.formatMessage({ id: "salaries-gross" })}
                       </Typography>
 
                       <Typography variant="h6" fontWeight={700}>
@@ -411,7 +439,7 @@ export default function MobileSalaryList({
                   {/* FOOTER */}
                   <Stack direction="row" justifyContent="space-between" mt={2}>
                     <Typography variant="body2" color="text.secondary">
-                      Payment mode: {paymentMode}
+                      {intl.formatMessage({ id: "salaries-payment-mode" })}: {intl.formatMessage({ id: `salaries-payment-mode-${paymentMode}` })}
                     </Typography>
 
                     {isOverridden && (

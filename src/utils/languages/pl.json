@@ -49,6 +49,23 @@
   "calendar-and-working-time-working-hours": "Norma godzin w miesiącu",
   "calendar-and-working-time-info": "Kalendarz – czas pracy w miesiącu\nTen blok przedstawia kalendarz danego miesiąca i służy do ustalenia normy czasu pracy.\n\n• Kalkulator automatycznie uwzględnia: dni robocze, weekendy oraz święta ustawowe.\n• Na tej podstawie wyliczana jest norma czasu pracy dla miesiąca.\n\nW większości przypadków nie wymaga ręcznych zmian.",
 
+
+  "header-title": "Salary & Productivity",
+  "header-subtitle": "Zarządzaj wynagrodzeniem i swoimi danymi",
+  "header-account": "Konto",
+  "header-profile": "Profil",
+  "header-login": "Zaloguj się",
+  "header-sign-up": "Załóż konto",
+  "header-logout": "Wyloguj się",
+
+  "navbar-calculator": "Kalkulator",
+  "navbar-salaries": "Wynagrodzenia",
+  "navbar-statistics": "Statystyki",
+
+  "navbar-auth-required-title": "Zaloguj się, aby kontynuować",
+  "navbar-auth-required-description": "Ta funkcja korzysta z Twoich zapisanych danych. Zaloguj się lub utwórz konto, aby uzyskać do niej dostęp.",
+  "navbar-auth-required-cancel": "Anuluj",
+
   "overtime-and-night-hours-daily-overtime": "Nadgodziny dzienne",
   "overtime-and-night-hours-weekend-holiday-overtime": "Nadgodziny weekendowe i świąteczne",
   "overtime-and-night-hours-night-overtime": "Nadgodziny nocne",
@@ -91,6 +108,29 @@
 
   "salaries-is-overridden": "Nadpisane",
 
+  "salaries-no-results": "Brak wyników",
+  "salaries-no-results-description": "Spróbuj dostosować wyszukiwanie lub filtry.",
+  "salaries-filters": "Filtry",
+  "salaries-start": "Od",
+  "salaries-end": "Do",
+  "salaries-year": "Rok",
+  "salaries-month": "Miesiąc",
+  "salaries-invalid-date-range": "Data początkowa nie może być późniejsza niż data końcowa.",
+  "salaries-contract-type": "Rodzaj umowy",
+  "salaries-all": "Wszystkie",
+  "salaries-contract-uop": "Umowa o pracę",
+  "salaries-contract-mandate": "Umowa zlecenie",
+  "salaries-contract-uod": "Umowa o dzieło",
+  "salaries-cancel": "Anuluj",
+  "salaries-apply": "Zastosuj",
+  "salaries-net": "Netto",
+  "salaries-gross": "Brutto",
+  "salaries-payment-mode": "Tryb wynagrodzenia",
+
+  "salaries-payment-mode-monthly": "Miesięczny",
+  "salaries-payment-mode-hourly": "Godzinowy",
+  "salaries-payment-mode-fixed": "Ustalona kwota",
+
   "sign-up-header": "Witaj w VAZO!",
   "sign-up-subheader": "Wprowadź e-mail i hasło, aby utworzyć konto",
   "sign-up-confirm": "Zarejestruj się",
@@ -108,6 +148,44 @@
   "login-forgot-password": "Nie pamiętasz hasła?",
   "login-sign-up": "Zarejestruj się",
   "login-failed": "Logowanie nie powiodło się",
+
+  "profile-title": "Profil",
+  "profile-subtitle": "Zarządzaj swoimi danymi i subskrypcją",
+
+  "profile-personal-data": "Dane osobowe",
+  "profile-first-name": "Imię",
+  "profile-last-name": "Nazwisko",
+  "profile-email": "Adres e-mail",
+  "profile-edit": "Edytuj",
+  "profile-save": "Zapisz",
+  "profile-cancel": "Anuluj",
+  "profile-load-error": "Nie udało się pobrać danych profilu.",
+
+  "profile-update-account-success": "Profil został zaktualizowany",
+  "profile-update-account-error": "Aktualizacja się nie powiodła, spróbuj później",
+
+  "profile-delete-account-error": "Błąd podczas usunięcia konta",
+  "profile-delete-account-success": "Usinięcie konta poszło pomyślnie",
+  "profile-delete-account": "Usuń konto",
+
+  "profile-dialog-delete-account-title": "Usunąć konto?",
+  "profile-dialog-delete-account-message": "Czy na pewno chcesz usunąć swoje konto? Ta operacja jest nieodwracalna i spowoduje usunięcie danych powiązanych z Twoim kontem.",
+  "profile-dialog-delete-account-confirm": "Usuń konto",
+
+  "profile-subscription-title": "Subskrypcja",
+  "profile-current-plan": "Aktualny plan",
+  "profile-subscription-expiration": "Ważny do",
+  "profile-subscription-no-expiration": "Bez daty wygaśnięcia",
+
+  "profile-pro-title": "Przejdź na Pro",
+  "profile-pro-description": "Odblokuj dodatkowe funkcje i uzyskaj pełny dostęp do swoich danych.",
+  "profile-pro-feature-history": "Pełny dostęp do zapisanych danych",
+  "profile-pro-feature-statistics": "Rozszerzone statystyki",
+  "profile-pro-coming-soon": "Wkrótce",
+
+  "profile-payments-title": "Płatności",
+  "profile-payments-description": "Zobacz historię swoich płatności i subskrypcji.",
+  "profile-payments-open": "Historia płatności",
 
   "reset-password-header": "Zresetuj hasło",
   "reset-password-subheader": "Wprowadź swój adres e-mail, aby otrzymać link do zresetowania hasła",
@@ -129,7 +207,6 @@
   "update-password-success": "Hasło zostało zaktualizowane pomyślnie.",
   "update-password-failed": "Nie udało się zaktualizować hasła.",
   "update-password-not-match": "Hasła nie są zgodne.",
-
 
   "taxes-title": "Podatki i potrącenia",
   "taxes-zus-pension": "Składka emerytalna ZUS",

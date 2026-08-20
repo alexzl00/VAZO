@@ -32,9 +32,6 @@ import { overrideSalaryCalculations, deleteSalaryOverride } from "../../api/over
 import type { SalaryCalculatorValues } from '../../types/salaryCalculator';
 import type { WorkRate } from "../../types/salaryCalculator";
 
-// for test
-import { login } from '../../api/authUser';
-
 export default function UpdateSalary() {
 
   const { id } = useParams();
@@ -158,9 +155,6 @@ export default function UpdateSalary() {
   const handleUpdate = async (values: SalaryCalculatorValues) => {
     if (!id) return;
     try {
-      // login
-      const session = await login('aleks19802@o2.pl', '123');
-
       if (values.workRateType === 'mandate_hourly') {
         const calculated = calculateTaxesContractOfMandate(values);
 

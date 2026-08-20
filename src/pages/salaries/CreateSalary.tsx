@@ -26,7 +26,6 @@ import { createUoDSalary } from "../../api/UoD";
 import type { SalaryCalculatorValues } from '../../types/salaryCalculator';
 
 // for test
-import { login } from '../../api/authUser';
 import { overrideSalaryCalculations } from "../../api/overrideSalaryCalculations";
 
 const now = new Date();
@@ -108,9 +107,6 @@ export default function CreateSalaryPage() {
   const handleCreate = async (values: SalaryCalculatorValues) => {
 
     try {
-      // login
-      const session = await login('aleks19802@o2.pl', '123');
-
       let salary_id: string | null = null;
 
       if (values.workRateType === 'mandate_hourly') {

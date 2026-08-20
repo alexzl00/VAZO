@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { Box, useMediaQuery, useTheme } from '@mui/material';
 import { Outlet } from 'react-router-dom';
+
 import Navbar from '../components/NavBar';
+import Header from '../components/Header';
 
 const COLLAPSED_WIDTH = 80;
 const EXPANDED_WIDTH = 250;
+
+const HEADER_HEIGHT = 72;
+const MOBILE_NAVBAR_HEIGHT = 100;
 
 export default function MainLayout() {
   const theme = useTheme();
@@ -15,37 +20,64 @@ export default function MainLayout() {
   const drawerWidth = collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH;
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#DFDCFD' }}>
-      
-      {/* SIDEBAR WRAPPER (controls width!) */}
+    <Box
+      sx={{
+        display: 'flex',
+        minHeight: '100vh',
+        bgcolor: '#DFDCFD',
+      }}
+    >
+      {/* SIDEBAR WRAPPER */}
       <Box
         sx={{
           width: isMobile ? 0 : drawerWidth,
+          flexShrink: 0,
           transition: (theme) =>
             theme.transitions.create('width', {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.standard,
             }),
-          flexShrink: 0,
         }}
       >
-        <Navbar collapsed={collapsed} setCollapsed={setCollapsed} />
+        <Navbar
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
+        />
       </Box>
 
-      {/* MAIN CONTENT (no margin-left EVER) */}
+      {/* DESKTOP HEADER */}
+      {!isMobile && (
+        <Header collapsed={collapsed} />
+      )}
+
+      {/* MAIN CONTENT */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
+          minWidth: 0,
+
           minHeight: '100vh',
-          mt: isMobile ? '100px' : '15px',
-          mb: '30px',
+
+          pt: isMobile
+            ? `${MOBILE_NAVBAR_HEIGHT + 16}px`
+            : `${HEADER_HEIGHT + 16}px`,
+
+          pb: '30px',
 
           display: 'flex',
           justifyContent: 'center',
+
+          boxSizing: 'border-box',
         }}
       >
-        <Box sx={{ width: '100%', maxWidth: 1200, px: 2 }}>
+        <Box
+          sx={{
+            width: '100%',
+            maxWidth: 1200,
+            px: 2,
+          }}
+        >
           <Outlet />
         </Box>
       </Box>
