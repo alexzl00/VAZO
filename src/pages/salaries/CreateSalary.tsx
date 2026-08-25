@@ -31,13 +31,41 @@ import { overrideSalaryCalculations } from "../../api/overrideSalaryCalculations
 const now = new Date();
 
 export const initialSalaryFormValues: SalaryCalculatorValues = {
-  // podatki i potracenia
+  // podatki i potrącenia
+  // legacy fields - kept so existing API/update flows do not break
   taxRegime: 12,
-  pit2: false, // umowa o prace
+  pit2: false,
 
-  kup: 20, // umowa zelcenia
-  isStudent: false, // tylko dla umowy zlecenia
-  isUnder26: false, // tylko dla umowy zlecenia
+  // PIT / KUP
+  pit2MonthlyReduction: 0,
+  uopKup: 250,
+  hasMultipleEmploymentRelationships: false,
+  kup: 20,
+  pit0Relief: 'none',
+  isStudent: false,
+  isUnder26: false,
+  doNotWithholdPitAdvance: false,
+
+  // annual state before the calculated month
+  // TODO: populate automatically from salary history once API/history aggregation is connected
+  previousTaxableIncome: 0,
+  previousPit0Revenue: 0,
+  previousPensionDisabilityBase: 0,
+  previous50KupUsed: 0,
+  previousUopKupUsed: 0,
+
+  // UZ / UoD insurance status
+  mandateVoluntarySicknessInsurance: false,
+  mandateHasOtherUopAtLeastMinimumBase: false,
+  mandateOtherSocialBaseBeforeThisContract: 0,
+  isOwnEmployerContract: false,
+  performedForOwnEmployer: false,
+  smallContractLumpSumEligible: false,
+
+  // PPK
+  ppkEnabled: false,
+  ppkEmployeeRate: 2,
+  ppkEmployerRate: 1.5,
 
   deductionAfterTax: 0,
   additionAfterTax: 0,
@@ -104,6 +132,9 @@ export default function CreateSalaryPage() {
     }
   };
 
+  // New tax-engine fields are used for the calculation immediately.
+  // Persist them only after the corresponding API payload types/database columns are updated;
+  // those API files were not part of this change, so this function intentionally does not invent DB columns.
   const handleCreate = async (values: SalaryCalculatorValues) => {
 
     try {

@@ -21,7 +21,11 @@ export const FormikNumberField = ({ name, labelId, unit, disabled, onChange }: N
 
         return (
           <Stack spacing={1} width={"320px"}>
-            <InputLabel>
+            <InputLabel sx={{ 
+                whiteSpace: 'normal', 
+                wordBreak: 'break-word' 
+              }}
+            >
               <FormattedMessage id={labelId} /> {unit && `(${unit})`}
             </InputLabel>
             <TextField
@@ -80,7 +84,11 @@ export const FomrikSelectField = ({ name, inputLabel, menuItems, onChange, disab
 
   return (
     <Stack spacing={1} width={"320px"}>
-      <InputLabel>
+      <InputLabel sx={{ 
+          whiteSpace: 'normal', 
+          wordBreak: 'break-word' 
+        }}
+      >
         <FormattedMessage id={inputLabel}/>
       </InputLabel>
       <Field name={name}>

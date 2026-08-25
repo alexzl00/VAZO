@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState } from 'react';
 
 // mui
 import {
@@ -6,7 +6,8 @@ import {
   FormControlLabel,
   Checkbox,
   Button,
-  Stack
+  Stack,
+  Alert
 } from '@mui/material';
 
 import FormHelperText from '@mui/material/FormHelperText';
@@ -17,8 +18,7 @@ import { useTheme } from '@mui/material/styles';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { 
   Formik,
-  Form,
-  useFormikContext
+  Form
 } from "formik";
 
 import * as Yup from 'yup';
@@ -45,6 +45,7 @@ import camelToKebabCase from '../../utils/camelToKebab';
 import { MultiRangeMonthPicker } from '../../components/DaysPicker';
 import { isInMonth, isoToDayjsRanges, getWorkedDaysInMonth } from '../../utils/monthHelperFunc';
 import { calculateTaxesUoP, calculateTaxesContractOfMandate, calculateTaxesUoD} from '../../utils/workTypeSalaryCalc';
+import type { SalaryCalculationResult } from '../../utils/workTypeSalaryCalc';
 import type { DateRange } from '../../components/DaysPicker';
 
 // types
@@ -61,6 +62,39 @@ type SalaryFormProps =
   | (BaseProps & { type: "update"; deleteOverride: () => void });
 
 
+const normalizeSalaryValues = (values: SalaryCalculatorValues): SalaryCalculatorValues => ({
+  ...values,
+
+  // backwards compatibility for records created before the 2026 tax-engine upgrade
+  pit2MonthlyReduction: values.pit2MonthlyReduction ?? (values.pit2 ? 300 : 0),
+  uopKup: values.uopKup ?? 250,
+  hasMultipleEmploymentRelationships: values.hasMultipleEmploymentRelationships ?? false,
+  pit0Relief:
+    values.pit0Relief ??
+    (values.taxRegime === 0 || values.isUnder26 ? 'young' : 'none'),
+  isStudent: values.isStudent ?? false,
+  isUnder26: values.isUnder26 ?? values.taxRegime === 0,
+  doNotWithholdPitAdvance: values.doNotWithholdPitAdvance ?? false,
+
+  previousTaxableIncome: values.previousTaxableIncome ?? 0,
+  previousPit0Revenue: values.previousPit0Revenue ?? 0,
+  previousPensionDisabilityBase: values.previousPensionDisabilityBase ?? 0,
+  previous50KupUsed: values.previous50KupUsed ?? 0,
+  previousUopKupUsed: values.previousUopKupUsed ?? 0,
+
+  mandateVoluntarySicknessInsurance: values.mandateVoluntarySicknessInsurance ?? false,
+  mandateHasOtherUopAtLeastMinimumBase: values.mandateHasOtherUopAtLeastMinimumBase ?? false,
+  mandateOtherSocialBaseBeforeThisContract: values.mandateOtherSocialBaseBeforeThisContract ?? 0,
+  isOwnEmployerContract: values.isOwnEmployerContract ?? false,
+  performedForOwnEmployer: values.performedForOwnEmployer ?? false,
+  smallContractLumpSumEligible: values.smallContractLumpSumEligible ?? false,
+
+  ppkEnabled: values.ppkEnabled ?? false,
+  ppkEmployeeRate: values.ppkEmployeeRate ?? 2,
+  ppkEmployerRate: values.ppkEmployerRate ?? 1.5,
+});
+
+
 const positiveNumber = () =>
   Yup.number()
     .typeError('Must be a number')
@@ -71,19 +105,56 @@ const positiveNumber = () =>
     });
 
 const SalarySchema = Yup.object().shape({
+  // legacy fields kept for backwards compatibility with saved salaries
   taxRegime: Yup.mixed<0 | 12>().oneOf([0, 12]).required(),
   pit2: Yup.boolean().required(),
+
+  pit2MonthlyReduction: Yup.mixed<0 | 100 | 150 | 300>()
+    .oneOf([0, 100, 150, 300])
+    .required(),
+  uopKup: Yup.mixed<0 | 250 | 300>().oneOf([0, 250, 300]).required(),
+  hasMultipleEmploymentRelationships: Yup.boolean().required(),
+  pit0Relief: Yup.mixed<'none' | 'young' | 'return' | 'family4plus' | 'workingSenior'>()
+    .oneOf(['none', 'young', 'return', 'family4plus', 'workingSenior'])
+    .required(),
+  doNotWithholdPitAdvance: Yup.boolean().required(),
+
   deductionAfterTax: positiveNumber(),
   additionAfterTax: positiveNumber(),
   kup: Yup.mixed<20 | 50>().oneOf([20, 50]).required(),
   isStudent: Yup.boolean().required(),
   isUnder26: Yup.boolean().required(),
 
+  previousTaxableIncome: positiveNumber(),
+  previousPit0Revenue: positiveNumber(),
+  previousPensionDisabilityBase: positiveNumber(),
+  previous50KupUsed: positiveNumber(),
+  previousUopKupUsed: positiveNumber(),
+
+  mandateVoluntarySicknessInsurance: Yup.boolean().required(),
+  mandateHasOtherUopAtLeastMinimumBase: Yup.boolean().required(),
+  mandateOtherSocialBaseBeforeThisContract: positiveNumber(),
+  isOwnEmployerContract: Yup.boolean().required(),
+  performedForOwnEmployer: Yup.boolean().required(),
+  smallContractLumpSumEligible: Yup.boolean().required(),
+
+  ppkEnabled: Yup.boolean().required(),
+  ppkEmployeeRate: Yup.number()
+    .typeError('Must be a number')
+    .required('Required')
+    .min(0.5, 'PPK employee rate must be at least 0.5%')
+    .max(4, 'PPK employee rate cannot exceed 4%'),
+  ppkEmployerRate: Yup.number()
+    .typeError('Must be a number')
+    .required('Required')
+    .min(1.5, 'PPK employer rate must be at least 1.5%')
+    .max(4, 'PPK employer rate cannot exceed 4%'),
+
   year: Yup.number().required().min(2000),
   month: Yup.number().required().min(1).max(12),
   workingHours: positiveNumber().min(1),
 
-  workRateType: Yup.mixed<'uop_monthly' | 'uop_hourly' | 'mandate_hourly'>().required(),
+  workRateType: Yup.mixed<'uop_monthly' | 'uop_hourly' | 'mandate_hourly' | 'uod_fixed'>().required(),
   rate: positiveNumber().required(),
   attendanceBonus: positiveNumber(),
   discretionaryBonus: positiveNumber(),
@@ -171,6 +242,7 @@ const SalarySchema = Yup.object().shape({
 
 export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: SalaryFormProps) {
   const intl = useIntl();
+  const normalizedInitialValues = normalizeSalaryValues(initialValues);
   const [value, setValue] = useState(0);
 
   const [editCalculationOpen, setEditCalculationOpen] = useState(false);
@@ -229,23 +301,6 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
     setDialogType(null);
   }
 
-  const Pit2AutoReset = () => {
-    const { values, setFieldValue } = useFormikContext<SalaryCalculatorValues>();
-
-    const isDisabled =
-      values.taxRegime === 0 &&
-      (values.workRateType === "uop_hourly" ||
-        values.workRateType === "uop_monthly");
-
-    useEffect(() => {
-      if (isDisabled && values.pit2) {
-        setFieldValue("pit2", false);
-      }
-    }, [isDisabled, values.pit2, setFieldValue]);
-
-    return null;
-  };
-
   return (
     <Box
       sx={{
@@ -254,7 +309,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
       }}
     >
       <Formik
-        initialValues={initialValues}
+        initialValues={normalizedInitialValues}
         validationSchema={SalarySchema}
         onSubmit={ async (values) => {
           await onSubmit(values);
@@ -262,20 +317,24 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
       >
         {({ values, handleChange, setFieldValue, errors, touched, dirty, resetForm, submitForm }) => {
 
-          const calculations = useMemo(() => {
+          let calculation: SalaryCalculationResult | null = null;
+          let calculationError: string | null = null;
+
+          try {
             if (values.workRateType === 'mandate_hourly') {
-              return calculateTaxesContractOfMandate(values);
+              calculation = calculateTaxesContractOfMandate(values);
             } else if (values.workRateType === 'uop_hourly' || values.workRateType === 'uop_monthly') {
-              return calculateTaxesUoP(values);
+              calculation = calculateTaxesUoP(values);
             } else {
-              return calculateTaxesUoD(values);
+              calculation = calculateTaxesUoD(values);
             }
-          }, [values])
+          } catch (error) {
+            calculationError = error instanceof Error ? error.message : 'Salary calculation failed';
+          }
 
           return (
             <>    
               <Form>
-                <Pit2AutoReset/>
                 <CardTabs value={value} labels={labels} onChange={changeTab} disabledTabs={disabledTabs}/>
 
                 <Box 
@@ -289,7 +348,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                     direction={isMidScreen ? 'column' : 'row'}
                     spacing={isMidScreen ? 2 : 0}
                     justifyContent={isMidScreen ? 'center' : 'space-between'}
-                    alignItems={'center'}
+
                     sx={{ width: '100%' }}
                   >
                     <Box sx={{ mt: 3, width: '320px' }}>
@@ -354,72 +413,236 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                         >
                           <Stack spacing={2}>
                             {(values.workRateType === 'uop_hourly' || values.workRateType === 'uop_monthly') && (
-                              <FomrikSelectField 
-                                name="taxRegime"
-                                inputLabel="taxes-and-deductions-tax-regime"
+                              <FomrikSelectField
+                                name="uopKup"
+                                inputLabel="taxes-and-deductions-uop-kup"
                                 menuItems={[
-                                  {value: 12, text: 'PIT 12%'}, { value: 0, text: (<> PIT 0% (<FormattedMessage id="taxes-and-deductions-young-relief" />)</>)}
+                                  { value: 250, text: '250 zł' },
+                                  { value: 300, text: '300 zł' },
+                                  { value: 0, text: '0 zł' },
                                 ]}
-                                onChange={(e) => {
-                                  const newTaxRegime = Number(e.target.value);
-                                  setFieldValue("taxRegime", newTaxRegime);
-                                }}
+                                onChange={(e) => setFieldValue('uopKup', Number(e.target.value))}
                               />
                             )}
 
-                            {(values.workRateType === 'mandate_hourly' || values.workRateType === 'uod_fixed') && (      
+                            {(values.workRateType === 'mandate_hourly' || values.workRateType === 'uod_fixed') && (
                               <FomrikSelectField
                                 name="kup"
                                 inputLabel="taxes-and-deductions-kup"
                                 menuItems={[
-                                  {value: 20, text: '20%'}, { value: 50, text: "50%"}
+                                  { value: 20, text: '20%' },
+                                  { value: 50, text: '50%' },
+                                ]}
+                                onChange={(e) => setFieldValue('kup', Number(e.target.value))}
+                              />
+                            )}
+
+                            {values.workRateType !== 'uod_fixed' && (
+                              <FomrikSelectField
+                                name="pit0Relief"
+                                inputLabel="taxes-and-deductions-pit0-relief"
+                                menuItems={[
+                                  { value: 'none', text: intl.formatMessage({ id: 'taxes-and-deductions-pit0-none', defaultMessage: 'No PIT-0 relief' }) },
+                                  { value: 'young', text: intl.formatMessage({ id: 'taxes-and-deductions-pit0-young', defaultMessage: 'Ulga dla młodych' }) },
+                                  { value: 'return', text: intl.formatMessage({ id: 'taxes-and-deductions-pit0-return', defaultMessage: 'Ulga na powrót' }) },
+                                  { value: 'family4plus', text: intl.formatMessage({ id: 'taxes-and-deductions-pit0-family4plus', defaultMessage: 'Ulga dla rodzin 4+' }) },
+                                  { value: 'workingSenior', text: intl.formatMessage({ id: 'taxes-and-deductions-pit0-working-senior', defaultMessage: 'Ulga dla pracujących seniorów' }) },
                                 ]}
                                 onChange={(e) => {
-                                  const kup = Number(e.target.value);
-                                  setFieldValue("kup", kup);
+                                  const relief = e.target.value;
+                                  setFieldValue('pit0Relief', relief);
+                                  setFieldValue('taxRegime', relief === 'young' ? 0 : 12); // legacy compatibility only
+
+                                  if (relief !== 'young') {
+                                    setFieldValue('isUnder26', false);
+                                  }
                                 }}
                               />
                             )}
 
+                            {values.workRateType !== 'uod_fixed' && values.pit0Relief === 'young' && (
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
+                                    name="isUnder26"
+                                    checked={values.isUnder26}
+                                    onChange={handleChange}
+                                  />
+                                }
+                                label={intl.formatMessage({ id: 'taxes-and-deductions-age-status', defaultMessage: 'Under 26' })}
+                              />
+                            )}
+
+                            {values.workRateType === 'mandate_hourly' && (
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
+                                    name="isStudent"
+                                    checked={values.isStudent}
+                                    onChange={handleChange}
+                                  />
+                                }
+                                label={intl.formatMessage({ id: 'taxes-and-deductions-student-status', defaultMessage: 'Student / pupil status' })}
+                              />
+                            )}
+
+                            <FomrikSelectField
+                              name="pit2MonthlyReduction"
+                              inputLabel="taxes-and-deductions-pit2-reduction"
+                              menuItems={[
+                                { value: 0, text: '0 zł' },
+                                { value: 100, text: '100 zł' },
+                                { value: 150, text: '150 zł' },
+                                { value: 300, text: '300 zł' },
+                              ]}
+                              onChange={(e) => {
+                                const reduction = Number(e.target.value) as 0 | 100 | 150 | 300;
+                                setFieldValue('pit2MonthlyReduction', reduction);
+                                setFieldValue('pit2', reduction > 0); // legacy compatibility
+                              }}
+                            />
+
                             <FormControlLabel
                               control={
                                 <Checkbox
-                                  disabled={values.taxRegime === 0 && (values.workRateType === 'uop_hourly' || values.workRateType === 'uop_monthly')}
-                                  name="pit2"
-                                  checked={values.pit2}
+                                  name="doNotWithholdPitAdvance"
+                                  checked={values.doNotWithholdPitAdvance ?? false}
                                   onChange={handleChange}
                                 />
                               }
-                              label="PIT-2"
+                              label={intl.formatMessage({ id: 'taxes-and-deductions-no-pit-advance', defaultMessage: 'Do not withhold PIT advance (eligible cases only)' })}
                             />
 
-                            {(values.workRateType === 'mandate_hourly') && (
+                            {(values.workRateType === 'uop_hourly' || values.workRateType === 'uop_monthly') && (
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
+                                    name="hasMultipleEmploymentRelationships"
+                                    checked={values.hasMultipleEmploymentRelationships ?? false}
+                                    onChange={handleChange}
+                                  />
+                                }
+                                label={intl.formatMessage({ id: 'taxes-and-deductions-multiple-employments', defaultMessage: 'Multiple employment relationships' })}
+                              />
+                            )}
+
+                            {values.workRateType === 'mandate_hourly' && (
                               <>
                                 <FormControlLabel
                                   control={
                                     <Checkbox
-                                      name="isStudent"
-                                      checked={values.isStudent}
+                                      name="mandateVoluntarySicknessInsurance"
+                                      checked={values.mandateVoluntarySicknessInsurance ?? false}
                                       onChange={handleChange}
                                     />
                                   }
-                                  label={intl.formatMessage({id: 'taxes-and-deductions-student-status'})}
+                                  label={intl.formatMessage({ id: 'taxes-and-deductions-voluntary-sickness', defaultMessage: 'Voluntary sickness insurance' })}
                                 />
+
                                 <FormControlLabel
                                   control={
                                     <Checkbox
-                                      name="isUnder26"
-                                      checked={values.isUnder26}
+                                      name="mandateHasOtherUopAtLeastMinimumBase"
+                                      checked={values.mandateHasOtherUopAtLeastMinimumBase ?? false}
                                       onChange={handleChange}
                                     />
                                   }
-                                  label={intl.formatMessage({id: 'taxes-and-deductions-age-status'})}
+                                  label={intl.formatMessage({ id: 'taxes-and-deductions-other-uop-minimum', defaultMessage: 'Another UoP reaches the minimum insurance base' })}
+                                />
+
+                                <FormikNumberField
+                                  name="mandateOtherSocialBaseBeforeThisContract"
+                                  labelId="taxes-and-deductions-earlier-uz-social-base"
+                                  unit="zł"
                                 />
                               </>
                             )}
 
-                            <FormikNumberField name="deductionAfterTax" labelId="taxes-and-deductions-deduction-after-tax" unit='zł'/>
-                            <FormikNumberField name="additionAfterTax" labelId="taxes-and-deductions-addition-after-tax" unit='zł'/>
+                            {(values.workRateType === 'mandate_hourly' || values.workRateType === 'uod_fixed') && (
+                              <>
+                                <FormControlLabel
+                                  control={
+                                    <Checkbox
+                                      name="isOwnEmployerContract"
+                                      checked={values.isOwnEmployerContract ?? false}
+                                      onChange={handleChange}
+                                    />
+                                  }
+                                  label={intl.formatMessage({ id: 'taxes-and-deductions-own-employer-contract', defaultMessage: 'Contract with own employer' })}
+                                />
+
+                                <FormControlLabel
+                                  control={
+                                    <Checkbox
+                                      name="performedForOwnEmployer"
+                                      checked={values.performedForOwnEmployer ?? false}
+                                      onChange={handleChange}
+                                    />
+                                  }
+                                  label={intl.formatMessage({ id: 'taxes-and-deductions-performed-for-own-employer', defaultMessage: 'Work performed for own employer' })}
+                                />
+
+                                <FormControlLabel
+                                  control={
+                                    <Checkbox
+                                      name="smallContractLumpSumEligible"
+                                      checked={values.smallContractLumpSumEligible ?? false}
+                                      onChange={handleChange}
+                                    />
+                                  }
+                                  label={intl.formatMessage({ id: 'taxes-and-deductions-small-contract-lump-sum', defaultMessage: 'Special ≤200 zł lump-sum PIT conditions are met' })}
+                                />
+                              </>
+                            )}
+
+                            {values.workRateType !== 'uod_fixed' && (
+                              <>
+                                <FormControlLabel
+                                  control={
+                                    <Checkbox
+                                      name="ppkEnabled"
+                                      checked={values.ppkEnabled ?? false}
+                                      onChange={handleChange}
+                                    />
+                                  }
+                                  label="PPK"
+                                />
+
+                                {values.ppkEnabled && (
+                                  <>
+                                    <FormikNumberField
+                                      name="ppkEmployeeRate"
+                                      labelId="taxes-and-deductions-ppk-employee-rate"
+                                      unit="%"
+                                    />
+                                    <FormikNumberField
+                                      name="ppkEmployerRate"
+                                      labelId="taxes-and-deductions-ppk-employer-rate"
+                                      unit="%"
+                                    />
+                                  </>
+                                )}
+                              </>
+                            )}
+
+                            <FormikNumberField name="previousTaxableIncome" labelId="taxes-and-deductions-ytd-taxable-income" unit="zł"/>
+
+                            {values.workRateType !== 'uod_fixed' && (
+                              <FormikNumberField name="previousPit0Revenue" labelId="taxes-and-deductions-ytd-pit0-revenue" unit="zł"/>
+                            )}
+
+                            <FormikNumberField name="previousPensionDisabilityBase" labelId="taxes-and-deductions-ytd-zus-base" unit="zł"/>
+
+                            {(values.workRateType === 'mandate_hourly' || values.workRateType === 'uod_fixed') && values.kup === 50 && (
+                              <FormikNumberField name="previous50KupUsed" labelId="taxes-and-deductions-ytd-50-kup" unit="zł"/>
+                            )}
+
+                            {(values.workRateType === 'uop_hourly' || values.workRateType === 'uop_monthly') && (
+                              <FormikNumberField name="previousUopKupUsed" labelId="taxes-and-deductions-ytd-uop-kup" unit="zł"/>
+                            )}
+
+                            <FormikNumberField name="deductionAfterTax" labelId="taxes-and-deductions-deduction-after-tax" unit="zł"/>
+                            <FormikNumberField name="additionAfterTax" labelId="taxes-and-deductions-addition-after-tax" unit="zł"/>
                           </Stack>
                         </FormWithInfo>
                       )}
@@ -583,7 +806,13 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                       )}
                     </Box>
                     <Box sx={{ mt: 7}}>
-                      <TaxChart calculation={calculations}/>
+                      {calculation ? (
+                        <TaxChart calculation={calculation}/>
+                      ) : (
+                        <Alert severity="warning" sx={{ maxWidth: 420 }}>
+                          {calculationError}
+                        </Alert>
+                      )}
                     </Box>
                   </Stack>
                 </Box>
