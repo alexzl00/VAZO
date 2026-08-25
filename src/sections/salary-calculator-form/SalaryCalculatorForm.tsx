@@ -3,8 +3,6 @@ import { useState } from 'react';
 // mui
 import {
   Box,
-  FormControlLabel,
-  Checkbox,
   Button,
   Stack,
   Alert
@@ -33,7 +31,7 @@ dayjs.extend(isSameOrBefore);
 import CardTabs from '../../components/CardTabs';
 import MonthPicker from '../../components/MonthPikcer';
 import FormWithInfo from '../../components/FormWithInfo';
-import { FormikNumberField, FomrikSelectField } from '../../components/FormikFields';
+import { FormikNumberField } from '../../components/FormikFields';
 
 import TaxChart from '../../components/Calculator/TaxChart';
 
@@ -41,7 +39,6 @@ import EditSalaryCalculation from '../../components/Modals/EditSalaryCalculation
 import ConfirmActionDialog from '../../components/Modals/ConfirmActionDialog';
 
 // utils 
-import camelToKebabCase from '../../utils/camelToKebab';
 import { MultiRangeMonthPicker } from '../../components/DaysPicker';
 import { isInMonth, isoToDayjsRanges, getWorkedDaysInMonth } from '../../utils/monthHelperFunc';
 import { calculateTaxesUoP, calculateTaxesContractOfMandate, calculateTaxesUoD} from '../../utils/workTypeSalaryCalc';
@@ -51,6 +48,19 @@ import type { DateRange } from '../../components/DaysPicker';
 // types
 import type { SalaryCalculatorValues } from '../../types/salaryCalculator';
 import type { DialogConfig } from '../../components/Modals/ConfirmActionDialog';
+
+
+import DynamicSalaryFields from './DynamicSalaryFields';
+import {
+  metadataDrivenFieldConfigs,
+  overtimeFieldConfigs,
+  rateFieldConfigs,
+  taxFieldConfigs,
+} from './metadata/salaryFieldConfigs';
+import {
+  applySalaryFieldDefaults,
+  buildSalaryFieldValidationShape,
+} from './metadata/salaryFieldMetadata';
 
 type BaseProps = {
   initialValues: SalaryCalculatorValues;
@@ -62,37 +72,10 @@ type SalaryFormProps =
   | (BaseProps & { type: "update"; deleteOverride: () => void });
 
 
-const normalizeSalaryValues = (values: SalaryCalculatorValues): SalaryCalculatorValues => ({
-  ...values,
-
-  // backwards compatibility for records created before the 2026 tax-engine upgrade
-  pit2MonthlyReduction: values.pit2MonthlyReduction ?? (values.pit2 ? 300 : 0),
-  uopKup: values.uopKup ?? 250,
-  hasMultipleEmploymentRelationships: values.hasMultipleEmploymentRelationships ?? false,
-  pit0Relief:
-    values.pit0Relief ??
-    (values.taxRegime === 0 || values.isUnder26 ? 'young' : 'none'),
-  isStudent: values.isStudent ?? false,
-  isUnder26: values.isUnder26 ?? values.taxRegime === 0,
-  doNotWithholdPitAdvance: values.doNotWithholdPitAdvance ?? false,
-
-  previousTaxableIncome: values.previousTaxableIncome ?? 0,
-  previousPit0Revenue: values.previousPit0Revenue ?? 0,
-  previousPensionDisabilityBase: values.previousPensionDisabilityBase ?? 0,
-  previous50KupUsed: values.previous50KupUsed ?? 0,
-  previousUopKupUsed: values.previousUopKupUsed ?? 0,
-
-  mandateVoluntarySicknessInsurance: values.mandateVoluntarySicknessInsurance ?? false,
-  mandateHasOtherUopAtLeastMinimumBase: values.mandateHasOtherUopAtLeastMinimumBase ?? false,
-  mandateOtherSocialBaseBeforeThisContract: values.mandateOtherSocialBaseBeforeThisContract ?? 0,
-  isOwnEmployerContract: values.isOwnEmployerContract ?? false,
-  performedForOwnEmployer: values.performedForOwnEmployer ?? false,
-  smallContractLumpSumEligible: values.smallContractLumpSumEligible ?? false,
-
-  ppkEnabled: values.ppkEnabled ?? false,
-  ppkEmployeeRate: values.ppkEmployeeRate ?? 2,
-  ppkEmployerRate: values.ppkEmployerRate ?? 1.5,
-});
+const normalizeSalaryValues = (
+  values: SalaryCalculatorValues,
+): SalaryCalculatorValues =>
+  applySalaryFieldDefaults(values, metadataDrivenFieldConfigs);
 
 
 const positiveNumber = () =>
@@ -105,74 +88,18 @@ const positiveNumber = () =>
     });
 
 const SalarySchema = Yup.object().shape({
-  // legacy fields kept for backwards compatibility with saved salaries
+  // Legacy fields remain because older saved records still contain them.
+  // They are not rendered directly by metadata.
   taxRegime: Yup.mixed<0 | 12>().oneOf([0, 12]).required(),
   pit2: Yup.boolean().required(),
 
-  pit2MonthlyReduction: Yup.mixed<0 | 100 | 150 | 300>()
-    .oneOf([0, 100, 150, 300])
-    .required(),
-  uopKup: Yup.mixed<0 | 250 | 300>().oneOf([0, 250, 300]).required(),
-  hasMultipleEmploymentRelationships: Yup.boolean().required(),
-  pit0Relief: Yup.mixed<'none' | 'young' | 'return' | 'family4plus' | 'workingSenior'>()
-    .oneOf(['none', 'young', 'return', 'family4plus', 'workingSenior'])
-    .required(),
-  doNotWithholdPitAdvance: Yup.boolean().required(),
-
-  deductionAfterTax: positiveNumber(),
-  additionAfterTax: positiveNumber(),
-  kup: Yup.mixed<20 | 50>().oneOf([20, 50]).required(),
-  isStudent: Yup.boolean().required(),
-  isUnder26: Yup.boolean().required(),
-
-  previousTaxableIncome: positiveNumber(),
-  previousPit0Revenue: positiveNumber(),
-  previousPensionDisabilityBase: positiveNumber(),
-  previous50KupUsed: positiveNumber(),
-  previousUopKupUsed: positiveNumber(),
-
-  mandateVoluntarySicknessInsurance: Yup.boolean().required(),
-  mandateHasOtherUopAtLeastMinimumBase: Yup.boolean().required(),
-  mandateOtherSocialBaseBeforeThisContract: positiveNumber(),
-  isOwnEmployerContract: Yup.boolean().required(),
-  performedForOwnEmployer: Yup.boolean().required(),
-  smallContractLumpSumEligible: Yup.boolean().required(),
-
-  ppkEnabled: Yup.boolean().required(),
-  ppkEmployeeRate: Yup.number()
-    .typeError('Must be a number')
-    .required('Required')
-    .min(0.5, 'PPK employee rate must be at least 0.5%')
-    .max(4, 'PPK employee rate cannot exceed 4%'),
-  ppkEmployerRate: Yup.number()
-    .typeError('Must be a number')
-    .required('Required')
-    .min(1.5, 'PPK employer rate must be at least 1.5%')
-    .max(4, 'PPK employer rate cannot exceed 4%'),
+  // All simple input validation is generated from the same metadata
+  // that renders those fields.
+  ...buildSalaryFieldValidationShape(metadataDrivenFieldConfigs),
 
   year: Yup.number().required().min(2000),
   month: Yup.number().required().min(1).max(12),
   workingHours: positiveNumber().min(1),
-
-  workRateType: Yup.mixed<'uop_monthly' | 'uop_hourly' | 'mandate_hourly' | 'uod_fixed'>().required(),
-  rate: positiveNumber().required(),
-  attendanceBonus: positiveNumber(),
-  discretionaryBonus: positiveNumber(),
-  otherBonus: positiveNumber(),
-
-  overtimeLimit: positiveNumber(),
-
-  dailyOvertime: positiveNumber()
-    .max(Yup.ref('overtimeLimit'), 'Cannot exceed overtime limit'),
-
-  weekendHolidayOvertime: positiveNumber()
-    .max(Yup.ref('overtimeLimit'), 'Cannot exceed overtime limit'),
-
-  nightOvertime: positiveNumber()
-    .max(Yup.ref('overtimeLimit'), 'Cannot exceed overtime limit'),
-
-  nightHours: positiveNumber(),
-  turnOfDayHours: positiveNumber(),
 
   l4Base: positiveNumber(),
 
@@ -230,14 +157,31 @@ const SalarySchema = Yup.object().shape({
   reason: Yup.string().nullable(),
 
 }).test('overtime-sum', function (values) {
-  const { dailyOvertime = 0, weekendHolidayOvertime = 0, nightOvertime = 0, overtimeLimit = 0 } = values;
-  if (dailyOvertime + weekendHolidayOvertime + nightOvertime > overtimeLimit) {
+  // The metadata-generated validation shape is dynamic, so Yup cannot infer
+  // every SalaryCalculatorValues key in this object-level test. Keep the
+  // runtime schema dynamic, but restore the domain type here without using any.
+  const salaryValues = values as Partial<SalaryCalculatorValues>;
+
+  const {
+    dailyOvertime = 0,
+    weekendHolidayOvertime = 0,
+    nightOvertime = 0,
+    overtimeLimit = 0,
+  } = salaryValues;
+
+  if (
+    dailyOvertime +
+    weekendHolidayOvertime +
+    nightOvertime >
+    overtimeLimit
+  ) {
     return this.createError({
-      path: 'totalOvertime', // attach error to dailyOvertime field
+      path: 'totalOvertime',
       message: 'Total overtime cannot exceed overtime limit',
     });
   }
-  return true; // pass validation if sum is ok
+
+  return true;
 });
 
 export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: SalaryFormProps) {
@@ -254,12 +198,6 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
 
   const isInitiallyOverride = initialValues.isOverride ?? false;
   const deleteOverride = 'deleteOverride' in rest ? rest.deleteOverride : undefined;
-
-  const [disabledTabs, setDisabledTabs] = useState<number[]>(
-    initialValues.workRateType === 'mandate_hourly' || initialValues.workRateType === 'uod_fixed'
-      ? [3, 4, 5]
-      : []
-  );
 
   const labels = [
     intl.formatMessage({ id: 'tabs-rate-and-bonuses' }),
@@ -312,10 +250,11 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
         initialValues={normalizedInitialValues}
         validationSchema={SalarySchema}
         onSubmit={ async (values) => {
-          await onSubmit(values);
+          console.log(values)
+          // await onSubmit(values);
         }}
       >
-        {({ values, handleChange, setFieldValue, errors, touched, dirty, resetForm, submitForm }) => {
+        {({ values, setFieldValue, errors, touched, dirty, resetForm, submitForm }) => {
 
           let calculation: SalaryCalculationResult | null = null;
           let calculationError: string | null = null;
@@ -331,6 +270,12 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
           } catch (error) {
             calculationError = error instanceof Error ? error.message : 'Salary calculation failed';
           }
+
+          const disabledTabs =
+            values.workRateType === 'mandate_hourly' ||
+            values.workRateType === 'uod_fixed'
+              ? [3, 4, 5]
+              : [];
 
           return (
             <>    
@@ -358,50 +303,12 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                           title={intl.formatMessage({id: 'tabs-rate-and-bonuses' })}
                           infoText={intl.formatMessage({id: "rate-and-bonuses-info"})}
                         >
-                          <Stack spacing={2}>
-                            <FomrikSelectField
-                              name="workRateType"
-                              inputLabel="rate-and-bonuses-work-rate-type"
-                              disabled={type === 'update'}
-                              menuItems={[
-                                { value: "uop_monthly", text: <FormattedMessage id="rate-monthly" /> },
-                                { value: "uop_hourly", text: <FormattedMessage id="rate-hourly" /> },
-                                { value: "mandate_hourly", text: <FormattedMessage id="rate-contract-of-mandate" /> },
-                                { value: "uod_fixed", text: <FormattedMessage id="rate-contract-for-specific-work" /> },
-                              ]}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                setFieldValue("workRateType", value);                  
-                                if (value === "mandate_hourly" || value === "uod_fixed") {
-                                  setDisabledTabs([3, 4, 5]);
-                                } else {
-                                  setDisabledTabs([]);
-                                }
-                              }}
-                            />
-
-                            {(['rate', 'attendanceBonus', 'discretionaryBonus', 'otherBonus'] as const).map((name) => {
-                              if ( values.workRateType === 'uod_fixed' && (name === 'attendanceBonus' || name === 'otherBonus') ) {
-                                return null; // we consider only discretionary bonus for CSW, so we hide attendance and other bonus fields
-                              }
-                              return (
-                                <FormikNumberField
-                                  key={name}
-                                  name={name}
-                                  labelId={`rate-and-bonuses-${camelToKebabCase(name)}`}
-                                  unit={
-                                    name === 'rate' && !errors.workingHours
-                                      ? values.workRateType === 'uop_monthly'
-                                        ? `${Math.round(values.rate / values.workingHours * 100) / 100} zł/h`
-                                        : (values.workRateType === 'uop_hourly' || values.workRateType === 'mandate_hourly')
-                                          ? `${Math.round(values.rate * values.workingHours * 100) / 100} zł`
-                                          : ''
-                                      : undefined
-                                  }
-                                />
-                              )
-                            })}
-                          </Stack>
+                          <DynamicSalaryFields
+                            fields={rateFieldConfigs}
+                            values={values}
+                            formMode={type}
+                            setFieldValue={setFieldValue}
+                          />
                         </FormWithInfo>
                       )}
 
@@ -411,239 +318,12 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                           title={intl.formatMessage({id: 'tabs-taxes-and-deductions' })}
                           infoText={intl.formatMessage({id: "taxes-and-deductions-info"})}
                         >
-                          <Stack spacing={2}>
-                            {(values.workRateType === 'uop_hourly' || values.workRateType === 'uop_monthly') && (
-                              <FomrikSelectField
-                                name="uopKup"
-                                inputLabel="taxes-and-deductions-uop-kup"
-                                menuItems={[
-                                  { value: 250, text: '250 zł' },
-                                  { value: 300, text: '300 zł' },
-                                  { value: 0, text: '0 zł' },
-                                ]}
-                                onChange={(e) => setFieldValue('uopKup', Number(e.target.value))}
-                              />
-                            )}
-
-                            {(values.workRateType === 'mandate_hourly' || values.workRateType === 'uod_fixed') && (
-                              <FomrikSelectField
-                                name="kup"
-                                inputLabel="taxes-and-deductions-kup"
-                                menuItems={[
-                                  { value: 20, text: '20%' },
-                                  { value: 50, text: '50%' },
-                                ]}
-                                onChange={(e) => setFieldValue('kup', Number(e.target.value))}
-                              />
-                            )}
-
-                            {values.workRateType !== 'uod_fixed' && (
-                              <FomrikSelectField
-                                name="pit0Relief"
-                                inputLabel="taxes-and-deductions-pit0-relief"
-                                menuItems={[
-                                  { value: 'none', text: intl.formatMessage({ id: 'taxes-and-deductions-pit0-none', defaultMessage: 'No PIT-0 relief' }) },
-                                  { value: 'young', text: intl.formatMessage({ id: 'taxes-and-deductions-pit0-young', defaultMessage: 'Ulga dla młodych' }) },
-                                  { value: 'return', text: intl.formatMessage({ id: 'taxes-and-deductions-pit0-return', defaultMessage: 'Ulga na powrót' }) },
-                                  { value: 'family4plus', text: intl.formatMessage({ id: 'taxes-and-deductions-pit0-family4plus', defaultMessage: 'Ulga dla rodzin 4+' }) },
-                                  { value: 'workingSenior', text: intl.formatMessage({ id: 'taxes-and-deductions-pit0-working-senior', defaultMessage: 'Ulga dla pracujących seniorów' }) },
-                                ]}
-                                onChange={(e) => {
-                                  const relief = e.target.value;
-                                  setFieldValue('pit0Relief', relief);
-                                  setFieldValue('taxRegime', relief === 'young' ? 0 : 12); // legacy compatibility only
-
-                                  if (relief !== 'young') {
-                                    setFieldValue('isUnder26', false);
-                                  }
-                                }}
-                              />
-                            )}
-
-                            {values.workRateType !== 'uod_fixed' && values.pit0Relief === 'young' && (
-                              <FormControlLabel
-                                control={
-                                  <Checkbox
-                                    name="isUnder26"
-                                    checked={values.isUnder26}
-                                    onChange={handleChange}
-                                  />
-                                }
-                                label={intl.formatMessage({ id: 'taxes-and-deductions-age-status', defaultMessage: 'Under 26' })}
-                              />
-                            )}
-
-                            {values.workRateType === 'mandate_hourly' && (
-                              <FormControlLabel
-                                control={
-                                  <Checkbox
-                                    name="isStudent"
-                                    checked={values.isStudent}
-                                    onChange={handleChange}
-                                  />
-                                }
-                                label={intl.formatMessage({ id: 'taxes-and-deductions-student-status', defaultMessage: 'Student / pupil status' })}
-                              />
-                            )}
-
-                            <FomrikSelectField
-                              name="pit2MonthlyReduction"
-                              inputLabel="taxes-and-deductions-pit2-reduction"
-                              menuItems={[
-                                { value: 0, text: '0 zł' },
-                                { value: 100, text: '100 zł' },
-                                { value: 150, text: '150 zł' },
-                                { value: 300, text: '300 zł' },
-                              ]}
-                              onChange={(e) => {
-                                const reduction = Number(e.target.value) as 0 | 100 | 150 | 300;
-                                setFieldValue('pit2MonthlyReduction', reduction);
-                                setFieldValue('pit2', reduction > 0); // legacy compatibility
-                              }}
-                            />
-
-                            <FormControlLabel
-                              control={
-                                <Checkbox
-                                  name="doNotWithholdPitAdvance"
-                                  checked={values.doNotWithholdPitAdvance ?? false}
-                                  onChange={handleChange}
-                                />
-                              }
-                              label={intl.formatMessage({ id: 'taxes-and-deductions-no-pit-advance', defaultMessage: 'Do not withhold PIT advance (eligible cases only)' })}
-                            />
-
-                            {(values.workRateType === 'uop_hourly' || values.workRateType === 'uop_monthly') && (
-                              <FormControlLabel
-                                control={
-                                  <Checkbox
-                                    name="hasMultipleEmploymentRelationships"
-                                    checked={values.hasMultipleEmploymentRelationships ?? false}
-                                    onChange={handleChange}
-                                  />
-                                }
-                                label={intl.formatMessage({ id: 'taxes-and-deductions-multiple-employments', defaultMessage: 'Multiple employment relationships' })}
-                              />
-                            )}
-
-                            {values.workRateType === 'mandate_hourly' && (
-                              <>
-                                <FormControlLabel
-                                  control={
-                                    <Checkbox
-                                      name="mandateVoluntarySicknessInsurance"
-                                      checked={values.mandateVoluntarySicknessInsurance ?? false}
-                                      onChange={handleChange}
-                                    />
-                                  }
-                                  label={intl.formatMessage({ id: 'taxes-and-deductions-voluntary-sickness', defaultMessage: 'Voluntary sickness insurance' })}
-                                />
-
-                                <FormControlLabel
-                                  control={
-                                    <Checkbox
-                                      name="mandateHasOtherUopAtLeastMinimumBase"
-                                      checked={values.mandateHasOtherUopAtLeastMinimumBase ?? false}
-                                      onChange={handleChange}
-                                    />
-                                  }
-                                  label={intl.formatMessage({ id: 'taxes-and-deductions-other-uop-minimum', defaultMessage: 'Another UoP reaches the minimum insurance base' })}
-                                />
-
-                                <FormikNumberField
-                                  name="mandateOtherSocialBaseBeforeThisContract"
-                                  labelId="taxes-and-deductions-earlier-uz-social-base"
-                                  unit="zł"
-                                />
-                              </>
-                            )}
-
-                            {(values.workRateType === 'mandate_hourly' || values.workRateType === 'uod_fixed') && (
-                              <>
-                                <FormControlLabel
-                                  control={
-                                    <Checkbox
-                                      name="isOwnEmployerContract"
-                                      checked={values.isOwnEmployerContract ?? false}
-                                      onChange={handleChange}
-                                    />
-                                  }
-                                  label={intl.formatMessage({ id: 'taxes-and-deductions-own-employer-contract', defaultMessage: 'Contract with own employer' })}
-                                />
-
-                                <FormControlLabel
-                                  control={
-                                    <Checkbox
-                                      name="performedForOwnEmployer"
-                                      checked={values.performedForOwnEmployer ?? false}
-                                      onChange={handleChange}
-                                    />
-                                  }
-                                  label={intl.formatMessage({ id: 'taxes-and-deductions-performed-for-own-employer', defaultMessage: 'Work performed for own employer' })}
-                                />
-
-                                <FormControlLabel
-                                  control={
-                                    <Checkbox
-                                      name="smallContractLumpSumEligible"
-                                      checked={values.smallContractLumpSumEligible ?? false}
-                                      onChange={handleChange}
-                                    />
-                                  }
-                                  label={intl.formatMessage({ id: 'taxes-and-deductions-small-contract-lump-sum', defaultMessage: 'Special ≤200 zł lump-sum PIT conditions are met' })}
-                                />
-                              </>
-                            )}
-
-                            {values.workRateType !== 'uod_fixed' && (
-                              <>
-                                <FormControlLabel
-                                  control={
-                                    <Checkbox
-                                      name="ppkEnabled"
-                                      checked={values.ppkEnabled ?? false}
-                                      onChange={handleChange}
-                                    />
-                                  }
-                                  label="PPK"
-                                />
-
-                                {values.ppkEnabled && (
-                                  <>
-                                    <FormikNumberField
-                                      name="ppkEmployeeRate"
-                                      labelId="taxes-and-deductions-ppk-employee-rate"
-                                      unit="%"
-                                    />
-                                    <FormikNumberField
-                                      name="ppkEmployerRate"
-                                      labelId="taxes-and-deductions-ppk-employer-rate"
-                                      unit="%"
-                                    />
-                                  </>
-                                )}
-                              </>
-                            )}
-
-                            <FormikNumberField name="previousTaxableIncome" labelId="taxes-and-deductions-ytd-taxable-income" unit="zł"/>
-
-                            {values.workRateType !== 'uod_fixed' && (
-                              <FormikNumberField name="previousPit0Revenue" labelId="taxes-and-deductions-ytd-pit0-revenue" unit="zł"/>
-                            )}
-
-                            <FormikNumberField name="previousPensionDisabilityBase" labelId="taxes-and-deductions-ytd-zus-base" unit="zł"/>
-
-                            {(values.workRateType === 'mandate_hourly' || values.workRateType === 'uod_fixed') && values.kup === 50 && (
-                              <FormikNumberField name="previous50KupUsed" labelId="taxes-and-deductions-ytd-50-kup" unit="zł"/>
-                            )}
-
-                            {(values.workRateType === 'uop_hourly' || values.workRateType === 'uop_monthly') && (
-                              <FormikNumberField name="previousUopKupUsed" labelId="taxes-and-deductions-ytd-uop-kup" unit="zł"/>
-                            )}
-
-                            <FormikNumberField name="deductionAfterTax" labelId="taxes-and-deductions-deduction-after-tax" unit="zł"/>
-                            <FormikNumberField name="additionAfterTax" labelId="taxes-and-deductions-addition-after-tax" unit="zł"/>
-                          </Stack>
+                          <DynamicSalaryFields
+                            fields={taxFieldConfigs}
+                            values={values}
+                            formMode={type}
+                            setFieldValue={setFieldValue}
+                          />
                         </FormWithInfo>
                       )}
 
@@ -718,27 +398,18 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                           infoText={intl.formatMessage({id: "overtime-and-night-hours-info"})}
                         >
                           <Stack spacing={2}>
-                            {/* Show total overtime sum error once at the top */}
                             {(['dailyOvertime', 'weekendHolidayOvertime', 'nightOvertime'] as const).some(
                               (name) => touched[name]
                             ) && errors.totalOvertime && (
                               <FormHelperText error>{errors.totalOvertime}</FormHelperText>
                             )}
 
-                            {([
-                              'dailyOvertime',
-                              'weekendHolidayOvertime',
-                              'nightOvertime',
-                              'nightHours',
-                              'turnOfDayHours',
-                              'overtimeLimit',
-                            ] as const).map((name) => (
-                              <FormikNumberField
-                                key={name}
-                                name={name}
-                                labelId={`overtime-and-night-hours-${camelToKebabCase(name)}`}
-                              />
-                            ))}
+                            <DynamicSalaryFields
+                              fields={overtimeFieldConfigs}
+                              values={values}
+                              formMode={type}
+                              setFieldValue={setFieldValue}
+                            />
                           </Stack>
                         </FormWithInfo>
                       )}
