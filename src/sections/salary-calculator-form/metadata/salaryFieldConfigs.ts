@@ -233,6 +233,27 @@ export const taxFieldConfigs: SalaryFieldConfig[] = [
 
 export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
   {
+    name: 'hourlyRateCalculationMode',
+    type: 'select',
+    labelId: 'advanced-settings-hourly-rate-calculation-mode',
+    helperTextId: 'advanced-settings-hourly-rate-calculation-mode-help',
+    contracts: ['uop_monthly'],
+    defaultValue: 'roundedTo2',
+    options: [
+      {
+        value: 'roundedTo2',
+        labelId: 'advanced-settings-hourly-rate-rounded-to-2',
+      },
+      {
+        value: 'fullPrecision',
+        labelId: 'advanced-settings-hourly-rate-full-precision',
+      },
+    ],
+    validation: {
+      required: true,
+    },
+  },
+  {
     name: 'doNotWithholdPitAdvance',
     type: 'checkbox',
     labelId: 'taxes-and-deductions-no-pit-advance',

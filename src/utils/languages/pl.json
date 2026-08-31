@@ -47,6 +47,7 @@
   "rate-and-bonuses-bonus-name": "Nazwa premii",
   "rate-and-bonuses-bonus-amount": "Kwota premii",
   "rate-and-bonuses-bonus-frequency": "Częstotliwość",
+  "rate-and-bonuses-bonus-payment-type": "Forma premii",
   "rate-and-bonuses-remove-bonus": "Usuń premię",
   "rate-and-bonuses-add-bonus": "Dodaj premię",
 
@@ -55,7 +56,10 @@
   "bonus-frequency-annual": "Roczna",
   "bonus-frequency-one-off": "Jednorazowa",
 
-  "rate-and-bonuses-info": "Stawka i premie – składniki wynagrodzenia\nW tym bloku wybierasz typ umowy, wpisujesz stawkę wynikającą z umowy oraz dodajesz premie otrzymane w danym okresie.\n\n• Wybierz właściwy typ stawki i wpisz kwotę brutto.\n• Jeśli otrzymujesz premię, wybierz „Dodaj premię”, podaj jej nazwę, kwotę i częstotliwość.\n• Możesz dodać dowolną liczbę premii i usunąć te, które nie dotyczą danego wynagrodzenia.\n• Szczegółowe zasady naliczania każdej premii możesz ustawić w Ustawieniach zaawansowanych.\n\nWybrany typ umowy oraz składniki wynagrodzenia wpływają na dalsze obliczenia kalkulatora.",
+  "bonus-payment-cash": "Pieniężna",
+  "bonus-payment-non-cash": "Niepieniężna",
+
+  "rate-and-bonuses-info": "Stawka i premie – składniki wynagrodzenia\nW tym bloku wybierasz typ umowy, wpisujesz stawkę wynikającą z umowy oraz dodajesz premie otrzymane w danym okresie.\n\n• Wybierz właściwy typ stawki i wpisz kwotę brutto.\n• Jeśli otrzymujesz premię, wybierz „Dodaj premię”, podaj jej nazwę, kwotę, częstotliwość oraz formę: pieniężną albo niepieniężną.\n• Premie pieniężne są uwzględniane w kwocie wypłacanej razem z wynagrodzeniem.\n• Świadczenia niepieniężne są uwzględniane w wynagrodzeniu brutto i odpowiednich obliczeniach składkowo-podatkowych, ale ich wartość nie jest wypłacana przelewem razem z wynagrodzeniem. Takie świadczenie jest przekazywane w innej formie, np. jako benefit lub środki na platformie pracowniczej.\n• Możesz dodać dowolną liczbę premii i usunąć te, które nie dotyczą danego wynagrodzenia.\n• Szczegółowe zasady naliczania każdej premii możesz ustawić w Ustawieniach zaawansowanych.\n\nWybrany typ umowy oraz składniki wynagrodzenia wpływają na dalsze obliczenia kalkulatora.",
 
   "calendar-and-working-time-working-hours": "Wymiar czasu pracy w miesiącu",
   "calendar-and-working-time-info": "Kalendarz – czas pracy w miesiącu\nTen blok przedstawia kalendarz danego miesiąca i służy do ustalenia wymiaru czasu pracy.\n\n• Kalkulator automatycznie uwzględnia: dni robocze, weekendy oraz święta ustawowe.\n• Na tej podstawie wyliczany jest wymiar czasu pracy dla miesiąca.\n• Możesz ręcznie zmienić tę wartość, jeśli w Twoim zakładzie pracy lub dla Twojego stanowiska obowiązuje inny wymiar czasu pracy.\n\nZmiana wymiaru czasu pracy nie zmienia stałej miesięcznej stawki brutto, ale wpływa na stawkę godzinową używaną m.in. do obliczania nadgodzin i dodatków godzinowych.",
@@ -106,7 +110,12 @@
 
   "advanced-settings-open": "Ustawienia zaawansowane",
   "advanced-settings-title": "Zaawansowane ustawienia wynagrodzenia",
-  "advanced-settings-description": "Tutaj skonfigurujesz szczegółowe zasady premii oraz rzadziej używane ustawienia podatkowe, płacowe i ubezpieczeniowe.",
+  "advanced-settings-description": "Tutaj znajdują się rzadziej używane ustawienia sposobu obliczania wynagrodzenia oraz ustawienia podatkowe i ubezpieczeniowe.",
+  
+  "advanced-settings-hourly-rate-calculation-mode": "Sposób liczenia stawki godzinowej",
+  "advanced-settings-hourly-rate-calculation-mode-help": "Dotyczy stawki godzinowej wyliczanej z miesięcznej stawki brutto. Wybierz, czy przed obliczeniem nadgodzin i dodatków godzinowych kalkulator ma zaokrąglić stawkę do 2 miejsc, czy używać pełnej wartości wynikającej z dzielenia. Różne systemy kadrowo-płacowe mogą stosować inny moment zaokrąglenia.",
+  "advanced-settings-hourly-rate-rounded-to-2": "Zaokrąglaj do 2 miejsc przed dalszymi obliczeniami",
+  "advanced-settings-hourly-rate-full-precision": "Używaj pełnej precyzji",
 
   "advanced-settings-bonuses-title": "Ustawienia premii",
   "advanced-settings-bonuses-description": "Określ, jak każda premia jest naliczana w Twojej firmie. Te informacje będą potrzebne do dokładnego wyliczania podstawy L4 i wynagrodzenia urlopowego na podstawie historii wynagrodzeń.",
@@ -166,6 +175,7 @@
   "salary-estimated-hourly": "Szacunkowa stawka godzinowa",
   "salary-bonuses-brutto": "Premie / dodatki (brutto)",
   "salary-bonus-item": "Premia",
+  "salary-non-cash-bonuses": "w tym świadczenia niepieniężne (nie do wypłaty przelewem)",
   "salary-daily-overtimes": "Nadgodziny dzienne",
   "salary-weekend-holiday-overtimes": "Nadgodz. w weekendy i święta",
   "salary-night-overtimes": "Nadgodziny nocne",
@@ -315,6 +325,8 @@
   "tax-chart-no-data": "Brak danych",
   "tax-chart-netto": "netto",
   "tax-chart-brutto-short": "BR.",
+
+  "tax-chart-non-cash-info": "Świadczenia niepieniężne o wartości {amount} zł są uwzględniane w wynagrodzeniu brutto oraz odpowiednich obliczeniach składkowo-podatkowych, ale ich wartość nie jest wypłacana przelewem na konto razem z wynagrodzeniem. Świadczenie jest przekazywane oddzielnie w innej formie, np. jako benefit lub środki na platformie pracowniczej.",
   "details": "Szczegóły",
 
   "validation-number-min-zero": "Must be >= 0",

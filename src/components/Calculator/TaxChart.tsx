@@ -57,6 +57,17 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
 
   const ppkEmployee = calculation.ppkEmployee ?? 0;
 
+  const nonCashBonusTotal =
+    calculation.nonCashBonusTotal ??
+    calculation.bonuses?.reduce(
+      (sum, bonus) =>
+        bonus.paymentType === 'nonCash'
+          ? sum + Math.max(0, Number(bonus.amount) || 0)
+          : sum,
+      0,
+    ) ??
+    0;
+
   const labels = useMemo(
     () => ['PIT', 'ZUS', 'NFZ', 'PPK', 'NETTO'],
     [],
@@ -242,19 +253,39 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
       },
     ];
 
+    if (nonCashBonusTotal > 0) {
+      salaryItems.push({
+        label: intl.formatMessage({
+          id: 'salary-non-cash-bonuses',
+          defaultMessage: 'Including non-cash benefits (not paid out)',
+        }),
+        value: formatNumber(nonCashBonusTotal),
+      });
+    }
+
     calculation.bonuses
       ?.filter((bonus) => bonus.amount > 0)
       .forEach((bonus) => {
+        const bonusLabel = bonus.name
+          ? `${intl.formatMessage({
+              id: 'salary-bonus-item',
+              defaultMessage: 'Bonus',
+            })}: ${bonus.name}`
+          : intl.formatMessage({
+              id: 'salary-bonus-item',
+              defaultMessage: 'Bonus',
+            });
+
+        const paymentTypeLabel =
+          bonus.paymentType === 'nonCash'
+            ? ` (${intl.formatMessage({
+                id: 'bonus-payment-non-cash',
+                defaultMessage: 'Non-cash',
+              })})`
+            : '';
+
         salaryItems.push({
-          label: bonus.name
-            ? `${intl.formatMessage({
-                id: 'salary-bonus-item',
-                defaultMessage: 'Bonus',
-              })}: ${bonus.name}`
-            : intl.formatMessage({
-                id: 'salary-bonus-item',
-                defaultMessage: 'Bonus',
-              }),
+          label: `${bonusLabel}${paymentTypeLabel}`,
           value: formatNumber(bonus.amount),
         });
       });
@@ -509,7 +540,7 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
     });
 
     return sections;
-  }, [calculation, intl]);
+  }, [calculation, intl, nonCashBonusTotal]);
 
   return (
     <Box
@@ -650,6 +681,21 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
                     </Alert>
                   ))}
                 </Stack>
+              )}
+
+              {nonCashBonusTotal > 0 && (
+                <Alert severity="info" sx={{ mb: 3 }}>
+                  {intl.formatMessage(
+                    {
+                      id: 'tax-chart-non-cash-info',
+                      defaultMessage:
+                        'Non-cash benefits worth {amount} PLN are included in gross remuneration and payroll calculations, but their value is not transferred to your bank account with the salary payment. They are provided separately, for example as a benefit or credit in an employee benefits platform.',
+                    },
+                    {
+                      amount: formatNumber(nonCashBonusTotal),
+                    },
+                  )}
+                </Alert>
               )}
 
               {breakdownConfig.map((section) => (

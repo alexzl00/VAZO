@@ -13,6 +13,7 @@ import { useIntl } from 'react-intl';
 
 import type {
   BonusFrequency,
+  BonusPaymentType,
   SalaryBonus,
 } from '../../types/salaryCalculator';
 
@@ -26,14 +27,7 @@ type SalaryBonusesEditorProps = {
 };
 
 const createBonusId = () =>
-  `bonus-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-
-const createEmptyBonus = (): SalaryBonus => ({
-  id: createBonusId(),
-  name: '',
-  amount: 0,
-  frequency: 'monthly',
-});
+  `bonus-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 export default function SalaryBonusesEditor({
   bonuses,
@@ -42,39 +36,44 @@ export default function SalaryBonusesEditor({
   const intl = useIntl();
 
   const updateBonus = (
-    index: number,
+    bonusId: string,
     patch: Partial<SalaryBonus>,
   ) => {
-    const next = bonuses.map((bonus, bonusIndex) =>
-      bonusIndex === index
-        ? { ...bonus, ...patch }
-        : bonus,
-    );
-
-    setFieldValue('bonuses', next);
-  };
-
-  const removeBonus = (index: number) => {
     setFieldValue(
       'bonuses',
-      bonuses.filter((_, bonusIndex) => bonusIndex !== index),
+      bonuses.map((bonus) =>
+        bonus.id === bonusId
+          ? { ...bonus, ...patch }
+          : bonus,
+      ),
+      true,
     );
   };
 
   const addBonus = () => {
-    setFieldValue('bonuses', [
-      ...bonuses,
-      createEmptyBonus(),
-    ]);
+    const nextBonus: SalaryBonus = {
+      id: createBonusId(),
+      name: '',
+      amount: 0,
+      frequency: 'monthly',
+      paymentType: 'cash',
+    };
+
+    setFieldValue('bonuses', [...bonuses, nextBonus], true);
+  };
+
+  const removeBonus = (bonusId: string) => {
+    setFieldValue(
+      'bonuses',
+      bonuses.filter((bonus) => bonus.id !== bonusId),
+      true,
+    );
   };
 
   return (
     <Stack spacing={2}>
       {bonuses.length === 0 && (
-        <Typography
-          variant="body2"
-          color="text.secondary"
-        >
+        <Typography variant="body2" color="text.secondary">
           {intl.formatMessage({
             id: 'rate-and-bonuses-empty',
             defaultMessage: 'No bonuses added.',
@@ -82,64 +81,50 @@ export default function SalaryBonusesEditor({
         </Typography>
       )}
 
-      {bonuses.map((bonus, index) => (
+      {bonuses.map((bonus) => (
         <Box
           key={bonus.id}
           sx={{
             border: '1px solid',
             borderColor: 'divider',
             borderRadius: 1,
-            p: 1.5,
+            p: 2,
           }}
         >
-          <Stack spacing={1.5}>
+          <Stack spacing={2}>
             <TextField
-              fullWidth
               size="small"
+              fullWidth
               label={intl.formatMessage({
                 id: 'rate-and-bonuses-bonus-name',
                 defaultMessage: 'Bonus name',
               })}
               value={bonus.name}
-              onChange={(event) => {
-                updateBonus(index, {
+              onChange={(event) =>
+                updateBonus(bonus.id, {
                   name: event.target.value,
-                });
-              }}
+                })
+              }
             />
 
             <TextField
-              fullWidth
               size="small"
+              fullWidth
               type="number"
+              inputProps={{ min: 0, step: '0.01' }}
               label={intl.formatMessage({
                 id: 'rate-and-bonuses-bonus-amount',
                 defaultMessage: 'Amount',
               })}
               value={bonus.amount}
-              inputProps={{
-                min: 0,
-                step: 0.01,
-              }}
-              onChange={(event) => {
-                const value = Number(event.target.value);
-
-                updateBonus(index, {
-                  amount: Number.isFinite(value)
-                    ? Math.max(0, value)
-                    : 0,
-                });
-              }}
-              InputProps={{
-                endAdornment: (
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                  >
-                    zł
-                  </Typography>
-                ),
-              }}
+              onChange={(event) =>
+                updateBonus(bonus.id, {
+                  amount:
+                    event.target.value === ''
+                      ? 0
+                      : Number(event.target.value),
+                })
+              }
             />
 
             <FormControl fullWidth size="small">
@@ -156,11 +141,11 @@ export default function SalaryBonusesEditor({
                   id: 'rate-and-bonuses-bonus-frequency',
                   defaultMessage: 'Frequency',
                 })}
-                onChange={(event) => {
-                  updateBonus(index, {
+                onChange={(event) =>
+                  updateBonus(bonus.id, {
                     frequency: event.target.value as BonusFrequency,
-                  });
-                }}
+                  })
+                }
               >
                 <MenuItem value="monthly">
                   {intl.formatMessage({
@@ -168,21 +153,18 @@ export default function SalaryBonusesEditor({
                     defaultMessage: 'Monthly',
                   })}
                 </MenuItem>
-
                 <MenuItem value="quarterly">
                   {intl.formatMessage({
                     id: 'bonus-frequency-quarterly',
                     defaultMessage: 'Quarterly',
                   })}
                 </MenuItem>
-
                 <MenuItem value="annual">
                   {intl.formatMessage({
                     id: 'bonus-frequency-annual',
                     defaultMessage: 'Annual',
                   })}
                 </MenuItem>
-
                 <MenuItem value="oneOff">
                   {intl.formatMessage({
                     id: 'bonus-frequency-one-off',
@@ -192,12 +174,45 @@ export default function SalaryBonusesEditor({
               </Select>
             </FormControl>
 
+            <FormControl fullWidth size="small">
+              <InputLabel>
+                {intl.formatMessage({
+                  id: 'rate-and-bonuses-bonus-payment-type',
+                  defaultMessage: 'Payment type',
+                })}
+              </InputLabel>
+
+              <Select
+                value={bonus.paymentType ?? 'cash'}
+                label={intl.formatMessage({
+                  id: 'rate-and-bonuses-bonus-payment-type',
+                  defaultMessage: 'Payment type',
+                })}
+                onChange={(event) =>
+                  updateBonus(bonus.id, {
+                    paymentType: event.target.value as BonusPaymentType,
+                  })
+                }
+              >
+                <MenuItem value="cash">
+                  {intl.formatMessage({
+                    id: 'bonus-payment-cash',
+                    defaultMessage: 'Cash',
+                  })}
+                </MenuItem>
+                <MenuItem value="nonCash">
+                  {intl.formatMessage({
+                    id: 'bonus-payment-non-cash',
+                    defaultMessage: 'Non-cash',
+                  })}
+                </MenuItem>
+              </Select>
+            </FormControl>
+
             <Button
-              type="button"
+              variant="outlined"
               color="error"
-              variant="text"
-              onClick={() => removeBonus(index)}
-              sx={{ alignSelf: 'flex-start' }}
+              onClick={() => removeBonus(bonus.id)}
             >
               {intl.formatMessage({
                 id: 'rate-and-bonuses-remove-bonus',
@@ -208,11 +223,7 @@ export default function SalaryBonusesEditor({
         </Box>
       ))}
 
-      <Button
-        type="button"
-        variant="outlined"
-        onClick={addBonus}
-      >
+      <Button variant="outlined" onClick={addBonus}>
         {intl.formatMessage({
           id: 'rate-and-bonuses-add-bonus',
           defaultMessage: 'Add bonus',

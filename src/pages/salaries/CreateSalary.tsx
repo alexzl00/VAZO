@@ -89,6 +89,12 @@ export const initialSalaryFormValues: SalaryCalculatorValues = {
   // Stawka i premie
   workRateType: 'uop_monthly',
   rate: 0,
+
+  // Preserve the calculator's previous behaviour by default.
+  // Users can switch to full precision in Advanced Settings for payrolls
+  // that keep the raw monthly-rate / working-hours result.
+  hourlyRateCalculationMode: 'roundedTo2',
+
   bonuses: [],
 
   holidays: [],
@@ -151,6 +157,9 @@ export default function CreateSalaryPage() {
   // structured data, this create flow stores only the TOTAL in the old
   // "other/discretionary" compatibility column. That keeps current gross/net
   // persistence working, but amountType/sickLeaveTreatment are not persisted.
+  //
+  // hourlyRateCalculationMode also needs a persistence field when the salary
+  // settings are migrated to the database. The in-form calculation works now.
   const handleCreate = async (values: SalaryCalculatorValues) => {
 
     try {
@@ -268,3 +277,4 @@ export default function CreateSalaryPage() {
     />
   );
 }
+

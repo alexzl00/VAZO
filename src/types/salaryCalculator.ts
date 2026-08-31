@@ -23,6 +23,22 @@ export type SickLeaveTreatment =
   | 'nonProportional'
   | 'notPaid';
 
+export type BonusPaymentType =
+  | 'cash'
+  | 'nonCash';
+
+
+/**
+ * Controls which hourly rate is used in calculations that derive an hourly
+ * value from a monthly UoP salary.
+ *
+ * roundedTo2 preserves the calculator's previous behaviour.
+ * fullPrecision keeps the raw division result until the final component is rounded.
+ */
+export type HourlyRateCalculationMode =
+  | 'roundedTo2'
+  | 'fullPrecision';
+
 export type SalaryBonus = {
   id: string;
   name: string;
@@ -30,9 +46,11 @@ export type SalaryBonus = {
   frequency: BonusFrequency;
 
   /**
-   * Optional advanced information.
-   * Undefined means that the user has not configured this payroll rule yet.
+   * Basic payment form.
+   * Undefined is treated as cash for old records.
    */
+  paymentType?: BonusPaymentType;
+
   amountType?: BonusAmountType;
   sickLeaveTreatment?: SickLeaveTreatment;
 };
@@ -159,6 +177,13 @@ export type SalaryCalculatorValues = {
 
   workRateType: WorkRate;
   rate: number;
+
+  /**
+   * For a monthly UoP rate, controls whether derived hourly calculations use
+   * a 2-decimal hourly rate or the full raw division result.
+   * Optional for backward compatibility; undefined is treated as roundedTo2.
+   */
+  hourlyRateCalculationMode?: HourlyRateCalculationMode;
 
   /**
    * User-defined remuneration components.

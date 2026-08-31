@@ -18,6 +18,8 @@ export type SalaryCalculationResult = {
   leavePayment?: number;
   bonuses?: SalaryBonus[];
   bonusTotal?: number;
+  cashBonusTotal?: number;
+  nonCashBonusTotal?: number;
   overtimes?: number;
   perHour: number;
   rate?: number;
@@ -122,14 +124,30 @@ const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 1
 const roundPln = (value: number) => Math.round(value);
 const percent = (value: number, rate: number) => round2(value * rate / 100);
 
-const getBonusTotal = (values: SalaryCalculatorValues) =>
-  round2(
-    (values.bonuses ?? []).reduce(
-      (sum, bonus) =>
-        sum + Math.max(0, Number(bonus.amount) || 0),
-      0,
-    ),
-  );
+const getBonusTotals = (values: SalaryCalculatorValues) => {
+  let cashBonusTotal = 0;
+  let nonCashBonusTotal = 0;
+
+  (values.bonuses ?? []).forEach((bonus) => {
+    const amount = Math.max(0, Number(bonus.amount) || 0);
+
+    if (bonus.paymentType === 'nonCash') {
+      nonCashBonusTotal += amount;
+    } else {
+      // Undefined is treated as cash for backwards compatibility.
+      cashBonusTotal += amount;
+    }
+  });
+
+  cashBonusTotal = round2(cashBonusTotal);
+  nonCashBonusTotal = round2(nonCashBonusTotal);
+
+  return {
+    cashBonusTotal,
+    nonCashBonusTotal,
+    bonusTotal: round2(cashBonusTotal + nonCashBonusTotal),
+  };
+};
 
 const assertSupportedTaxYear = (values: SalaryCalculatorValues) => {
   if (values.year !== taxes.year) {
@@ -427,7 +445,11 @@ export const calculateTaxesUoD = (
   assertSupportedTaxYear(values);
 
   const warnings: string[] = [];
-  const bonusTotal = getBonusTotal(values);
+  const {
+    bonusTotal,
+    cashBonusTotal,
+    nonCashBonusTotal,
+  } = getBonusTotals(values);
 
   const fullSalaryBrutto = round2(
     values.rate + bonusTotal,
@@ -527,6 +549,7 @@ export const calculateTaxesUoD = (
 
   const netto = round2(
     fullSalaryBrutto
+      - nonCashBonusTotal
       - zusTaxes
       - healthInsurance
       - pitTax
@@ -541,6 +564,8 @@ export const calculateTaxesUoD = (
 
     bonuses: values.bonuses ?? [],
     bonusTotal,
+    cashBonusTotal,
+    nonCashBonusTotal,
 
     perHour: 0,
     rate: values.rate,
@@ -586,7 +611,11 @@ export const calculateTaxesContractOfMandate = (
   assertSupportedTaxYear(values);
 
   const warnings: string[] = [];
-  const bonusTotal = getBonusTotal(values);
+  const {
+    bonusTotal,
+    cashBonusTotal,
+    nonCashBonusTotal,
+  } = getBonusTotals(values);
 
   const regularRemunerationBrutto = round2(
     values.rate * values.workingHours
@@ -821,6 +850,7 @@ export const calculateTaxesContractOfMandate = (
 
   const netto = round2(
     fullSalaryBrutto
+      - nonCashBonusTotal
       - social.zusTaxes
       - healthInsurance
       - pitTax
@@ -836,6 +866,8 @@ export const calculateTaxesContractOfMandate = (
 
     bonuses: values.bonuses ?? [],
     bonusTotal,
+    cashBonusTotal,
+    nonCashBonusTotal,
 
     l4Payment: sicknessBenefit,
     sicknessBenefit,
@@ -899,7 +931,11 @@ export const calculateTaxesUoP = (
   assertSupportedTaxYear(values);
 
   const warnings: string[] = [];
-  const bonusTotal = getBonusTotal(values);
+  const {
+    bonusTotal,
+    cashBonusTotal,
+    nonCashBonusTotal,
+  } = getBonusTotals(values);
 
   const workingDaysInMonth = getWorkedDaysInMonth(
     values.year,
@@ -984,6 +1020,15 @@ export const calculateTaxesUoP = (
 
   const perHour = round2(perHourRaw);
 
+  // Some payroll systems round the derived hourly rate before using it in
+  // subsequent calculations; others keep the full division result.
+  // Display remains rounded to 2 decimals in both modes.
+  const hourlyRateForCalculations =
+    values.workRateType === 'uop_monthly' &&
+    (values.hourlyRateCalculationMode ?? 'roundedTo2') === 'fullPrecision'
+      ? perHourRaw
+      : perHour;
+
   let workDaysPayment: number;
 
   if (values.workRateType === 'uop_monthly') {
@@ -1013,19 +1058,19 @@ export const calculateTaxesUoP = (
   }
 
   const dailyOvertimes = round2(
-    perHour
+    hourlyRateForCalculations
       * values.dailyOvertime
       * taxes.dailyOvertimeMultiplier,
   );
 
   const weekendHolidayOvertimes = round2(
-    perHour
+    hourlyRateForCalculations
       * values.weekendHolidayOvertime
       * taxes.weekendHolidayOvertimeMultiplier,
   );
 
   const nightOvertime = round2(
-    perHour
+    hourlyRateForCalculations
       * values.nightOvertime
       * taxes.nightOvertimeMultiplier,
   );
@@ -1035,6 +1080,8 @@ export const calculateTaxesUoP = (
       ? taxes.minimumWage / nominalWorkingHours
       : 0;
 
+  // Deliberately unchanged: the statutory night allowance has its own base and
+  // is not controlled by hourlyRateCalculationMode.
   const nightWorkAllowance = round2(
     (
       values.nightHours
@@ -1046,7 +1093,7 @@ export const calculateTaxesUoP = (
   );
 
   const turnOfDayHours = round2(
-    perHour
+    hourlyRateForCalculations
       * values.turnOfDayHours
       * taxes.turnOfDayHours
       / 100,
@@ -1171,6 +1218,7 @@ export const calculateTaxesUoP = (
 
   const netto = round2(
     fullSalaryBrutto
+      - nonCashBonusTotal
       - social.zusTaxes
       - healthInsurance
       - pit.pitTax
@@ -1194,6 +1242,8 @@ export const calculateTaxesUoP = (
 
     bonuses: values.bonuses ?? [],
     bonusTotal,
+    cashBonusTotal,
+    nonCashBonusTotal,
 
     overtimes,
     dailyOvertimes,
