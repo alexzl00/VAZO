@@ -12,7 +12,7 @@ import { useIntl } from 'react-intl';
 // project imports
 import SalaryForm from "../../sections/salary-calculator-form/SalaryCalculatorForm";
 
-// utils 
+// utils
 import { getWorkedDaysInMonth } from '../../utils/monthHelperFunc';
 import { getPolishHolidays } from "../../utils/getHolidays";
 import { calculateTaxesContractOfMandate, calculateTaxesUoP, calculateTaxesUoD } from '../../utils/workTypeSalaryCalc';
@@ -29,6 +29,14 @@ import type { SalaryCalculatorValues } from '../../types/salaryCalculator';
 import { overrideSalaryCalculations } from "../../api/overrideSalaryCalculations";
 
 const now = new Date();
+
+const getBonusTotal = (values: SalaryCalculatorValues) =>
+  Math.round(
+    (values.bonuses ?? []).reduce(
+      (sum, bonus) => sum + Math.max(0, Number(bonus.amount) || 0),
+      0,
+    ) * 100,
+  ) / 100;
 
 export const initialSalaryFormValues: SalaryCalculatorValues = {
   // podatki i potrącenia
@@ -81,9 +89,7 @@ export const initialSalaryFormValues: SalaryCalculatorValues = {
   // Stawka i premie
   workRateType: 'uop_monthly',
   rate: 0,
-  attendanceBonus: 0,
-  discretionaryBonus: 0,
-  otherBonus: 0,
+  bonuses: [],
 
   holidays: [],
 
@@ -137,15 +143,19 @@ export default function CreateSalaryPage() {
     }
   };
 
-  // New tax/L4-engine fields are used for the calculation immediately.
-  // IMPORTANT: createMandateSalary/createUopSalary API files were not supplied here.
-  // Persist l4/l4Base, sickness settings and advanced annual-state fields after the
-  // corresponding API payload types/database columns are updated. This file does
-  // not invent Supabase columns that may not exist yet.
+  // IMPORTANT:
+  // The supplied API files/database schema still use the old
+  // attendanceBonus/discretionaryBonus/otherBonus columns.
+  //
+  // Until those files and the database are migrated to persist bonuses[] as
+  // structured data, this create flow stores only the TOTAL in the old
+  // "other/discretionary" compatibility column. That keeps current gross/net
+  // persistence working, but amountType/sickLeaveTreatment are not persisted.
   const handleCreate = async (values: SalaryCalculatorValues) => {
 
     try {
       let salary_id: string | null = null;
+      const bonusTotal = getBonusTotal(values);
 
       if (values.workRateType === 'mandate_hourly') {
         const calculated = calculateTaxesContractOfMandate(values);
@@ -166,10 +176,11 @@ export default function CreateSalaryPage() {
           isUnder26: values.isUnder26,
           pit2: values.pit2,
 
-          attendanceBonus: values.attendanceBonus,
-          discretionaryBonus: values.discretionaryBonus,
-          otherBonus: values.otherBonus,
-          
+          // Temporary DB compatibility bridge.
+          attendanceBonus: 0,
+          discretionaryBonus: 0,
+          otherBonus: bonusTotal,
+
           holidays: values.holidays
         });
 
@@ -192,9 +203,10 @@ export default function CreateSalaryPage() {
           taxRegime: values.taxRegime,
           pit2: values.pit2,
 
-          attendanceBonus: values.attendanceBonus,
-          discretionaryBonus: values.discretionaryBonus,
-          otherBonus: values.otherBonus,
+          // Temporary DB compatibility bridge.
+          attendanceBonus: 0,
+          discretionaryBonus: 0,
+          otherBonus: bonusTotal,
 
           dailyOvertime: values.dailyOvertime,
           weekendHolidayOvertime: values.weekendHolidayOvertime,
@@ -229,7 +241,8 @@ export default function CreateSalaryPage() {
           kup: values.kup,
           pit2: values.pit2,
 
-          discretionaryBonus: values.discretionaryBonus,
+          // Temporary DB compatibility bridge.
+          discretionaryBonus: bonusTotal,
         })
       }
 

@@ -7,6 +7,36 @@ export type UopKup = 0 | 250 | 300;
 export type UopEmployerSickPayLimit = 14 | 33;
 export type Pit0Relief = 'none' | 'young' | 'return' | 'family4plus' | 'workingSenior';
 
+export type BonusFrequency =
+  | 'monthly'
+  | 'quarterly'
+  | 'annual'
+  | 'oneOff';
+
+export type BonusAmountType =
+  | 'fixed'
+  | 'variable';
+
+export type SickLeaveTreatment =
+  | 'paidInFull'
+  | 'proportional'
+  | 'nonProportional'
+  | 'notPaid';
+
+export type SalaryBonus = {
+  id: string;
+  name: string;
+  amount: number;
+  frequency: BonusFrequency;
+
+  /**
+   * Optional advanced information.
+   * Undefined means that the user has not configured this payroll rule yet.
+   */
+  amountType?: BonusAmountType;
+  sickLeaveTreatment?: SickLeaveTreatment;
+};
+
 export type SalaryCalculatorValues = {
   // --- PIT / tax ---
 
@@ -130,9 +160,12 @@ export type SalaryCalculatorValues = {
   workRateType: WorkRate;
   rate: number;
 
-  attendanceBonus: number;
-  discretionaryBonus: number;
-  otherBonus: number;
+  /**
+   * User-defined remuneration components.
+   * The basic form edits name, amount and frequency.
+   * Advanced Settings edits amountType and sickLeaveTreatment on the same objects.
+   */
+  bonuses?: SalaryBonus[];
 
   holidays: ISODateRange[];
 

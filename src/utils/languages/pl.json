@@ -42,10 +42,20 @@
   "rate-contract-of-mandate": "Umowa zlecenia (BRUTTO/h)",
   "rate-contract-for-specific-work": "Umowa o dzieło (BRUTTO)",
   "rate-and-bonuses-rate": "Stawka",
-  "rate-and-bonuses-attendance-bonus": "Premia frekwencyjna",
-  "rate-and-bonuses-discretionary-bonus": "Premia uznaniowa",
-  "rate-and-bonuses-other-bonus": "Inna premia",
-  "rate-and-bonuses-info": "Stawka – wynagrodzenie wynikające z umowy\nW tym bloku wybierasz typ umowy oraz wpisujesz wynagrodzenie wynikające bezpośrednio z tej umowy.\n\n• Wybierz rodzaj umowy: Umowa o pracę, Umowa zlecenie lub Stawka godzinowa.\n• Wpisz wynagrodzenie zgodnie z wybranym typem umowy: kwotę miesięczną brutto (przy umowie o pracę) lub stawkę godzinową (jeśli rozliczasz się godzinowo).\n\nWybrany typ umowy określa sposób dalszych obliczeń w kalkulatorze.",
+
+  "rate-and-bonuses-empty": "Nie dodano żadnych premii.",
+  "rate-and-bonuses-bonus-name": "Nazwa premii",
+  "rate-and-bonuses-bonus-amount": "Kwota premii",
+  "rate-and-bonuses-bonus-frequency": "Częstotliwość",
+  "rate-and-bonuses-remove-bonus": "Usuń premię",
+  "rate-and-bonuses-add-bonus": "Dodaj premię",
+
+  "bonus-frequency-monthly": "Miesięczna",
+  "bonus-frequency-quarterly": "Kwartalna",
+  "bonus-frequency-annual": "Roczna",
+  "bonus-frequency-one-off": "Jednorazowa",
+
+  "rate-and-bonuses-info": "Stawka i premie – składniki wynagrodzenia\nW tym bloku wybierasz typ umowy, wpisujesz stawkę wynikającą z umowy oraz dodajesz premie otrzymane w danym okresie.\n\n• Wybierz właściwy typ stawki i wpisz kwotę brutto.\n• Jeśli otrzymujesz premię, wybierz „Dodaj premię”, podaj jej nazwę, kwotę i częstotliwość.\n• Możesz dodać dowolną liczbę premii i usunąć te, które nie dotyczą danego wynagrodzenia.\n• Szczegółowe zasady naliczania każdej premii możesz ustawić w Ustawieniach zaawansowanych.\n\nWybrany typ umowy oraz składniki wynagrodzenia wpływają na dalsze obliczenia kalkulatora.",
 
   "calendar-and-working-time-working-hours": "Wymiar czasu pracy w miesiącu",
   "calendar-and-working-time-info": "Kalendarz – czas pracy w miesiącu\nTen blok przedstawia kalendarz danego miesiąca i służy do ustalenia wymiaru czasu pracy.\n\n• Kalkulator automatycznie uwzględnia: dni robocze, weekendy oraz święta ustawowe.\n• Na tej podstawie wyliczany jest wymiar czasu pracy dla miesiąca.\n• Możesz ręcznie zmienić tę wartość, jeśli w Twoim zakładzie pracy lub dla Twojego stanowiska obowiązuje inny wymiar czasu pracy.\n\nZmiana wymiaru czasu pracy nie zmienia stałej miesięcznej stawki brutto, ale wpływa na stawkę godzinową używaną m.in. do obliczania nadgodzin i dodatków godzinowych.",
@@ -96,7 +106,22 @@
 
   "advanced-settings-open": "Ustawienia zaawansowane",
   "advanced-settings-title": "Zaawansowane ustawienia wynagrodzenia",
-  "advanced-settings-description": "Tutaj znajdują się rzadziej używane ustawienia, które mają znaczenie tylko w określonych sytuacjach podatkowych lub ubezpieczeniowych.",
+  "advanced-settings-description": "Tutaj skonfigurujesz szczegółowe zasady premii oraz rzadziej używane ustawienia podatkowe, płacowe i ubezpieczeniowe.",
+
+  "advanced-settings-bonuses-title": "Ustawienia premii",
+  "advanced-settings-bonuses-description": "Określ, jak każda premia jest naliczana w Twojej firmie. Te informacje będą potrzebne do dokładnego wyliczania podstawy L4 i wynagrodzenia urlopowego na podstawie historii wynagrodzeń.",
+  "advanced-settings-bonuses-empty": "Nie dodano żadnych premii. Najpierw dodaj premię w zakładce „Stawka i premie”.",
+  "advanced-settings-bonus-amount-type": "Rodzaj kwoty",
+  "advanced-settings-bonus-sick-leave-treatment": "Sposób rozliczania podczas L4",
+  "bonus-setting-not-configured": "Nie skonfigurowano",
+  "bonus-amount-type-fixed": "Stała",
+  "bonus-amount-type-variable": "Zmienna",
+  "bonus-sick-leave-paid-in-full": "Wypłacana w pełnej wysokości",
+  "bonus-sick-leave-proportional": "Pomniejszana proporcjonalnie",
+  "bonus-sick-leave-non-proportional": "Pomniejszana według zasad firmy",
+  "bonus-sick-leave-not-paid": "Niewypłacana za okres L4",
+  "bonus-unnamed": "Premia bez nazwy",
+  "advanced-settings-payroll-title": "Ustawienia płacowe i podatkowe",
 
   "taxes-and-deductions-no-pit-advance-help": "Wybierz tylko wtedy, gdy złożyłeś płatnikowi wniosek o niepobieranie zaliczek i przewidujesz dochód opodatkowany skalą do 30 000 zł w roku. Po przekroczeniu progu zaliczki są ponownie naliczane bez pomniejszenia PIT-2.",
   "taxes-and-deductions-multiple-employments-help": "Wpływa na roczny limit kosztów uzyskania przychodu (KUP) przy kilku stosunkach pracy.",
@@ -140,6 +165,7 @@
   "salary-hourly-rate": "Stawka godzinowa",
   "salary-estimated-hourly": "Szacunkowa stawka godzinowa",
   "salary-bonuses-brutto": "Premie / dodatki (brutto)",
+  "salary-bonus-item": "Premia",
   "salary-daily-overtimes": "Nadgodziny dzienne",
   "salary-weekend-holiday-overtimes": "Nadgodz. w weekendy i święta",
   "salary-night-overtimes": "Nadgodziny nocne",
@@ -306,7 +332,7 @@
 
   "dialog-save-salary-update-title": "Zapisz aktualizację wynagrodzenia",
   "dialog-save-salary-update-message": "Czy na pewno chcesz zapisać zmiany w wynagrodzeniu?",
-  
+
   "dialog-reset-salary-update-title": "Zresetuj aktualizację wynagrodzenia",
   "dialog-reset-salary-update-message": "Czy na pewno chcesz zresetować zmiany w wynagrodzeniu?",
 

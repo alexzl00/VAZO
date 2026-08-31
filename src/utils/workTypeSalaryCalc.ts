@@ -1,5 +1,9 @@
 import { countDays, getWorkedDaysInMonth } from '../utils/monthHelperFunc';
-import type { Pit0Relief, SalaryCalculatorValues } from '../types/salaryCalculator';
+import type {
+  Pit0Relief,
+  SalaryBonus,
+  SalaryCalculatorValues,
+} from '../types/salaryCalculator';
 
 export type SalaryCalculationResult = {
   fullSalaryBrutto: number;
@@ -12,9 +16,8 @@ export type SalaryCalculationResult = {
   employerSickPayDays?: number;
   sicknessBenefitDays?: number;
   leavePayment?: number;
-  attendanceBonus?: number;
-  discretionaryBonus?: number;
-  otherBonus?: number;
+  bonuses?: SalaryBonus[];
+  bonusTotal?: number;
   overtimes?: number;
   perHour: number;
   rate?: number;
@@ -118,6 +121,15 @@ export const taxes = {
 const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 const roundPln = (value: number) => Math.round(value);
 const percent = (value: number, rate: number) => round2(value * rate / 100);
+
+const getBonusTotal = (values: SalaryCalculatorValues) =>
+  round2(
+    (values.bonuses ?? []).reduce(
+      (sum, bonus) =>
+        sum + Math.max(0, Number(bonus.amount) || 0),
+      0,
+    ),
+  );
 
 const assertSupportedTaxYear = (values: SalaryCalculatorValues) => {
   if (values.year !== taxes.year) {
@@ -415,9 +427,10 @@ export const calculateTaxesUoD = (
   assertSupportedTaxYear(values);
 
   const warnings: string[] = [];
+  const bonusTotal = getBonusTotal(values);
 
   const fullSalaryBrutto = round2(
-    values.rate + values.discretionaryBonus,
+    values.rate + bonusTotal,
   );
 
   const treatedAsEmployee = Boolean(
@@ -526,6 +539,9 @@ export const calculateTaxesUoD = (
     brutto: fullSalaryBrutto,
     netto,
 
+    bonuses: values.bonuses ?? [],
+    bonusTotal,
+
     perHour: 0,
     rate: values.rate,
     isUnder26: values.isUnder26,
@@ -570,12 +586,11 @@ export const calculateTaxesContractOfMandate = (
   assertSupportedTaxYear(values);
 
   const warnings: string[] = [];
+  const bonusTotal = getBonusTotal(values);
 
   const regularRemunerationBrutto = round2(
     values.rate * values.workingHours
-      + values.attendanceBonus
-      + values.discretionaryBonus
-      + values.otherBonus,
+      + bonusTotal,
   );
 
   const l4DaysCount = countDays(values.l4);
@@ -819,6 +834,9 @@ export const calculateTaxesContractOfMandate = (
     brutto: fullSalaryBrutto,
     netto,
 
+    bonuses: values.bonuses ?? [],
+    bonusTotal,
+
     l4Payment: sicknessBenefit,
     sicknessBenefit,
     employerSickPay: 0,
@@ -881,6 +899,7 @@ export const calculateTaxesUoP = (
   assertSupportedTaxYear(values);
 
   const warnings: string[] = [];
+  const bonusTotal = getBonusTotal(values);
 
   const workingDaysInMonth = getWorkedDaysInMonth(
     values.year,
@@ -1046,9 +1065,7 @@ export const calculateTaxesUoP = (
       + employerSickPay
       + sicknessBenefit
       + leavePayment
-      + values.attendanceBonus
-      + values.discretionaryBonus
-      + values.otherBonus
+      + bonusTotal
       + overtimes,
   );
 
@@ -1175,12 +1192,8 @@ export const calculateTaxesUoP = (
 
     leavePayment,
 
-    attendanceBonus:
-      values.attendanceBonus,
-    discretionaryBonus:
-      values.discretionaryBonus,
-    otherBonus:
-      values.otherBonus,
+    bonuses: values.bonuses ?? [],
+    bonusTotal,
 
     overtimes,
     dailyOvertimes,

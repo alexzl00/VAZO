@@ -52,26 +52,6 @@ export const rateFieldConfigs: SalaryFieldConfig[] = [
     },
     validation: positiveRequired,
   },
-  {
-    name: 'attendanceBonus',
-    type: 'number',
-    labelId: 'rate-and-bonuses-attendance-bonus',
-    visibleWhen: (values) => values.workRateType !== 'uod_fixed',
-    validation: positiveRequired,
-  },
-  {
-    name: 'discretionaryBonus',
-    type: 'number',
-    labelId: 'rate-and-bonuses-discretionary-bonus',
-    validation: positiveRequired,
-  },
-  {
-    name: 'otherBonus',
-    type: 'number',
-    labelId: 'rate-and-bonuses-other-bonus',
-    visibleWhen: (values) => values.workRateType !== 'uod_fixed',
-    validation: positiveRequired,
-  },
 ];
 
 /**

@@ -211,9 +211,12 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
 
   const breakdownConfig = useMemo<BreakdownSection[]>(() => {
     const bonusTotal =
-      (calculation.otherBonus ?? 0) +
-      (calculation.attendanceBonus ?? 0) +
-      (calculation.discretionaryBonus ?? 0);
+      calculation.bonusTotal ??
+      calculation.bonuses?.reduce(
+        (sum, bonus) => sum + bonus.amount,
+        0,
+      ) ??
+      0;
 
     const baseSalary =
       calculation.calculationType === 'uop'
@@ -238,6 +241,23 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
         value: formatNumber(bonusTotal),
       },
     ];
+
+    calculation.bonuses
+      ?.filter((bonus) => bonus.amount > 0)
+      .forEach((bonus) => {
+        salaryItems.push({
+          label: bonus.name
+            ? `${intl.formatMessage({
+                id: 'salary-bonus-item',
+                defaultMessage: 'Bonus',
+              })}: ${bonus.name}`
+            : intl.formatMessage({
+                id: 'salary-bonus-item',
+                defaultMessage: 'Bonus',
+              }),
+          value: formatNumber(bonus.amount),
+        });
+      });
 
     if (
       calculation.calculationType === 'mandate' &&
@@ -679,4 +699,3 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
     </Box>
   );
 });
-

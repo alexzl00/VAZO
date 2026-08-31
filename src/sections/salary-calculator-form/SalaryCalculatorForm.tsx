@@ -14,7 +14,7 @@ import { useTheme } from '@mui/material/styles';
 
 // third party
 import { FormattedMessage, useIntl } from 'react-intl';
-import { 
+import {
   Formik,
   Form,
   useFormikContext
@@ -39,8 +39,9 @@ import TaxChart from '../../components/Calculator/TaxChart';
 import EditSalaryCalculation from '../../components/Modals/EditSalaryCalculation';
 import ConfirmActionDialog from '../../components/Modals/ConfirmActionDialog';
 import AdvancedSalarySettingsDialog from './AdvancedSalarySettingsDialog';
+import SalaryBonusesEditor from './SalaryBonusesEditor';
 
-// utils 
+// utils
 import { MultiRangeMonthPicker } from '../../components/DaysPicker';
 import { isInMonth, isoToDayjsRanges, getWorkedDaysInMonth } from '../../utils/monthHelperFunc';
 import { calculateTaxesUoP, calculateTaxesContractOfMandate, calculateTaxesUoD} from '../../utils/workTypeSalaryCalc';
@@ -73,11 +74,49 @@ type SalaryFormProps =
   | (BaseProps & { type: "create" })
   | (BaseProps & { type: "update"; deleteOverride: () => void });
 
+type LegacySalaryBonusValues = {
+  attendanceBonus?: number;
+  discretionaryBonus?: number;
+  otherBonus?: number;
+};
 
 const normalizeSalaryValues = (
   values: SalaryCalculatorValues,
-): SalaryCalculatorValues =>
-  applySalaryFieldDefaults(values, metadataDrivenFieldConfigs);
+): SalaryCalculatorValues => {
+  const legacyValues = values as SalaryCalculatorValues & LegacySalaryBonusValues;
+
+  let bonuses = Array.isArray(legacyValues.bonuses)
+    ? legacyValues.bonuses
+    : [];
+
+  // Temporary read compatibility for salary records created before bonuses[]
+  // was introduced. New calculations and new UI never write these old fields.
+  if (bonuses.length === 0) {
+    const legacyBonusTotal =
+      (legacyValues.attendanceBonus ?? 0) +
+      (legacyValues.discretionaryBonus ?? 0) +
+      (legacyValues.otherBonus ?? 0);
+
+    if (legacyBonusTotal > 0) {
+      bonuses = [
+        {
+          id: 'legacy-bonus-total',
+          name: 'Legacy bonuses',
+          amount: legacyBonusTotal,
+          frequency: 'monthly',
+        },
+      ];
+    }
+  }
+
+  return applySalaryFieldDefaults(
+    {
+      ...values,
+      bonuses,
+    },
+    metadataDrivenFieldConfigs,
+  );
+};
 
 
 const positiveNumber = () =>
@@ -132,6 +171,30 @@ const SalarySchema = Yup.object().shape({
   // All simple input validation is generated from the same metadata
   // that renders those fields.
   ...buildSalaryFieldValidationShape(metadataDrivenFieldConfigs),
+
+  bonuses: Yup.array()
+    .of(
+      Yup.object().shape({
+        id: Yup.string().required(),
+        name: Yup.string().trim().required('Bonus name is required'),
+        amount: Yup.number()
+          .typeError('Must be a number')
+          .min(0, 'Must be >= 0')
+          .required('Required'),
+        frequency: Yup.mixed<'monthly' | 'quarterly' | 'annual' | 'oneOff'>()
+          .oneOf(['monthly', 'quarterly', 'annual', 'oneOff'])
+          .required(),
+        amountType: Yup.mixed<'fixed' | 'variable'>()
+          .oneOf(['fixed', 'variable'])
+          .notRequired(),
+        sickLeaveTreatment: Yup.mixed<
+          'paidInFull' | 'proportional' | 'nonProportional' | 'notPaid'
+        >()
+          .oneOf(['paidInFull', 'proportional', 'nonProportional', 'notPaid'])
+          .notRequired(),
+      }),
+    )
+    .required(),
 
   year: Yup.number().required().min(2000),
   month: Yup.number().required().min(1).max(12),
@@ -319,19 +382,19 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                 : [];
 
           return (
-            <>    
+            <>
               <Form>
                 <SalaryTabAvailabilityGuard activeTab={value} setActiveTab={setValue} />
                 <CardTabs value={value} labels={labels} onChange={changeTab} disabledTabs={disabledTabs}/>
 
-                <Box 
+                <Box
                   sx={{
-                    display:'flex', 
-                    justifyContent: isMidScreen ? 'center' : 'flex-start', 
+                    display:'flex',
+                    justifyContent: isMidScreen ? 'center' : 'flex-start',
                     mt: 3
                   }}
                 >
-                  <Stack 
+                  <Stack
                     direction={isMidScreen ? 'column' : 'row'}
                     spacing={isMidScreen ? 2 : 0}
                     justifyContent={isMidScreen ? 'center' : 'space-between'}
@@ -345,18 +408,31 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                           title={intl.formatMessage({id: 'tabs-rate-and-bonuses' })}
                           infoText={intl.formatMessage({id: "rate-and-bonuses-info"})}
                         >
-                          <DynamicSalaryFields
-                            fields={rateFieldConfigs}
-                            values={values}
-                            formMode={type}
-                            setFieldValue={setFieldValue}
-                          />
+                          <Stack spacing={2}>
+                            <DynamicSalaryFields
+                              fields={rateFieldConfigs}
+                              values={values}
+                              formMode={type}
+                              setFieldValue={setFieldValue}
+                            />
+
+                            <SalaryBonusesEditor
+                              bonuses={values.bonuses ?? []}
+                              setFieldValue={setFieldValue}
+                            />
+
+                            {touched.bonuses && errors.bonuses && typeof errors.bonuses === 'string' && (
+                              <FormHelperText error>
+                                {errors.bonuses}
+                              </FormHelperText>
+                            )}
+                          </Stack>
                         </FormWithInfo>
                       )}
 
                       {/* TAB 1: Podatki i potrącenia */}
                       {value === 1 && (
-                        <FormWithInfo 
+                        <FormWithInfo
                           title={intl.formatMessage({id: 'tabs-taxes-and-deductions' })}
                           infoText={intl.formatMessage({id: "taxes-and-deductions-info"})}
                         >
@@ -409,8 +485,8 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
 
                             <Stack spacing={1}>
                               {/* // For UoP and Mandate we show working hours field, for CSW we hide it as it's not relevant (CSW is based on fixed price, not hourly rate) */}
-                              { (values.workRateType === 'uop_hourly' 
-                                  || values.workRateType === 'uop_monthly' 
+                              { (values.workRateType === 'uop_hourly'
+                                  || values.workRateType === 'uop_monthly'
                                   || values.workRateType === 'mandate_hourly'
                                 ) &&
                                 <FormikNumberField name="workingHours" labelId="calendar-and-working-time-working-hours"/>
@@ -432,7 +508,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                                       }));
                                       setFieldValue("holidays", isoRanges);
                                       setFieldValue("workingHours", getWorkedDaysInMonth(values.year, values.month-1, isoRanges, [], []) * 8)
-                                    }} 
+                                    }}
                                   />
                                   {errors.holidays && <FormHelperText error>{errors.holidays as string}</FormHelperText>}
                                 </Box>
@@ -492,7 +568,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                                     end: r.end.format("YYYY-MM-DD"),
                                   }));
                                   setFieldValue("l4", isoRanges);
-                                }} 
+                                }}
                               />
                               {errors.l4 && <FormHelperText error>{errors.l4 as string}</FormHelperText>}
                             </Box>
@@ -523,7 +599,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                                     end: r.end.format("YYYY-MM-DD"),
                                   }));
                                   setFieldValue("leave", isoRanges);
-                                }} 
+                                }}
                               />
                               {errors.leave && <FormHelperText error>{errors.leave as string}</FormHelperText>}
                             </Box>
@@ -545,7 +621,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
 
                 <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
                   <Stack direction="row" spacing={2} justifyContent="center">
-                    {dirty && 
+                    {dirty &&
                       <>
                         <Button variant="contained" sx={{backgroundColor: 'rgb(7, 173, 82)'}} onClick={()=>{setDialogType("save")}}>
                           <FormattedMessage id={"save"}/>
@@ -571,15 +647,15 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                   setFieldValue={setFieldValue}
                 />
 
-                <EditSalaryCalculation 
-                  open={editCalculationOpen} 
-                  setFieldValue={setFieldValue} 
+                <EditSalaryCalculation
+                  open={editCalculationOpen}
+                  setFieldValue={setFieldValue}
                   onClose={() => setEditCalculationOpen(false)}
                   isInitiallyOverride={isInitiallyOverride}
                   deleteOverride={deleteOverride}
                   values={{
-                    grossSalaryOverride: values.grossSalaryOverride, 
-                    netSalaryOverride: values.netSalaryOverride, 
+                    grossSalaryOverride: values.grossSalaryOverride,
+                    netSalaryOverride: values.netSalaryOverride,
                     reason: values.reason
                   }}
                   initialValues={{
