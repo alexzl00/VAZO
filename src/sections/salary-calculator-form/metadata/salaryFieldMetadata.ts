@@ -47,6 +47,7 @@ export type SalaryFieldConfig = {
   name: keyof SalaryCalculatorValues;
   type: SalaryFieldType;
   labelId: string;
+  helperTextId?: string;
 
   contracts?: WorkRate[];
   options?: SalaryFieldOption[];

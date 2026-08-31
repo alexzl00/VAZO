@@ -14,7 +14,7 @@ import SalaryForm from "../../sections/salary-calculator-form/SalaryCalculatorFo
 
 // utils 
 import { getWorkedDaysInMonth } from '../../utils/monthHelperFunc';
-
+import { getPolishHolidays } from "../../utils/getHolidays";
 import { calculateTaxesContractOfMandate, calculateTaxesUoP, calculateTaxesUoD } from '../../utils/workTypeSalaryCalc';
 
 // supabase api
@@ -45,6 +45,8 @@ export const initialSalaryFormValues: SalaryCalculatorValues = {
   isStudent: false,
   isUnder26: false,
   doNotWithholdPitAdvance: false,
+  uopEmployerSickPayLimit: 33,
+  previousEmployerSickPayDays: 0,
 
   // annual state before the calculated month
   // TODO: populate automatically from salary history once API/history aggregation is connected
@@ -56,6 +58,7 @@ export const initialSalaryFormValues: SalaryCalculatorValues = {
 
   // UZ / UoD insurance status
   mandateVoluntarySicknessInsurance: false,
+  mandateSicknessBenefitEligible: false,
   mandateHasOtherUopAtLeastMinimumBase: false,
   mandateOtherSocialBaseBeforeThisContract: 0,
   isOwnEmployerContract: false,
@@ -109,6 +112,8 @@ export const initialSalaryFormValues: SalaryCalculatorValues = {
   reason: null
 };
 
+console.log(getPolishHolidays(now.getFullYear()));
+
 export default function CreateSalaryPage() {
 
   const intl = useIntl();
@@ -132,9 +137,11 @@ export default function CreateSalaryPage() {
     }
   };
 
-  // New tax-engine fields are used for the calculation immediately.
-  // Persist them only after the corresponding API payload types/database columns are updated;
-  // those API files were not part of this change, so this function intentionally does not invent DB columns.
+  // New tax/L4-engine fields are used for the calculation immediately.
+  // IMPORTANT: createMandateSalary/createUopSalary API files were not supplied here.
+  // Persist l4/l4Base, sickness settings and advanced annual-state fields after the
+  // corresponding API payload types/database columns are updated. This file does
+  // not invent Supabase columns that may not exist yet.
   const handleCreate = async (values: SalaryCalculatorValues) => {
 
     try {

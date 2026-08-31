@@ -7,6 +7,10 @@ export type SalaryCalculationResult = {
   // earnings
   workDaysPayment?: number;
   l4Payment?: number;
+  employerSickPay?: number;
+  sicknessBenefit?: number;
+  employerSickPayDays?: number;
+  sicknessBenefitDays?: number;
   leavePayment?: number;
   attendanceBonus?: number;
   discretionaryBonus?: number;
@@ -62,6 +66,7 @@ export type SalaryCalculationResult = {
     pensionDisabilityBase: number;
     copyrightKupUsed: number;
     uopKupUsed: number;
+    employerSickPayDays: number;
   };
 
   calculationType: 'uop' | 'mandate' | 'uod_fixed';
@@ -75,6 +80,7 @@ export const taxes = {
   pitSecondRate: 32,
   pitThreshold: 120_000,
   pit0Limit: 85_528,
+  noPitAdvanceIncomeLimit: 30_000,
   copyrightKupAnnualLimit: 120_000,
   uopKupStandard: 250,
   uopKupCommuter: 300,
@@ -113,7 +119,6 @@ const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 1
 const roundPln = (value: number) => Math.round(value);
 const percent = (value: number, rate: number) => round2(value * rate / 100);
 
-
 const assertSupportedTaxYear = (values: SalaryCalculatorValues) => {
   if (values.year !== taxes.year) {
     throw new Error(
@@ -134,6 +139,7 @@ const buildYearToDate = ({
   pensionDisabilityBase,
   current50Kup,
   currentUopKup,
+  currentEmployerSickPayDays = 0,
   includePitBaseInScale = true,
 }: {
   values: SalaryCalculatorValues;
@@ -142,6 +148,7 @@ const buildYearToDate = ({
   pensionDisabilityBase: number;
   current50Kup: number;
   currentUopKup: number;
+  currentEmployerSickPayDays?: number;
   includePitBaseInScale?: boolean;
 }) => ({
   taxableIncome: round2(
@@ -153,6 +160,10 @@ const buildYearToDate = ({
   ),
   copyrightKupUsed: round2((values.previous50KupUsed ?? 0) + current50Kup),
   uopKupUsed: round2((values.previousUopKupUsed ?? 0) + currentUopKup),
+  employerSickPayDays: Math.min(
+    values.uopEmployerSickPayLimit ?? 33,
+    (values.previousEmployerSickPayDays ?? 0) + currentEmployerSickPayDays,
+  ),
 });
 
 const getPit2Reduction = (values: SalaryCalculatorValues) =>
@@ -185,19 +196,31 @@ const isPit0EligibleForContract = (
 const getPit0Split = (
   values: SalaryCalculatorValues,
   contractType: 'uop' | 'mandate' | 'uod_fixed',
-  pitRevenue: number,
+  pit0EligibleRevenue: number,
+  alwaysTaxableRevenue = 0,
 ) => {
+  const eligibleRevenue = Math.max(0, pit0EligibleRevenue);
+  const taxableRegardlessOfRelief = Math.max(0, alwaysTaxableRevenue);
+
   if (!isPit0EligibleForContract(values, contractType)) {
-    return { exemptRevenue: 0, taxableRevenue: pitRevenue };
+    return {
+      exemptRevenue: 0,
+      taxableEligibleRevenue: eligibleRevenue,
+      taxableRevenue: round2(eligibleRevenue + taxableRegardlessOfRelief),
+    };
   }
 
   const previousPit0Revenue = values.previousPit0Revenue ?? 0;
   const remaining = Math.max(0, taxes.pit0Limit - previousPit0Revenue);
-  const exemptRevenue = round2(Math.min(pitRevenue, remaining));
+  const exemptRevenue = round2(Math.min(eligibleRevenue, remaining));
+  const taxableEligibleRevenue = round2(
+    Math.max(0, eligibleRevenue - exemptRevenue),
+  );
 
   return {
     exemptRevenue,
-    taxableRevenue: round2(Math.max(0, pitRevenue - exemptRevenue)),
+    taxableEligibleRevenue,
+    taxableRevenue: round2(taxableEligibleRevenue + taxableRegardlessOfRelief),
   };
 };
 
@@ -209,11 +232,14 @@ const getPit0Split = (
  */
 const getDeductibleSocialForPit = (
   totalEmployeeSocial: number,
-  pitRevenue: number,
-  taxableRevenue: number,
+  pit0EligibleRevenue: number,
+  taxableEligibleRevenue: number,
 ) => {
-  if (pitRevenue <= 0 || taxableRevenue <= 0) return 0;
-  return round2(totalEmployeeSocial * (taxableRevenue / pitRevenue));
+  if (pit0EligibleRevenue <= 0 || taxableEligibleRevenue <= 0) return 0;
+
+  return round2(
+    totalEmployeeSocial * (taxableEligibleRevenue / pit0EligibleRevenue),
+  );
 };
 
 const calculateProgressivePitAdvance = (
@@ -222,11 +248,27 @@ const calculateProgressivePitAdvance = (
   monthlyTaxReduction: number,
   doNotWithholdPitAdvance = false,
 ) => {
-  if (doNotWithholdPitAdvance || currentPitBase <= 0) {
+  if (currentPitBase <= 0) {
     return { pitTax: 0, pitAt12: 0, pitAt32: 0 };
   }
 
   const previous = Math.max(0, previousTaxableIncome);
+  const currentYearToDate = previous + currentPitBase;
+
+  // Art. 31c PIT: the payer does not withhold advances while the relevant
+  // year-to-date income does not exceed 30,000 zł. Once the threshold is
+  // exceeded, advances are calculated again and without the PIT-2 reduction.
+  if (
+    doNotWithholdPitAdvance &&
+    currentYearToDate <= taxes.noPitAdvanceIncomeLimit
+  ) {
+    return { pitTax: 0, pitAt12: 0, pitAt32: 0 };
+  }
+
+  const effectiveTaxReduction = doNotWithholdPitAdvance
+    ? 0
+    : monthlyTaxReduction;
+
   const remainingAt12 = Math.max(0, taxes.pitThreshold - previous);
 
   const baseAt12 = Math.min(currentPitBase, remainingAt12);
@@ -235,7 +277,9 @@ const calculateProgressivePitAdvance = (
   const pitAt12 = baseAt12 * taxes.pitFirstRate / 100;
   const pitAt32 = baseAt32 * taxes.pitSecondRate / 100;
 
-  const pitTax = roundPln(Math.max(0, pitAt12 + pitAt32 - monthlyTaxReduction));
+  const pitTax = roundPln(
+    Math.max(0, pitAt12 + pitAt32 - effectiveTaxReduction),
+  );
 
   return {
     pitTax,
@@ -258,7 +302,9 @@ const calculateEmployeeSocialContributions = ({
     taxes.zusAnnualPensionDisabilityLimit - previousPensionDisabilityBase,
   );
 
-  const pensionDisabilityBase = round2(Math.min(socialBase, remainingAnnualLimit));
+  const pensionDisabilityBase = round2(
+    Math.min(socialBase, remainingAnnualLimit),
+  );
 
   const zusPension = percent(pensionDisabilityBase, taxes.zusPensionInsurance);
   const zusDisability = percent(pensionDisabilityBase, taxes.zusDisability);
@@ -348,19 +394,31 @@ const calculateUopKup = (
   if (monthlyKup === 0 || taxableRevenueAfterSocial <= 0) return 0;
 
   const multiple = values.hasMultipleEmploymentRelationships ?? false;
+
   const annualLimit = monthlyKup === taxes.uopKupCommuter
     ? (multiple ? 5_400 : 3_600)
     : (multiple ? 4_500 : 3_000);
 
-  const remainingAnnualKup = Math.max(0, annualLimit - (values.previousUopKupUsed ?? 0));
+  const remainingAnnualKup = Math.max(
+    0,
+    annualLimit - (values.previousUopKupUsed ?? 0),
+  );
 
-  return round2(Math.min(monthlyKup, remainingAnnualKup, taxableRevenueAfterSocial));
+  return round2(
+    Math.min(monthlyKup, remainingAnnualKup, taxableRevenueAfterSocial),
+  );
 };
 
-export const calculateTaxesUoD = (values: SalaryCalculatorValues): SalaryCalculationResult => {
+export const calculateTaxesUoD = (
+  values: SalaryCalculatorValues,
+): SalaryCalculationResult => {
   assertSupportedTaxYear(values);
+
   const warnings: string[] = [];
-  const fullSalaryBrutto = round2(values.rate + values.discretionaryBonus);
+
+  const fullSalaryBrutto = round2(
+    values.rate + values.discretionaryBonus,
+  );
 
   const treatedAsEmployee = Boolean(
     values.isOwnEmployerContract || values.performedForOwnEmployer,
@@ -392,8 +450,14 @@ export const calculateTaxesUoD = (values: SalaryCalculatorValues): SalaryCalcula
       zusTaxes,
     } = social);
 
-    healthInsuranceBase = round2(fullSalaryBrutto - zusTaxes);
-    healthInsurance = percent(healthInsuranceBase, taxes.healthInsurance);
+    healthInsuranceBase = round2(
+      fullSalaryBrutto - zusTaxes,
+    );
+
+    healthInsurance = percent(
+      healthInsuranceBase,
+      taxes.healthInsurance,
+    );
   }
 
   // PIT-0 does not apply to UoD.
@@ -405,17 +469,25 @@ export const calculateTaxesUoD = (values: SalaryCalculatorValues): SalaryCalcula
   let pitAt12 = 0;
   let pitAt32 = 0;
 
-  const lumpSum = Boolean(values.smallContractLumpSumEligible) && !treatedAsEmployee;
+  const lumpSum = Boolean(
+    values.smallContractLumpSumEligible,
+  ) && !treatedAsEmployee;
 
   if (lumpSum) {
     if (fullSalaryBrutto > 200) {
-      warnings.push('The <=200 zł lump-sum PIT branch is enabled, but gross remuneration exceeds 200 zł.');
+      warnings.push(
+        'The <=200 zł lump-sum PIT branch is enabled, but gross remuneration exceeds 200 zł.',
+      );
     }
 
-    pitTax = roundPln(fullSalaryBrutto * taxes.pitFirstRate / 100);
+    pitTax = roundPln(
+      fullSalaryBrutto * taxes.pitFirstRate / 100,
+    );
+
     pitBase = fullSalaryBrutto;
   } else {
     const deductibleSocial = zusTaxes;
+
     pitKup = calculatePercentageKup({
       values,
       taxableRevenue: pitRevenue,
@@ -423,7 +495,12 @@ export const calculateTaxesUoD = (values: SalaryCalculatorValues): SalaryCalcula
       currentPit0ExemptRevenue: 0,
     });
 
-    pitBase = roundPln(Math.max(0, pitRevenue - deductibleSocial - pitKup));
+    pitBase = roundPln(
+      Math.max(
+        0,
+        pitRevenue - deductibleSocial - pitKup,
+      ),
+    );
 
     const pit = calculateProgressivePitAdvance(
       pitBase,
@@ -448,6 +525,7 @@ export const calculateTaxesUoD = (values: SalaryCalculatorValues): SalaryCalcula
     fullSalaryBrutto,
     brutto: fullSalaryBrutto,
     netto,
+
     perHour: 0,
     rate: values.rate,
     isUnder26: values.isUnder26,
@@ -490,21 +568,26 @@ export const calculateTaxesContractOfMandate = (
   values: SalaryCalculatorValues,
 ): SalaryCalculationResult => {
   assertSupportedTaxYear(values);
+
   const warnings: string[] = [];
 
-  const fullSalaryBrutto = round2(
+  const regularRemunerationBrutto = round2(
     values.rate * values.workingHours
       + values.attendanceBonus
       + values.discretionaryBonus
       + values.otherBonus,
   );
 
+  const l4DaysCount = countDays(values.l4);
+
   const treatedAsEmployee = Boolean(
     values.isOwnEmployerContract || values.performedForOwnEmployer,
   );
 
   const studentExemption = Boolean(
-    values.isStudent && values.isUnder26 && !treatedAsEmployee,
+    values.isStudent
+      && values.isUnder26
+      && !treatedAsEmployee,
   );
 
   const otherTitleRemovesCompulsorySocial = Boolean(
@@ -512,36 +595,89 @@ export const calculateTaxesContractOfMandate = (
       && !studentExemption
       && (
         values.mandateHasOtherUopAtLeastMinimumBase
-        || (values.mandateOtherSocialBaseBeforeThisContract ?? 0) >= taxes.minimumWage
+        || (values.mandateOtherSocialBaseBeforeThisContract ?? 0)
+          >= taxes.minimumWage
       ),
   );
 
-  const compulsorySocial = !studentExemption && !otherTitleRemovesCompulsorySocial;
+  const compulsorySocial =
+    !studentExemption && !otherTitleRemovesCompulsorySocial;
+
   const healthCompulsory = !studentExemption;
 
-  const socialInsuranceBase = compulsorySocial ? fullSalaryBrutto : 0;
+  const voluntarySicknessInsuranceActive = Boolean(
+    values.mandateVoluntarySicknessInsurance
+      && compulsorySocial
+      && !treatedAsEmployee,
+  );
+
+  const sicknessBenefitEligible = Boolean(
+    voluntarySicknessInsuranceActive
+      && values.mandateSicknessBenefitEligible,
+  );
+
+  let sicknessBenefit = 0;
+
+  if (l4DaysCount > 0) {
+    if (!values.mandateVoluntarySicknessInsurance) {
+      warnings.push(
+        'L4 on UZ requires sickness-insurance coverage. No sickness benefit was added.',
+      );
+    } else if (!voluntarySicknessInsuranceActive) {
+      warnings.push(
+        'Voluntary sickness insurance cannot be applied to this UZ because compulsory pension/disability insurance is not present for this title.',
+      );
+    } else if (!values.mandateSicknessBenefitEligible) {
+      warnings.push(
+        'L4 was entered for UZ, but the right to sickness benefit is not confirmed. Normally voluntary sickness insurance requires a 90-day waiting period, unless an exception or qualifying previous insurance period applies.',
+      );
+    } else {
+      sicknessBenefit = round2(
+        (values.l4Base / 30) * l4DaysCount * 0.8,
+      );
+    }
+  }
+
+  const fullSalaryBrutto = round2(
+    regularRemunerationBrutto + sicknessBenefit,
+  );
+
+  // Sickness benefit itself is not a social/health contribution base.
+  const socialInsuranceBase = compulsorySocial
+    ? regularRemunerationBrutto
+    : 0;
 
   const sicknessBase = treatedAsEmployee
     ? socialInsuranceBase
-    : values.mandateVoluntarySicknessInsurance && compulsorySocial
-      ? Math.min(socialInsuranceBase, taxes.voluntarySicknessMonthlyBaseLimit)
+    : voluntarySicknessInsuranceActive
+      ? Math.min(
+          socialInsuranceBase,
+          taxes.voluntarySicknessMonthlyBaseLimit,
+        )
       : 0;
 
   const social = calculateEmployeeSocialContributions({
     socialBase: socialInsuranceBase,
-    previousPensionDisabilityBase: values.previousPensionDisabilityBase ?? 0,
+    previousPensionDisabilityBase:
+      values.previousPensionDisabilityBase ?? 0,
     sicknessBase,
   });
 
   const healthInsuranceBase = healthCompulsory
-    ? round2(fullSalaryBrutto - social.zusTaxes)
+    ? round2(
+        regularRemunerationBrutto - social.zusTaxes,
+      )
     : 0;
 
   const healthInsurance = healthCompulsory
-    ? percent(healthInsuranceBase, taxes.healthInsurance)
+    ? percent(
+        healthInsuranceBase,
+        taxes.healthInsurance,
+      )
     : 0;
 
   const ppkAllowedFromThisTitle = compulsorySocial;
+
   const ppk = calculatePpk(
     Boolean(values.ppkEnabled) && ppkAllowedFromThisTitle,
     socialInsuranceBase,
@@ -550,17 +686,31 @@ export const calculateTaxesContractOfMandate = (
   );
 
   if (values.ppkEnabled && !ppkAllowedFromThisTitle) {
-    warnings.push('PPK is not calculated from this UZ because compulsory pension/disability insurance is not present for this title.');
+    warnings.push(
+      'PPK is not calculated from this UZ because compulsory pension/disability insurance is not present for this title.',
+    );
   }
 
-  // Employer PPK is taxable income but is not a ZUS/health base.
-  const employerPpkTaxableContribution = getEmployerPpkTaxableContribution(
-    values,
-    ppk.ppkEmployer,
-  );
-  const pitRevenue = round2(fullSalaryBrutto + employerPpkTaxableContribution);
+  const employerPpkTaxableContribution =
+    getEmployerPpkTaxableContribution(
+      values,
+      ppk.ppkEmployer,
+    );
 
-  const lumpSum = Boolean(values.smallContractLumpSumEligible) && !treatedAsEmployee;
+  // UZ remuneration and employer PPK can qualify for PIT-0. Sickness benefit
+  // is taxable income but does not use PIT-0 (e.g. ulga dla młodych).
+  const pit0EligibleRevenue = round2(
+    regularRemunerationBrutto
+      + employerPpkTaxableContribution,
+  );
+
+  const pitRevenue = round2(
+    pit0EligibleRevenue + sicknessBenefit,
+  );
+
+  const lumpSum = Boolean(
+    values.smallContractLumpSumEligible,
+  ) && !treatedAsEmployee;
 
   let pitExemptRevenue = 0;
   let pitKup = 0;
@@ -568,35 +718,75 @@ export const calculateTaxesContractOfMandate = (
   let pitTax = 0;
   let pitAt12 = 0;
   let pitAt32 = 0;
+  let scalePitBaseForYtd = 0;
 
   if (lumpSum) {
-    if (fullSalaryBrutto > 200) {
-      warnings.push('The <=200 zł lump-sum PIT branch is enabled, but gross remuneration exceeds 200 zł.');
+    if (regularRemunerationBrutto > 200) {
+      warnings.push(
+        'The <=200 zł lump-sum PIT branch is enabled, but gross remuneration exceeds 200 zł.',
+      );
     }
 
-    // Lump-sum contracts do not use PIT-0, KUP or PIT-2 in this branch.
-    pitBase = fullSalaryBrutto;
-    pitTax = roundPln(fullSalaryBrutto * taxes.pitFirstRate / 100);
+    const contractLumpSumTax = roundPln(
+      regularRemunerationBrutto
+        * taxes.pitFirstRate
+        / 100,
+    );
+
+    // Sickness benefit is separate scale-taxed income and does not inherit the
+    // civil-contract lump-sum treatment.
+    const benefitPitBase = roundPln(
+      sicknessBenefit,
+    );
+
+    const benefitPit =
+      calculateProgressivePitAdvance(
+        benefitPitBase,
+        values.previousTaxableIncome ?? 0,
+        getPit2Reduction(values),
+        values.doNotWithholdPitAdvance,
+      );
+
+    pitBase = benefitPitBase;
+    scalePitBaseForYtd = benefitPitBase;
+    pitTax = contractLumpSumTax + benefitPit.pitTax;
+    pitAt12 = benefitPit.pitAt12;
+    pitAt32 = benefitPit.pitAt32;
   } else {
-    const split = getPit0Split(values, 'mandate', pitRevenue);
+    const split = getPit0Split(
+      values,
+      'mandate',
+      pit0EligibleRevenue,
+      sicknessBenefit,
+    );
+
     pitExemptRevenue = split.exemptRevenue;
 
-    const deductibleSocial = getDeductibleSocialForPit(
-      social.zusTaxes,
-      pitRevenue,
-      split.taxableRevenue,
-    );
+    const deductibleSocial =
+      getDeductibleSocialForPit(
+        social.zusTaxes,
+        pit0EligibleRevenue,
+        split.taxableEligibleRevenue,
+      );
 
     pitKup = calculatePercentageKup({
       values,
-      taxableRevenue: split.taxableRevenue,
+      taxableRevenue: split.taxableEligibleRevenue,
       deductibleSocial,
       currentPit0ExemptRevenue: pitExemptRevenue,
     });
 
     pitBase = roundPln(
-      Math.max(0, split.taxableRevenue - deductibleSocial - pitKup),
+      Math.max(
+        0,
+        split.taxableEligibleRevenue
+          - deductibleSocial
+          - pitKup
+          + sicknessBenefit,
+      ),
     );
+
+    scalePitBaseForYtd = pitBase;
 
     const pit = calculateProgressivePitAdvance(
       pitBase,
@@ -629,8 +819,18 @@ export const calculateTaxesContractOfMandate = (
     brutto: fullSalaryBrutto,
     netto,
 
+    l4Payment: sicknessBenefit,
+    sicknessBenefit,
+    employerSickPay: 0,
+    employerSickPayDays: 0,
+    sicknessBenefitDays:
+      sicknessBenefitEligible
+        ? l4DaysCount
+        : 0,
+
     socialInsuranceBase,
-    pensionDisabilityBase: social.pensionDisabilityBase,
+    pensionDisabilityBase:
+      social.pensionDisabilityBase,
     zusPension: social.zusPension,
     zusDisability: social.zusDisability,
     zusSickness: social.zusSickness,
@@ -658,12 +858,16 @@ export const calculateTaxesContractOfMandate = (
 
     yearToDate: buildYearToDate({
       values,
-      pitBase,
+      pitBase: scalePitBaseForYtd,
       pit0ExemptRevenue: pitExemptRevenue,
-      pensionDisabilityBase: social.pensionDisabilityBase,
-      current50Kup: values.kup === 50 ? pitKup : 0,
+      pensionDisabilityBase:
+        social.pensionDisabilityBase,
+      current50Kup:
+        values.kup === 50
+          ? pitKup
+          : 0,
       currentUopKup: 0,
-      includePitBaseInScale: !lumpSum,
+      includePitBaseInScale: true,
     }),
 
     warnings,
@@ -675,6 +879,7 @@ export const calculateTaxesUoP = (
   values: SalaryCalculatorValues,
 ): SalaryCalculationResult => {
   assertSupportedTaxYear(values);
+
   const warnings: string[] = [];
 
   const workingDaysInMonth = getWorkedDaysInMonth(
@@ -686,92 +891,146 @@ export const calculateTaxesUoP = (
   );
 
   const l4DaysCount = countDays(values.l4);
-  const l4Payment = round2((values.l4Base / 30) * l4DaysCount * 0.8);
 
-  if (l4DaysCount > 0) {
-    warnings.push(
-      'L4 is currently treated as employer-funded wynagrodzenie chorobowe. Zasiłek chorobowy after the employer-paid limit needs a separate component because its health/PIT treatment differs.',
-    );
-  }
+  const employerSickPayLimit =
+    values.uopEmployerSickPayLimit ?? 33;
 
-  const leaveDaysCount = countDays(values.leave);
-  const allWorkDaysInMonth = getWorkedDaysInMonth(
-    values.year,
-    values.month - 1,
-    values.holidays,
-    [],
-    [],
+  const previousEmployerSickPayDays = Math.max(
+    0,
+    values.previousEmployerSickPayDays ?? 0,
   );
 
-  const leavePayment = allWorkDaysInMonth > 0
-    ? round2((values.leaveBase / allWorkDaysInMonth) * leaveDaysCount)
+  const remainingEmployerSickPayDays = Math.max(
+    0,
+    employerSickPayLimit
+      - previousEmployerSickPayDays,
+  );
+
+  const employerSickPayDays = Math.min(
+    l4DaysCount,
+    remainingEmployerSickPayDays,
+  );
+
+  const sicknessBenefitDays = Math.max(
+    0,
+    l4DaysCount - employerSickPayDays,
+  );
+
+  const dailySickPayment = values.l4Base > 0
+    ? (values.l4Base / 30) * 0.8
     : 0;
 
-  // For a fixed monthly UoP, the contractual base salary must NOT depend on
-  // values.workingHours. However, values.workingHours represents the applicable
-  // monthly working-time norm. It is calculated automatically by the form but
-  // may be corrected by the user when their workplace/sector uses a different
-  // norm. Hourly-derived components must therefore use this corrected value.
-  const nominalWorkingHours = values.workingHours;
+  const employerSickPay = round2(
+    dailySickPayment * employerSickPayDays,
+  );
 
-  const perHourRaw = values.workRateType === 'uop_hourly'
-    ? values.rate
-    : nominalWorkingHours > 0
-      ? values.rate / nominalWorkingHours
+  const sicknessBenefit = round2(
+    dailySickPayment * sicknessBenefitDays,
+  );
+
+  const l4Payment = round2(
+    employerSickPay + sicknessBenefit,
+  );
+
+  const leaveDaysCount = countDays(
+    values.leave,
+  );
+
+  const allWorkDaysInMonth =
+    getWorkedDaysInMonth(
+      values.year,
+      values.month - 1,
+      values.holidays,
+      [],
+      [],
+    );
+
+  const leavePayment =
+    allWorkDaysInMonth > 0
+      ? round2(
+          (values.leaveBase / allWorkDaysInMonth)
+            * leaveDaysCount,
+        )
       : 0;
 
-  // Keep full precision for calculations and round only the displayed hourly rate.
+  const nominalWorkingHours =
+    values.workingHours;
+
+  const perHourRaw =
+    values.workRateType === 'uop_hourly'
+      ? values.rate
+      : nominalWorkingHours > 0
+        ? values.rate / nominalWorkingHours
+        : 0;
+
   const perHour = round2(perHourRaw);
 
   let workDaysPayment: number;
 
   if (values.workRateType === 'uop_monthly') {
-    // Start from the fixed contractual monthly salary.
-    // Leave is still handled by the existing replacement-payment model, so we
-    // remove the corresponding fixed-salary portion before adding leavePayment.
-    const leaveReduction = allWorkDaysInMonth > 0
-      ? (values.rate / allWorkDaysInMonth) * leaveDaysCount
-      : 0;
+    const leaveReduction =
+      allWorkDaysInMonth > 0
+        ? (values.rate / allWorkDaysInMonth)
+          * leaveDaysCount
+        : 0;
 
-    // For the current L4 model, reduce the fixed monthly remuneration by 1/30
-    // for each calendar day of sickness, then add the separately calculated
-    // sickness remuneration below.
-    const l4Reduction = (values.rate / 30) * l4DaysCount;
+    const l4Reduction =
+      (values.rate / 30) * l4DaysCount;
 
     workDaysPayment = round2(
-      Math.max(0, values.rate - leaveReduction - l4Reduction),
+      Math.max(
+        0,
+        values.rate
+          - leaveReduction
+          - l4Reduction,
+      ),
     );
   } else {
-    // Hourly UoP remains dependent on the actually payable worked days.
-    workDaysPayment = round2(workingDaysInMonth * perHourRaw * 8);
+    workDaysPayment = round2(
+      workingDaysInMonth
+        * perHourRaw
+        * 8,
+    );
   }
 
   const dailyOvertimes = round2(
-    perHourRaw * values.dailyOvertime * taxes.dailyOvertimeMultiplier,
+    perHour
+      * values.dailyOvertime
+      * taxes.dailyOvertimeMultiplier,
   );
 
   const weekendHolidayOvertimes = round2(
-    perHourRaw * values.weekendHolidayOvertime * taxes.weekendHolidayOvertimeMultiplier,
+    perHour
+      * values.weekendHolidayOvertime
+      * taxes.weekendHolidayOvertimeMultiplier,
   );
 
   const nightOvertime = round2(
-    perHourRaw * values.nightOvertime * taxes.nightOvertimeMultiplier,
+    perHour
+      * values.nightOvertime
+      * taxes.nightOvertimeMultiplier,
   );
 
-  // Statutory night-work allowance is 20% of the hourly rate derived from
-  // the minimum wage, not 20% of the employee's own hourly wage.
-  const minimumHourlyForNightAllowance = nominalWorkingHours > 0
-    ? taxes.minimumWage / nominalWorkingHours
-    : 0;
+  const minimumHourlyForNightAllowance =
+    nominalWorkingHours > 0
+      ? taxes.minimumWage / nominalWorkingHours
+      : 0;
 
   const nightWorkAllowance = round2(
-    (values.nightHours + values.nightOvertime)
+    (
+      values.nightHours
+        + values.nightOvertime
+    )
       * minimumHourlyForNightAllowance
-      * taxes.nightAllowancePercentOfMinimumHourly / 100,
+      * taxes.nightAllowancePercentOfMinimumHourly
+      / 100,
   );
 
   const turnOfDayHours = round2(
-    perHourRaw * values.turnOfDayHours * taxes.turnOfDayHours / 100,
+    perHour
+      * values.turnOfDayHours
+      * taxes.turnOfDayHours
+      / 100,
   );
 
   const overtimes = round2(
@@ -784,7 +1043,8 @@ export const calculateTaxesUoP = (
 
   const fullSalaryBrutto = round2(
     workDaysPayment
-      + l4Payment
+      + employerSickPay
+      + sicknessBenefit
       + leavePayment
       + values.attendanceBonus
       + values.discretionaryBonus
@@ -792,21 +1052,38 @@ export const calculateTaxesUoP = (
       + overtimes,
   );
 
-  /**
-   * Employer-funded sick pay (wynagrodzenie chorobowe) is included in the
-   * health-insurance base, but not in the employee social-insurance base.
-   */
-  const socialInsuranceBase = round2(Math.max(0, fullSalaryBrutto - l4Payment));
+  // Neither employer-funded sick pay nor sickness benefit is a social-insurance base.
+  const socialInsuranceBase = round2(
+    Math.max(
+      0,
+      fullSalaryBrutto
+        - employerSickPay
+        - sicknessBenefit,
+    ),
+  );
 
-  const social = calculateEmployeeSocialContributions({
-    socialBase: socialInsuranceBase,
-    previousPensionDisabilityBase: values.previousPensionDisabilityBase ?? 0,
-    sicknessBase: socialInsuranceBase,
-  });
+  const social =
+    calculateEmployeeSocialContributions({
+      socialBase: socialInsuranceBase,
+      previousPensionDisabilityBase:
+        values.previousPensionDisabilityBase ?? 0,
+      sicknessBase: socialInsuranceBase,
+    });
 
-  // Health base includes sick pay and is not limited by the 30x cap.
-  const healthInsuranceBase = round2(fullSalaryBrutto - social.zusTaxes);
-  const healthInsurance = percent(healthInsuranceBase, taxes.healthInsurance);
+  // Employer-funded sick pay is included in the health base. Sickness benefit is not.
+  const healthInsuranceBase = round2(
+    Math.max(
+      0,
+      fullSalaryBrutto
+        - sicknessBenefit
+        - social.zusTaxes,
+    ),
+  );
+
+  const healthInsurance = percent(
+    healthInsuranceBase,
+    taxes.healthInsurance,
+  );
 
   const ppk = calculatePpk(
     Boolean(values.ppkEnabled),
@@ -815,28 +1092,57 @@ export const calculateTaxesUoP = (
     warnings,
   );
 
-  // Employer PPK is PIT income but not ZUS/health income.
-  const employerPpkTaxableContribution = getEmployerPpkTaxableContribution(
+  const employerPpkTaxableContribution =
+    getEmployerPpkTaxableContribution(
+      values,
+      ppk.ppkEmployer,
+    );
+
+  const pitRevenue = round2(
+    fullSalaryBrutto
+      + employerPpkTaxableContribution,
+  );
+
+  // Employer-funded sick pay remains employment income and can use PIT-0 when
+  // the selected relief applies. Sickness benefit is always outside PIT-0.
+  const pit0EligibleRevenue = round2(
+    pitRevenue - sicknessBenefit,
+  );
+
+  const split = getPit0Split(
     values,
-    ppk.ppkEmployer,
-  );
-  const pitRevenue = round2(fullSalaryBrutto + employerPpkTaxableContribution);
-  const split = getPit0Split(values, 'uop', pitRevenue);
-
-  const deductibleSocial = getDeductibleSocialForPit(
-    social.zusTaxes,
-    pitRevenue,
-    split.taxableRevenue,
+    'uop',
+    pit0EligibleRevenue,
+    sicknessBenefit,
   );
 
-  const taxableRevenueAfterSocial = Math.max(
-    0,
-    split.taxableRevenue - deductibleSocial,
+  const deductibleSocial =
+    getDeductibleSocialForPit(
+      social.zusTaxes,
+      pit0EligibleRevenue,
+      split.taxableEligibleRevenue,
+    );
+
+  const taxableEmploymentRevenueAfterSocial =
+    Math.max(
+      0,
+      split.taxableEligibleRevenue
+        - deductibleSocial,
+    );
+
+  // Employee KUP applies to employment income, not to sickness benefit.
+  const pitKup = calculateUopKup(
+    values,
+    taxableEmploymentRevenueAfterSocial,
   );
 
-  const pitKup = calculateUopKup(values, taxableRevenueAfterSocial);
   const pitBase = roundPln(
-    Math.max(0, taxableRevenueAfterSocial - pitKup),
+    Math.max(
+      0,
+      taxableEmploymentRevenueAfterSocial
+        - pitKup
+        + sicknessBenefit,
+    ),
   );
 
   const pit = calculateProgressivePitAdvance(
@@ -856,24 +1162,34 @@ export const calculateTaxesUoP = (
       + values.additionAfterTax,
   );
 
-
-
   return {
     fullSalaryBrutto,
 
     workDaysPayment,
+
     l4Payment,
+    employerSickPay,
+    sicknessBenefit,
+    employerSickPayDays,
+    sicknessBenefitDays,
+
     leavePayment,
 
-    attendanceBonus: values.attendanceBonus,
-    discretionaryBonus: values.discretionaryBonus,
-    otherBonus: values.otherBonus,
+    attendanceBonus:
+      values.attendanceBonus,
+    discretionaryBonus:
+      values.discretionaryBonus,
+    otherBonus:
+      values.otherBonus,
 
     overtimes,
     dailyOvertimes,
     weekendHolidayOvertimes,
     nightOvertime,
-    nightHours: nightWorkAllowance,
+
+    nightHours:
+      nightWorkAllowance,
+
     nightWorkAllowance,
     turnOfDayHours,
 
@@ -883,37 +1199,55 @@ export const calculateTaxesUoP = (
     isStudent: values.isStudent,
 
     socialInsuranceBase,
-    pensionDisabilityBase: social.pensionDisabilityBase,
-    zusPension: social.zusPension,
-    zusDisability: social.zusDisability,
-    zusSickness: social.zusSickness,
-    zusTaxes: social.zusTaxes,
+    pensionDisabilityBase:
+      social.pensionDisabilityBase,
+    zusPension:
+      social.zusPension,
+    zusDisability:
+      social.zusDisability,
+    zusSickness:
+      social.zusSickness,
+    zusTaxes:
+      social.zusTaxes,
 
     healthInsuranceBase,
     healthInsurance,
 
     pitRevenue,
-    pitExemptRevenue: split.exemptRevenue,
+    pitExemptRevenue:
+      split.exemptRevenue,
     pitKup,
     pitBase,
-    pitTax: pit.pitTax,
-    pitAt12: pit.pitAt12,
-    pitAt32: pit.pitAt32,
+    pitTax:
+      pit.pitTax,
+    pitAt12:
+      pit.pitAt12,
+    pitAt32:
+      pit.pitAt32,
 
-    ppkBase: ppk.ppkBase,
-    ppkEmployee: ppk.ppkEmployee,
-    ppkEmployer: ppk.ppkEmployer,
+    ppkBase:
+      ppk.ppkBase,
+    ppkEmployee:
+      ppk.ppkEmployee,
+    ppkEmployer:
+      ppk.ppkEmployer,
 
     netto,
-    brutto: fullSalaryBrutto,
+    brutto:
+      fullSalaryBrutto,
 
     yearToDate: buildYearToDate({
       values,
       pitBase,
-      pit0ExemptRevenue: split.exemptRevenue,
-      pensionDisabilityBase: social.pensionDisabilityBase,
+      pit0ExemptRevenue:
+        split.exemptRevenue,
+      pensionDisabilityBase:
+        social.pensionDisabilityBase,
       current50Kup: 0,
-      currentUopKup: pitKup,
+      currentUopKup:
+        pitKup,
+      currentEmployerSickPayDays:
+        employerSickPayDays,
     }),
 
     warnings,

@@ -8,6 +8,7 @@
   "save": "Zapisz",
   "reset": "Resetuj",
   "clear": "Wyczyść",
+  "close": "Zamknij",
   "calculate": "Oblicz",
 
   "year": "Rok",
@@ -46,8 +47,8 @@
   "rate-and-bonuses-other-bonus": "Inna premia",
   "rate-and-bonuses-info": "Stawka – wynagrodzenie wynikające z umowy\nW tym bloku wybierasz typ umowy oraz wpisujesz wynagrodzenie wynikające bezpośrednio z tej umowy.\n\n• Wybierz rodzaj umowy: Umowa o pracę, Umowa zlecenie lub Stawka godzinowa.\n• Wpisz wynagrodzenie zgodnie z wybranym typem umowy: kwotę miesięczną brutto (przy umowie o pracę) lub stawkę godzinową (jeśli rozliczasz się godzinowo).\n\nWybrany typ umowy określa sposób dalszych obliczeń w kalkulatorze.",
 
-  "calendar-and-working-time-working-hours": "Norma godzin w miesiącu",
-  "calendar-and-working-time-info": "Kalendarz – czas pracy w miesiącu\nTen blok przedstawia kalendarz danego miesiąca i służy do ustalenia normy czasu pracy.\n\n• Kalkulator automatycznie uwzględnia: dni robocze, weekendy oraz święta ustawowe.\n• Na tej podstawie wyliczana jest norma czasu pracy dla miesiąca.\n\nW większości przypadków nie wymaga ręcznych zmian.",
+  "calendar-and-working-time-working-hours": "Wymiar czasu pracy w miesiącu",
+  "calendar-and-working-time-info": "Kalendarz – czas pracy w miesiącu\nTen blok przedstawia kalendarz danego miesiąca i służy do ustalenia wymiaru czasu pracy.\n\n• Kalkulator automatycznie uwzględnia: dni robocze, weekendy oraz święta ustawowe.\n• Na tej podstawie wyliczany jest wymiar czasu pracy dla miesiąca.\n• Możesz ręcznie zmienić tę wartość, jeśli w Twoim zakładzie pracy lub dla Twojego stanowiska obowiązuje inny wymiar czasu pracy.\n\nZmiana wymiaru czasu pracy nie zmienia stałej miesięcznej stawki brutto, ale wpływa na stawkę godzinową używaną m.in. do obliczania nadgodzin i dodatków godzinowych.",
 
 
   "header-title": "Salary & Productivity",
@@ -76,7 +77,8 @@
 
   "sick-leave-l4": "Tu dodasz zakresy L4",
   "l4-base": "Podstawa L4",
-  "sick-leave-info": "Zwolnienie lekarskie (L4) – jak uzupełnić\nW tym bloku wpisujesz okresy zwolnienia lekarskiego (L4) przypadające w danym miesiącu.\n\n• Podaj datę początku i datę końca zwolnienia.\n• Jeśli L4 było podzielone na kilka części, użyj opcji Dodaj okres.\n• Liczba dni L4 obliczana jest automatycznie jako suma dni kalendarzowych.\nJak liczone jest wynagrodzenie: Kalkulator stosuje uproszczony, ale logicznie poprawny model, zgodny z praktyką oraz zasadami Kodeksu pracy. L4 zmniejsza liczbę dni przepracowanych i odpowiednio wpływa na wynagrodzenie.",
+  "sick-leave-info": "Zwolnienie lekarskie (L4) – jak uzupełnić\nW tym bloku wpisujesz okresy zwolnienia lekarskiego przypadające w danym miesiącu.\n\n• Podaj datę początku i datę końca zwolnienia.\n• Liczba dni L4 jest liczona jako dni kalendarzowe.\n• Kalkulator wykorzystuje limit 33 albo 14 dni wynagrodzenia chorobowego finansowanego przez pracodawcę i po jego wykorzystaniu rozdziela dalsze dni jako zasiłek chorobowy.\n• Wykorzystane wcześniej dni oraz właściwy limit ustawisz w Ustawieniach zaawansowanych.",
+  "sick-leave-info-mandate": "L4 przy umowie zlecenia\nTa sekcja jest dostępna po włączeniu dobrowolnego ubezpieczenia chorobowego. Samo zgłoszenie do ubezpieczenia nie zawsze oznacza natychmiastowe prawo do zasiłku. Co do zasady przy dobrowolnym ubezpieczeniu obowiązuje 90-dniowy okres wyczekiwania, z uwzględnieniem ustawowych wyjątków i niektórych wcześniejszych okresów ubezpieczenia. Prawo do zasiłku potwierdzisz w Ustawieniach zaawansowanych. W polu Podstawa L4 podaj ustaloną podstawę zasiłku; dla zleceniobiorcy co do zasady opiera się ona na przychodzie stanowiącym podstawę składki chorobowej, po pomniejszeniu o 13,71%.",
 
   "vacation-leave": "Tu dodasz zakresy urlopu",
   "vacation-leave-base": "Podstawa urlopu",
@@ -91,6 +93,22 @@
   "taxes-and-deductions-deduction-after-tax": "Odliczenie po podatku",
   "taxes-and-deductions-addition-after-tax": "Dodatki po podatku",
   "taxes-and-deductions-info": "Podatki – jak uzupełnić\n\nW tym bloku określasz swój status podatkowy, który wpływa na wysokość zaliczki PIT.\n\n• Ulga dla młodych (PIT-0) – wybierz, jeśli nie ukończyłeś 26 lat. W takim przypadku nie jest pobierany podatek PIT (do limitu ustawowego).\n• Kwota zmniejszająca podatek (PIT-2) – zaznacz tylko wtedy, jeśli złożyłeś u pracodawcy formularz PIT-2. Jeśli nie składałeś PIT-2 – pozostaw tę opcję wyłączoną.\n• Inne ustawienia podatkowe – dotyczą indywidualnych sytuacji i wpływają na sposób naliczania zaliczki PIT.\n\n⚠️ Kalkulator zakłada, że dane są zgodne z dokumentami złożonymi u pracodawcy.",
+
+  "advanced-settings-open": "Ustawienia zaawansowane",
+  "advanced-settings-title": "Zaawansowane ustawienia wynagrodzenia",
+  "advanced-settings-description": "Tutaj znajdują się rzadziej używane ustawienia, które mają znaczenie tylko w określonych sytuacjach podatkowych lub ubezpieczeniowych.",
+
+  "taxes-and-deductions-no-pit-advance-help": "Wybierz tylko wtedy, gdy złożyłeś płatnikowi wniosek o niepobieranie zaliczek i przewidujesz dochód opodatkowany skalą do 30 000 zł w roku. Po przekroczeniu progu zaliczki są ponownie naliczane bez pomniejszenia PIT-2.",
+  "taxes-and-deductions-multiple-employments-help": "Wpływa na roczny limit kosztów uzyskania przychodu (KUP) przy kilku stosunkach pracy.",
+  "taxes-and-deductions-uop-sick-pay-limit": "Limit wynagrodzenia chorobowego pracodawcy",
+  "taxes-and-deductions-uop-sick-pay-limit-help": "Standardowo pracodawca finansuje pierwsze 33 dni niezdolności do pracy w roku. Limit 14 dni stosuje się od kolejnego roku po ukończeniu 50 lat.",
+  "taxes-and-deductions-uop-sick-pay-limit-33": "33 dni",
+  "taxes-and-deductions-uop-sick-pay-limit-14": "14 dni",
+  "taxes-and-deductions-previous-employer-sick-pay-days": "Wykorzystane dni wynagrodzenia chorobowego przed tym miesiącem",
+  "taxes-and-deductions-previous-employer-sick-pay-days-help": "Podaj liczbę dni wynagrodzenia chorobowego wykorzystanych wcześniej w tym samym roku kalendarzowym. Docelowo wartość powinna być pobierana automatycznie z historii.",
+  "taxes-and-deductions-mandate-sickness-benefit-eligible": "Masz prawo do zasiłku chorobowego z umowy zlecenia",
+  "taxes-and-deductions-mandate-sickness-benefit-eligible-help": "Zaznacz, jeśli nabyłeś prawo do zasiłku chorobowego — zwykle po 90 dniach nieprzerwanego dobrowolnego ubezpieczenia chorobowego albo na podstawie ustawowego wyjątku lub wcześniejszego okresu ubezpieczenia.",
+  "taxes-and-deductions-other-uop-minimum-help": "Jeżeli inna umowa o pracę zapewnia co najmniej wymaganą podstawę, składki społeczne z tej umowy zlecenia mogą nie być obowiązkowe; wpływa to także na możliwość dobrowolnego ubezpieczenia chorobowego.",
 
   "taxes-and-deductions-uop-kup": "Koszty uzyskania przychodu (UoP)",
   "taxes-and-deductions-pit0-relief": "Zwolnienie PIT-0",
@@ -128,6 +146,10 @@
   "salary-night-hours": "Godziny nocne (dodatek)",
   "salary-turn-of-day-hours": "Godziny na przełomie doby",
   "salary-l4": "L4 (wynagrodzenie chorobowe)",
+  "salary-sick-pay-employer": "Wynagrodzenie chorobowe pracodawcy",
+  "salary-sickness-benefit": "Zasiłek chorobowy",
+  "salary-sick-pay-days": "Dni wynagrodzenia chorobowego",
+  "salary-sickness-benefit-days": "Dni zasiłku chorobowego",
   "salary-vacation": "Urlop",
   "salary-brutto-total": "BRUTTO razem",
 
@@ -263,6 +285,7 @@
   "taxes-ytd-zus-base": "Podstawa składek emerytalno-rentowych od początku roku",
   "taxes-ytd-50-kup": "Wykorzystane 50% KUP od początku roku",
   "taxes-ytd-uop-kup": "Wykorzystane KUP z UoP od początku roku",
+  "taxes-ytd-sick-pay-days": "Wykorzystane dni wynagrodzenia chorobowego od początku roku",
   "tax-chart-no-data": "Brak danych",
   "tax-chart-netto": "netto",
   "tax-chart-brutto-short": "BR.",

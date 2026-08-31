@@ -33,6 +33,7 @@ type BreakdownItem = {
   label: string;
   value: number | string;
   negative?: boolean;
+  unit?: string;
 };
 
 type BreakdownSection = {
@@ -218,7 +219,7 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
       calculation.calculationType === 'uop'
         ? calculation.workDaysPayment ?? 0
         : calculation.calculationType === 'mandate'
-          ? Math.max(0, calculation.fullSalaryBrutto - bonusTotal)
+          ? Math.max(0, calculation.fullSalaryBrutto - bonusTotal - (calculation.sicknessBenefit ?? 0))
           : calculation.rate ?? 0;
 
     const salaryItems: BreakdownItem[] = [
@@ -237,6 +238,23 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
         value: formatNumber(bonusTotal),
       },
     ];
+
+    if (
+      calculation.calculationType === 'mandate' &&
+      (calculation.sicknessBenefit ?? 0) > 0
+    ) {
+      salaryItems.push(
+        {
+          label: intl.formatMessage({ id: 'salary-sickness-benefit', defaultMessage: 'Sickness benefit' }),
+          value: formatNumber(calculation.sicknessBenefit),
+        },
+        {
+          label: intl.formatMessage({ id: 'salary-sickness-benefit-days', defaultMessage: 'Sickness-benefit days' }),
+          value: calculation.sicknessBenefitDays ?? 0,
+          unit: '',
+        },
+      );
+    }
 
     if (calculation.calculationType === 'uop') {
       salaryItems.push(
@@ -265,8 +283,22 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
           value: formatNumber(calculation.turnOfDayHours),
         },
         {
-          label: intl.formatMessage({ id: 'salary-l4', defaultMessage: 'Sick pay' }),
-          value: formatNumber(calculation.l4Payment),
+          label: intl.formatMessage({ id: 'salary-sick-pay-employer', defaultMessage: 'Employer sick pay' }),
+          value: formatNumber(calculation.employerSickPay),
+        },
+        {
+          label: intl.formatMessage({ id: 'salary-sickness-benefit', defaultMessage: 'Sickness benefit' }),
+          value: formatNumber(calculation.sicknessBenefit),
+        },
+        {
+          label: intl.formatMessage({ id: 'salary-sick-pay-days', defaultMessage: 'Employer sick-pay days' }),
+          value: calculation.employerSickPayDays ?? 0,
+          unit: '',
+        },
+        {
+          label: intl.formatMessage({ id: 'salary-sickness-benefit-days', defaultMessage: 'Sickness-benefit days' }),
+          value: calculation.sicknessBenefitDays ?? 0,
+          unit: '',
         },
         {
           label: intl.formatMessage({ id: 'salary-vacation', defaultMessage: 'Annual leave pay' }),
@@ -412,6 +444,11 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
           {
             label: intl.formatMessage({ id: 'taxes-ytd-uop-kup', defaultMessage: 'YTD UoP KUP used' }),
             value: formatNumber(calculation.yearToDate.uopKupUsed),
+          },
+          {
+            label: intl.formatMessage({ id: 'taxes-ytd-sick-pay-days', defaultMessage: 'YTD employer sick-pay days' }),
+            value: calculation.yearToDate.employerSickPayDays,
+            unit: '',
           },
         ]
       : [];
@@ -629,7 +666,7 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
                         textAlign="right"
                         sx={{ fontSize: { xs: 14, sm: 16, md: 17.5 } }}
                       >
-                        {item.negative ? '-' : ''}{item.value} PLN
+                        {item.negative ? '-' : ''}{item.value}{item.unit === '' ? '' : ` ${item.unit ?? 'PLN'}`}
                       </Typography>
                     </Box>
                   ))}
@@ -642,3 +679,4 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
     </Box>
   );
 });
+

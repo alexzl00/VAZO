@@ -4,6 +4,7 @@ export type WorkRate = 'uop_monthly' | 'uop_hourly' | 'mandate_hourly' | 'uod_fi
 
 export type Pit2MonthlyReduction = 0 | 100 | 150 | 300;
 export type UopKup = 0 | 250 | 300;
+export type UopEmployerSickPayLimit = 14 | 33;
 export type Pit0Relief = 'none' | 'young' | 'return' | 'family4plus' | 'workingSenior';
 
 export type SalaryCalculatorValues = {
@@ -57,6 +58,15 @@ export type SalaryCalculatorValues = {
   /** Special request to the payer not to collect PIT advances, if the taxpayer is eligible. */
   doNotWithholdPitAdvance?: boolean;
 
+  /**
+   * UoP: statutory employer-funded sick-pay limit for the calendar year.
+   * Usually 33 days, or 14 days from the year after the employee turns 50.
+   */
+  uopEmployerSickPayLimit?: UopEmployerSickPayLimit;
+
+  /** UoP: employer-funded sick-pay days already used before the calculated month. */
+  previousEmployerSickPayDays?: number;
+
   deductionAfterTax: number;
   additionAfterTax: number;
 
@@ -64,6 +74,13 @@ export type SalaryCalculatorValues = {
 
   /** Voluntary sickness insurance on an ordinary UZ. */
   mandateVoluntarySicknessInsurance?: boolean;
+
+  /**
+   * True when the zleceniobiorca has already acquired the right to sickness benefit
+   * (normally after the 90-day waiting period, or under a statutory exception /
+   * qualifying previous insurance period).
+   */
+  mandateSicknessBenefitEligible?: boolean;
 
   /**
    * True when another UoP gives at least the minimum base required to make

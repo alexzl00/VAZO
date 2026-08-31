@@ -74,6 +74,11 @@ export const rateFieldConfigs: SalaryFieldConfig[] = [
   },
 ];
 
+/**
+ * Common tax settings shown directly on the tax tab.
+ * Rare / expert-only fields live in advancedTaxFieldConfigs and are rendered in
+ * AdvancedSalarySettingsDialog.
+ */
 export const taxFieldConfigs: SalaryFieldConfig[] = [
   {
     name: 'uopKup',
@@ -122,8 +127,6 @@ export const taxFieldConfigs: SalaryFieldConfig[] = [
     onChange: (value, { setFieldValue }) => {
       const relief = String(value);
 
-      // Legacy compatibility only. The current tax engine should not use
-      // taxRegime as the actual source of the PIT rate.
       setFieldValue('taxRegime', relief === 'young' ? 0 : 12, false);
 
       if (relief !== 'young') {
@@ -174,79 +177,16 @@ export const taxFieldConfigs: SalaryFieldConfig[] = [
     },
   },
   {
-    name: 'doNotWithholdPitAdvance',
-    type: 'checkbox',
-    labelId: 'taxes-and-deductions-no-pit-advance',
-    defaultValue: false,
-    validation: {
-      required: true,
-    },
-  },
-  {
-    name: 'hasMultipleEmploymentRelationships',
-    type: 'checkbox',
-    labelId: 'taxes-and-deductions-multiple-employments',
-    contracts: [...UOP_CONTRACTS],
-    defaultValue: false,
-    validation: {
-      required: true,
-    },
-  },
-  {
     name: 'mandateVoluntarySicknessInsurance',
     type: 'checkbox',
     labelId: 'taxes-and-deductions-voluntary-sickness',
     contracts: ['mandate_hourly'],
     defaultValue: false,
-    validation: {
-      required: true,
+    onChange: (value, { setFieldValue }) => {
+      if (!Boolean(value)) {
+        setFieldValue('mandateSicknessBenefitEligible', false, false);
+      }
     },
-  },
-  {
-    name: 'mandateHasOtherUopAtLeastMinimumBase',
-    type: 'checkbox',
-    labelId: 'taxes-and-deductions-other-uop-minimum',
-    contracts: ['mandate_hourly'],
-    defaultValue: false,
-    validation: {
-      required: true,
-    },
-  },
-  {
-    name: 'mandateOtherSocialBaseBeforeThisContract',
-    type: 'number',
-    labelId: 'taxes-and-deductions-earlier-uz-social-base',
-    contracts: ['mandate_hourly'],
-    unit: 'zł',
-    defaultValue: 0,
-    validation: positiveRequired,
-  },
-  {
-    name: 'isOwnEmployerContract',
-    type: 'checkbox',
-    labelId: 'taxes-and-deductions-own-employer-contract',
-    contracts: [...CIVIL_CONTRACTS],
-    defaultValue: false,
-    validation: {
-      required: true,
-    },
-  },
-  {
-    name: 'performedForOwnEmployer',
-    type: 'checkbox',
-    labelId: 'taxes-and-deductions-performed-for-own-employer',
-    contracts: [...CIVIL_CONTRACTS],
-    defaultValue: false,
-    validation: {
-      required: true,
-    },
-  },
-  {
-    name: 'smallContractLumpSumEligible',
-    type: 'checkbox',
-    labelId: 'taxes-and-deductions-small-contract-lump-sum',
-    contracts: [...CIVIL_CONTRACTS],
-    defaultValue: false,
     validation: {
       required: true,
     },
@@ -294,6 +234,137 @@ export const taxFieldConfigs: SalaryFieldConfig[] = [
     },
   },
   {
+    name: 'deductionAfterTax',
+    type: 'number',
+    labelId: 'taxes-and-deductions-deduction-after-tax',
+    unit: 'zł',
+    defaultValue: 0,
+    validation: positiveRequired,
+  },
+  {
+    name: 'additionAfterTax',
+    type: 'number',
+    labelId: 'taxes-and-deductions-addition-after-tax',
+    unit: 'zł',
+    defaultValue: 0,
+    validation: positiveRequired,
+  },
+];
+
+export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
+  {
+    name: 'doNotWithholdPitAdvance',
+    type: 'checkbox',
+    labelId: 'taxes-and-deductions-no-pit-advance',
+    helperTextId: 'taxes-and-deductions-no-pit-advance-help',
+    defaultValue: false,
+    validation: {
+      required: true,
+    },
+  },
+  {
+    name: 'hasMultipleEmploymentRelationships',
+    type: 'checkbox',
+    labelId: 'taxes-and-deductions-multiple-employments',
+    helperTextId: 'taxes-and-deductions-multiple-employments-help',
+    contracts: [...UOP_CONTRACTS],
+    defaultValue: false,
+    validation: {
+      required: true,
+    },
+  },
+  {
+    name: 'uopEmployerSickPayLimit',
+    type: 'select',
+    labelId: 'taxes-and-deductions-uop-sick-pay-limit',
+    helperTextId: 'taxes-and-deductions-uop-sick-pay-limit-help',
+    contracts: [...UOP_CONTRACTS],
+    defaultValue: 33,
+    options: [
+      { value: 33, labelId: 'taxes-and-deductions-uop-sick-pay-limit-33' },
+      { value: 14, labelId: 'taxes-and-deductions-uop-sick-pay-limit-14' },
+    ],
+    validation: {
+      required: true,
+    },
+  },
+  {
+    name: 'previousEmployerSickPayDays',
+    type: 'number',
+    labelId: 'taxes-and-deductions-previous-employer-sick-pay-days',
+    helperTextId: 'taxes-and-deductions-previous-employer-sick-pay-days-help',
+    contracts: [...UOP_CONTRACTS],
+    unit: 'dni',
+    defaultValue: 0,
+    validation: {
+      ...positiveRequired,
+      maxField: 'uopEmployerSickPayLimit',
+      maxFieldMessage: 'Cannot exceed the selected employer sick-pay limit',
+    },
+  },
+  {
+    name: 'mandateSicknessBenefitEligible',
+    type: 'checkbox',
+    labelId: 'taxes-and-deductions-mandate-sickness-benefit-eligible',
+    helperTextId: 'taxes-and-deductions-mandate-sickness-benefit-eligible-help',
+    contracts: ['mandate_hourly'],
+    visibleWhen: (values) => Boolean(values.mandateVoluntarySicknessInsurance),
+    defaultValue: false,
+    validation: {
+      required: true,
+    },
+  },
+  {
+    name: 'mandateHasOtherUopAtLeastMinimumBase',
+    type: 'checkbox',
+    labelId: 'taxes-and-deductions-other-uop-minimum',
+    helperTextId: 'taxes-and-deductions-other-uop-minimum-help',
+    contracts: ['mandate_hourly'],
+    defaultValue: false,
+    validation: {
+      required: true,
+    },
+  },
+  {
+    name: 'mandateOtherSocialBaseBeforeThisContract',
+    type: 'number',
+    labelId: 'taxes-and-deductions-earlier-uz-social-base',
+    contracts: ['mandate_hourly'],
+    unit: 'zł',
+    defaultValue: 0,
+    validation: positiveRequired,
+  },
+  {
+    name: 'isOwnEmployerContract',
+    type: 'checkbox',
+    labelId: 'taxes-and-deductions-own-employer-contract',
+    contracts: [...CIVIL_CONTRACTS],
+    defaultValue: false,
+    validation: {
+      required: true,
+    },
+  },
+  {
+    name: 'performedForOwnEmployer',
+    type: 'checkbox',
+    labelId: 'taxes-and-deductions-performed-for-own-employer',
+    contracts: [...CIVIL_CONTRACTS],
+    defaultValue: false,
+    validation: {
+      required: true,
+    },
+  },
+  {
+    name: 'smallContractLumpSumEligible',
+    type: 'checkbox',
+    labelId: 'taxes-and-deductions-small-contract-lump-sum',
+    contracts: [...CIVIL_CONTRACTS],
+    defaultValue: false,
+    validation: {
+      required: true,
+    },
+  },
+  {
     name: 'previousTaxableIncome',
     type: 'number',
     labelId: 'taxes-and-deductions-ytd-taxable-income',
@@ -333,22 +404,6 @@ export const taxFieldConfigs: SalaryFieldConfig[] = [
     type: 'number',
     labelId: 'taxes-and-deductions-ytd-uop-kup',
     contracts: [...UOP_CONTRACTS],
-    unit: 'zł',
-    defaultValue: 0,
-    validation: positiveRequired,
-  },
-  {
-    name: 'deductionAfterTax',
-    type: 'number',
-    labelId: 'taxes-and-deductions-deduction-after-tax',
-    unit: 'zł',
-    defaultValue: 0,
-    validation: positiveRequired,
-  },
-  {
-    name: 'additionAfterTax',
-    type: 'number',
-    labelId: 'taxes-and-deductions-addition-after-tax',
     unit: 'zł',
     defaultValue: 0,
     validation: positiveRequired,
@@ -415,5 +470,6 @@ export const overtimeFieldConfigs: SalaryFieldConfig[] = [
 export const metadataDrivenFieldConfigs = [
   ...rateFieldConfigs,
   ...taxFieldConfigs,
+  ...advancedTaxFieldConfigs,
   ...overtimeFieldConfigs,
 ];

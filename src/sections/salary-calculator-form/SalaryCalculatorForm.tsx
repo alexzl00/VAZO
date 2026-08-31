@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 // mui
 import {
@@ -16,7 +16,8 @@ import { useTheme } from '@mui/material/styles';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { 
   Formik,
-  Form
+  Form,
+  useFormikContext
 } from "formik";
 
 import * as Yup from 'yup';
@@ -37,6 +38,7 @@ import TaxChart from '../../components/Calculator/TaxChart';
 
 import EditSalaryCalculation from '../../components/Modals/EditSalaryCalculation';
 import ConfirmActionDialog from '../../components/Modals/ConfirmActionDialog';
+import AdvancedSalarySettingsDialog from './AdvancedSalarySettingsDialog';
 
 // utils 
 import { MultiRangeMonthPicker } from '../../components/DaysPicker';
@@ -86,6 +88,40 @@ const positiveNumber = () =>
       // value can be number or NaN
       return typeof value === 'number' && !isNaN(value) && value >= 0;
     });
+
+const SalaryTabAvailabilityGuard = ({
+  activeTab,
+  setActiveTab,
+}: {
+  activeTab: number;
+  setActiveTab: (value: number) => void;
+}) => {
+  const { values } = useFormikContext<SalaryCalculatorValues>();
+
+  useEffect(() => {
+    const mandateL4Enabled =
+      values.workRateType === 'mandate_hourly' &&
+      Boolean(values.mandateVoluntarySicknessInsurance);
+
+    const disabledTabs =
+      values.workRateType === 'uod_fixed'
+        ? [3, 4, 5]
+        : values.workRateType === 'mandate_hourly'
+          ? (mandateL4Enabled ? [3, 5] : [3, 4, 5])
+          : [];
+
+    if (disabledTabs.includes(activeTab)) {
+      setActiveTab(1);
+    }
+  }, [
+    activeTab,
+    setActiveTab,
+    values.workRateType,
+    values.mandateVoluntarySicknessInsurance,
+  ]);
+
+  return null;
+};
 
 const SalarySchema = Yup.object().shape({
   // Legacy fields remain because older saved records still contain them.
@@ -190,6 +226,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
   const [value, setValue] = useState(0);
 
   const [editCalculationOpen, setEditCalculationOpen] = useState(false);
+  const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
 
   const [dialogType, setDialogType] = useState<"reset" | "save" | null>(null);
 
@@ -250,8 +287,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
         initialValues={normalizedInitialValues}
         validationSchema={SalarySchema}
         onSubmit={ async (values) => {
-          console.log(values)
-          // await onSubmit(values);
+          await onSubmit(values);
         }}
       >
         {({ values, setFieldValue, errors, touched, dirty, resetForm, submitForm }) => {
@@ -271,15 +307,21 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
             calculationError = error instanceof Error ? error.message : 'Salary calculation failed';
           }
 
+          const mandateL4Enabled =
+            values.workRateType === 'mandate_hourly' &&
+            Boolean(values.mandateVoluntarySicknessInsurance);
+
           const disabledTabs =
-            values.workRateType === 'mandate_hourly' ||
             values.workRateType === 'uod_fixed'
               ? [3, 4, 5]
-              : [];
+              : values.workRateType === 'mandate_hourly'
+                ? (mandateL4Enabled ? [3, 5] : [3, 4, 5])
+                : [];
 
           return (
             <>    
               <Form>
+                <SalaryTabAvailabilityGuard activeTab={value} setActiveTab={setValue} />
                 <CardTabs value={value} labels={labels} onChange={changeTab} disabledTabs={disabledTabs}/>
 
                 <Box 
@@ -318,12 +360,21 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                           title={intl.formatMessage({id: 'tabs-taxes-and-deductions' })}
                           infoText={intl.formatMessage({id: "taxes-and-deductions-info"})}
                         >
-                          <DynamicSalaryFields
-                            fields={taxFieldConfigs}
-                            values={values}
-                            formMode={type}
-                            setFieldValue={setFieldValue}
-                          />
+                          <Stack spacing={2}>
+                            <DynamicSalaryFields
+                              fields={taxFieldConfigs}
+                              values={values}
+                              formMode={type}
+                              setFieldValue={setFieldValue}
+                            />
+
+                            <Button
+                              variant="outlined"
+                              onClick={() => setAdvancedSettingsOpen(true)}
+                            >
+                              <FormattedMessage id="advanced-settings-open" />
+                            </Button>
+                          </Stack>
                         </FormWithInfo>
                       )}
 
@@ -418,8 +469,12 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                       {value === 4 && (
                         <FormWithInfo
                           title={intl.formatMessage({id: 'tabs-sick-leave' })}
-                          infoText={intl.formatMessage({id: "sick-leave-info"})
-                        }>
+                          infoText={intl.formatMessage({
+                            id: values.workRateType === 'mandate_hourly'
+                              ? 'sick-leave-info-mandate'
+                              : 'sick-leave-info'
+                          })}
+                        >
                           <Stack spacing={2}>
                             <Stack spacing={0} width={'320px'}>
                               <FormikNumberField name="l4Base" labelId="l4-base"/>
@@ -507,6 +562,14 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                     </Button>
                   </Stack>
                 </Box>
+
+                <AdvancedSalarySettingsDialog
+                  open={advancedSettingsOpen}
+                  onClose={() => setAdvancedSettingsOpen(false)}
+                  values={values}
+                  formMode={type}
+                  setFieldValue={setFieldValue}
+                />
 
                 <EditSalaryCalculation 
                   open={editCalculationOpen} 
