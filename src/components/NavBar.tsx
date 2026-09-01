@@ -33,6 +33,7 @@ import {
   PersonAddAltOutlined,
   PersonOutline,
   ReceiptLongOutlined,
+  BusinessCenterOutlined
 } from "@mui/icons-material";
 
 import { useState, type MouseEvent } from "react";
@@ -75,11 +76,17 @@ const navbarItems = [
     requiresAuth: true,
   },
   {
+    id: "navbar-work-relations",
+    path: "/work-relations",
+    Icon: BusinessCenterOutlined,
+    requiresAuth: true,
+  },
+  {
     id: "navbar-statistics",
     path: "/salaries-statistics",
     Icon: BarChartOutlined,
     requiresAuth: true,
-  },
+  }
 ];
 
 interface NavbarProps {

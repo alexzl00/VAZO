@@ -241,7 +241,6 @@ const Profile = () => {
       <Box>
         <Typography
           sx={{
-            fontFamily: "Montserrat",
             color: palette.textDark,
           }}
         >
@@ -268,7 +267,6 @@ const Profile = () => {
       <Box>
         <Typography
           sx={{
-            fontFamily: "Montserrat",
             fontSize: {
               xs: 24,
               md: 30,
@@ -283,7 +281,6 @@ const Profile = () => {
         <Typography
           sx={{
             mt: 0.5,
-            fontFamily: "Montserrat",
             fontSize: 14,
             color: alpha(
               palette.textDark,
@@ -349,7 +346,6 @@ const Profile = () => {
 
                 border: `3px solid ${palette.accent}`,
 
-                fontFamily: "Montserrat",
                 fontWeight: 800,
                 fontSize: 30,
               }}
@@ -371,7 +367,6 @@ const Profile = () => {
               >
                 <Typography
                   sx={{
-                    fontFamily: "Montserrat",
                     fontWeight: 800,
                     fontSize: 20,
                     color: palette.textDark,
@@ -388,7 +383,6 @@ const Profile = () => {
                     }
                     sx={{
                       textTransform: "none",
-                      fontFamily: "Montserrat",
                       fontWeight: 700,
                       color: palette.textDark,
                       borderRadius: "24px",
@@ -478,7 +472,6 @@ const Profile = () => {
                       sx={{
                         borderRadius: "24px",
                         textTransform: "none",
-                        fontFamily: "Montserrat",
                         fontWeight: 700,
                         color: alpha(
                           palette.textDark,
@@ -514,9 +507,6 @@ const Profile = () => {
                         boxShadow: "none",
 
                         textTransform: "none",
-
-                        fontFamily:
-                          "Montserrat",
 
                         fontWeight: 700,
 
@@ -572,7 +562,6 @@ const Profile = () => {
         >
           <Typography
             sx={{
-              fontFamily: "Montserrat",
               fontWeight: 800,
               fontSize: 20,
               color: palette.textDark,
@@ -617,7 +606,6 @@ const Profile = () => {
                 <Box>
                   <Typography
                     sx={{
-                      fontFamily: "Montserrat",
                       fontSize: 12,
                       fontWeight: 600,
                       textTransform:
@@ -635,7 +623,6 @@ const Profile = () => {
                   <Typography
                     sx={{
                       mt: 0.5,
-                      fontFamily: "Montserrat",
                       fontWeight: 800,
                       fontSize: 26,
                       color: palette.textDark,
@@ -686,7 +673,6 @@ const Profile = () => {
               <Typography
                 sx={{
                   mt: 0.4,
-                  fontFamily: "Montserrat",
                   fontWeight: 700,
                   fontSize: 15,
                   color: palette.textDark,
@@ -747,11 +733,7 @@ const Profile = () => {
                 <Typography
                   sx={{
                     mt: 1,
-
-                    fontFamily: "Montserrat",
-
                     fontSize: 22,
-
                     fontWeight: 800,
                   }}
                 >
@@ -761,13 +743,8 @@ const Profile = () => {
                 <Typography
                   sx={{
                     mt: 0.8,
-
-                    fontFamily: "Montserrat",
-
                     fontSize: 13.5,
-
                     lineHeight: 1.6,
-
                     color: alpha(
                       "#ffffff",
                       0.7
@@ -796,9 +773,6 @@ const Profile = () => {
 
                     <Typography
                       sx={{
-                        fontFamily:
-                          "Montserrat",
-
                         fontSize: 13,
                       }}
                     >
@@ -821,9 +795,6 @@ const Profile = () => {
 
                     <Typography
                       sx={{
-                        fontFamily:
-                          "Montserrat",
-
                         fontSize: 13,
                       }}
                     >
@@ -836,24 +807,12 @@ const Profile = () => {
                   disabled
                   sx={{
                     mt: 2.5,
-
                     px: 2,
-
                     borderRadius: "24px",
-
-                    bgcolor:
-                      palette.accent,
-
-                    color:
-                      palette.textDark,
-
-                    fontFamily:
-                      "Montserrat",
-
+                    bgcolor: palette.accent,
+                    color: palette.textDark,
                     fontWeight: 800,
-
                     textTransform: "none",
-
                     "&.Mui-disabled": {
                       bgcolor: alpha(
                         palette.accent,
@@ -922,9 +881,6 @@ const Profile = () => {
             <Box>
               <Typography
                 sx={{
-                  fontFamily:
-                    "Montserrat",
-
                   fontWeight: 800,
 
                   fontSize: 18,
@@ -980,9 +936,6 @@ const Profile = () => {
                   0.8
                 )}`,
 
-                fontFamily:
-                  "Montserrat",
-
                 fontWeight: 700,
 
                 textTransform: "none",
@@ -1021,7 +974,6 @@ const Profile = () => {
 
             color: "#d84b4b",
 
-            fontFamily: "Montserrat, sans-serif",
             fontWeight: 700,
             fontSize: 13.5,
 
