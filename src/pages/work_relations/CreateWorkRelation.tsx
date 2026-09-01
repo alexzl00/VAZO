@@ -35,17 +35,30 @@ import ConfirmActionDialog, {
 
 import { createWorkRelation } from "../../api/work_relations";
 
+// types
+
 import type {
+  PaymentMode,
   WorkContract,
   WorkRelationPayload
 } from "../../types/workRelation";
 
 type DialogType = "save";
 
+const PAYMENT_MODE_OPTIONS: Record<
+  WorkContract,
+  PaymentMode[]
+> = {
+  uop: ["monthly", "hourly"],
+  mandate: ["hourly"],
+  uod: ["fixed"]
+};
+
 const INITIAL_FORM: WorkRelationPayload = {
   name: "",
   employerName: "",
   contractType: "uop",
+  paymentMode: "monthly",
   startDate: "",
   endDate: null
 };
@@ -83,6 +96,30 @@ export default function CreateWorkRelation() {
     }
   };
 
+  const updateContractType = (
+    contractType: WorkContract
+  ) => {
+    setForm((prev) => {
+      const availablePaymentModes =
+        PAYMENT_MODE_OPTIONS[contractType];
+
+      const paymentMode =
+        availablePaymentModes.includes(prev.paymentMode)
+          ? prev.paymentMode
+          : availablePaymentModes[0];
+
+      return {
+        ...prev,
+        contractType,
+        paymentMode
+      };
+    });
+
+    if (error) {
+      setError(null);
+    }
+  };
+
   const validateForm = () => {
     if (!form.name.trim()) {
       return intl.formatMessage({
@@ -93,6 +130,22 @@ export default function CreateWorkRelation() {
     if (!form.startDate.trim()) {
       return intl.formatMessage({
         id: "work-relations-start-date-required"
+      });
+    }
+
+    if (!form.paymentMode) {
+      return intl.formatMessage({
+        id: "work-relations-payment-mode-required"
+      });
+    }
+
+    if (
+      !PAYMENT_MODE_OPTIONS[
+        form.contractType
+      ].includes(form.paymentMode)
+    ) {
+      return intl.formatMessage({
+        id: "work-relations-invalid-payment-mode"
       });
     }
 
@@ -118,6 +171,7 @@ export default function CreateWorkRelation() {
         employerName:
           form.employerName?.trim() || null,
         contractType: form.contractType,
+        paymentMode: form.paymentMode,
         startDate: form.startDate,
         endDate: form.endDate || null
       };
@@ -169,7 +223,10 @@ export default function CreateWorkRelation() {
     setDialogType("save");
   };
 
-  const dialogMap: Record<DialogType, DialogConfig> = {
+  const dialogMap: Record<
+    DialogType,
+    DialogConfig
+  > = {
     save: {
       variant: "success" as const,
       title: (
@@ -340,40 +397,77 @@ export default function CreateWorkRelation() {
                   })}
                 </Typography>
 
-                <TextField
-                  select
-                  label={intl.formatMessage({
-                    id: "work-relations-contract-type"
-                  })}
-                  value={form.contractType}
-                  onChange={(e) =>
-                    updateField(
-                      "contractType",
-                      e.target.value as WorkContract
-                    )
-                  }
-                  disabled={loading}
-                  fullWidth
-                  required
+                <Stack
+                  direction={{
+                    xs: "column",
+                    sm: "row"
+                  }}
+                  spacing={2}
                 >
-                  <MenuItem value="uop">
-                    {intl.formatMessage({
-                      id: "salaries-contract-uop"
+                  <TextField
+                    select
+                    label={intl.formatMessage({
+                      id: "work-relations-contract-type"
                     })}
-                  </MenuItem>
+                    value={form.contractType}
+                    onChange={(e) =>
+                      updateContractType(
+                        e.target.value as WorkContract
+                      )
+                    }
+                    disabled={loading}
+                    fullWidth
+                    required
+                  >
+                    <MenuItem value="uop">
+                      {intl.formatMessage({
+                        id: "salaries-contract-uop"
+                      })}
+                    </MenuItem>
 
-                  <MenuItem value="mandate">
-                    {intl.formatMessage({
-                      id: "salaries-contract-mandate"
-                    })}
-                  </MenuItem>
+                    <MenuItem value="mandate">
+                      {intl.formatMessage({
+                        id: "salaries-contract-mandate"
+                      })}
+                    </MenuItem>
 
-                  <MenuItem value="uod">
-                    {intl.formatMessage({
-                      id: "salaries-contract-uod"
+                    <MenuItem value="uod">
+                      {intl.formatMessage({
+                        id: "salaries-contract-uod"
+                      })}
+                    </MenuItem>
+                  </TextField>
+
+                  <TextField
+                    select
+                    label={intl.formatMessage({
+                      id: "salaries-payment-mode"
                     })}
-                  </MenuItem>
-                </TextField>
+                    value={form.paymentMode}
+                    onChange={(e) =>
+                      updateField(
+                        "paymentMode",
+                        e.target.value as PaymentMode
+                      )
+                    }
+                    disabled={loading}
+                    fullWidth
+                    required
+                  >
+                    {PAYMENT_MODE_OPTIONS[
+                      form.contractType
+                    ].map((paymentMode) => (
+                      <MenuItem
+                        key={paymentMode}
+                        value={paymentMode}
+                      >
+                        {intl.formatMessage({
+                          id: `salaries-payment-mode-${paymentMode}`
+                        })}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Stack>
               </Box>
 
               {/* DATES */}
@@ -574,9 +668,7 @@ export default function CreateWorkRelation() {
             : "default"
         }
         onConfirm={() => {
-          if (!dialogType) {
-            return;
-          }
+          if (!dialogType) return;
 
           dialogMap.save.getAction(
             closeDialog,

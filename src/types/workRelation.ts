@@ -1,5 +1,6 @@
 
 export type WorkContract = 'uop' | 'mandate' | 'uod';
+export type PaymentMode = 'monthly' | 'hourly' | 'fixed';
 
 export type WorkRelation = {
   id: string;
@@ -9,6 +10,7 @@ export type WorkRelation = {
   employer_name: string | null;
 
   contract_type: WorkContract;
+  payment_mode: PaymentMode;
 
   start_date: string;
   end_date: string | null;
@@ -21,6 +23,7 @@ export type WorkRelationPayload = {
   name: string;
   employerName?: string | null;
   contractType: WorkContract;
+  paymentMode: PaymentMode;
   startDate: string;
   endDate?: string | null;
 };

@@ -13,6 +13,7 @@ export const createWorkRelation = async (
     {
       p_name: values.name,
       p_contract_type: values.contractType,
+      p_payment_mode: values.paymentMode,
       p_start_date: values.startDate,
       p_employer_name: values.employerName ?? null,
       p_end_date: values.endDate ?? null,
@@ -84,6 +85,7 @@ export const updateWorkRelation = async (
       p_id: id,
       p_name: values.name,
       p_contract_type: values.contractType,
+      p_payment_mode: values.paymentMode,
       p_start_date: values.startDate,
       p_employer_name: values.employerName ?? null,
       p_end_date: values.endDate ?? null,

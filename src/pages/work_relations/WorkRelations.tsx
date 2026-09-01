@@ -44,6 +44,8 @@ import {
   getWorkRelations
 } from "../../api/work_relations";
 
+// types
+
 import type {
   WorkRelation
 } from "../../types/workRelation";
@@ -128,6 +130,14 @@ export default function WorkRelations() {
   ) => {
     return intl.formatMessage({
       id: `salaries-contract-${contractType}`
+    });
+  };
+
+  const getPaymentModeLabel = (
+    paymentMode: WorkRelation["payment_mode"]
+  ) => {
+    return intl.formatMessage({
+      id: `salaries-payment-mode-${paymentMode}`
     });
   };
 
@@ -351,6 +361,7 @@ export default function WorkRelations() {
                 name,
                 employer_name,
                 contract_type,
+                payment_mode,
                 start_date,
                 end_date
               } = item;
@@ -373,7 +384,15 @@ export default function WorkRelations() {
                       background:
                         "linear-gradient(135deg, #F7F6FF 0%, #FFFFFF 100%)",
                       boxShadow:
-                        "0 6px 16px rgba(47, 42, 74, 0.10)"
+                        "0 6px 16px rgba(47, 42, 74, 0.10)",
+                      transition:
+                        "transform 0.2s ease, box-shadow 0.2s ease",
+                      "&:hover": {
+                        transform:
+                          "translateY(-2px)",
+                        boxShadow:
+                          "0 10px 24px rgba(47, 42, 74, 0.14)"
+                      }
                     }}
                   >
                     {/* HEADER */}
@@ -406,7 +425,8 @@ export default function WorkRelations() {
                         <Typography
                           variant="body2"
                           sx={{
-                            color: "#77728D"
+                            color: "#77728D",
+                            mt: 0.25
                           }}
                         >
                           {employer_name ||
@@ -430,11 +450,45 @@ export default function WorkRelations() {
                       />
                     </Stack>
 
+                    {/* PAYMENT MODE */}
+
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      sx={{
+                        mt: 2
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "#77728D"
+                        }}
+                      >
+                        {intl.formatMessage({
+                          id: "salaries-payment-mode"
+                        })}
+                      </Typography>
+
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "#2F2A4A",
+                          fontWeight: 600
+                        }}
+                      >
+                        {getPaymentModeLabel(
+                          payment_mode
+                        )}
+                      </Typography>
+                    </Stack>
+
                     {/* PERIOD */}
 
                     <Box
                       sx={{
-                        mt: 2.5,
+                        mt: 2,
                         p: 2,
                         bgcolor:
                           "rgba(255, 255, 255, 0.70)",
@@ -444,6 +498,7 @@ export default function WorkRelations() {
                       <Stack
                         direction="row"
                         justifyContent="space-between"
+                        spacing={2}
                       >
                         <Box>
                           <Typography
@@ -498,30 +553,48 @@ export default function WorkRelations() {
                       }}
                     >
                       <IconButton
+                        aria-label={intl.formatMessage({
+                          id: "work-relations-view"
+                        })}
                         onClick={() =>
                           navigate(
                             `/view-work-relation/${id}`
                           )
                         }
+                        sx={{
+                          backgroundColor: "#EFEFFF"
+                        }}
                       >
                         <VisibilityIcon />
                       </IconButton>
 
                       <IconButton
+                        aria-label={intl.formatMessage({
+                          id: "work-relations-edit"
+                        })}
                         onClick={() =>
                           navigate(
                             `/edit-work-relation/${id}`
                           )
                         }
+                        sx={{
+                          backgroundColor: "#EFEFFF"
+                        }}
                       >
                         <EditIcon />
                       </IconButton>
 
                       <IconButton
+                        aria-label={intl.formatMessage({
+                          id: "work-relations-delete"
+                        })}
                         disabled={deleting}
                         onClick={() =>
                           requestDelete(id)
                         }
+                        sx={{
+                          backgroundColor: "#FFF0F0"
+                        }}
                       >
                         <DeleteIcon
                           sx={{
@@ -568,9 +641,7 @@ export default function WorkRelations() {
             : "default"
         }
         onConfirm={() => {
-          if (!dialogType) {
-            return;
-          }
+          if (!dialogType) return;
 
           dialogMap.delete.getAction(
             closeDialog,

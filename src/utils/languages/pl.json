@@ -415,6 +415,9 @@
   "work-relations-no-results-description": "Nie masz jeszcze żadnego zapisanego stosunku pracy.",
   "work-relations-load-all-failed": "Nie udało się pobrać stosunków pracy.",
 
+  "work-relations-payment-mode-required": "Sposób rozliczenia jest wymagany.",
+  "work-relations-invalid-payment-mode": "Wybrany sposób rozliczenia nie jest dostępny dla tego rodzaju umowy.",
+
   "dialog-create-work-relation-title": "Dodać stosunek pracy?",
   "dialog-create-work-relation-message": "Czy na pewno chcesz dodać ten stosunek pracy?",
 

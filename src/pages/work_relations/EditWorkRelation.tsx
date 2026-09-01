@@ -42,17 +42,30 @@ import {
   updateWorkRelation
 } from "../../api/work_relations";
 
+// types
+
 import type {
+  PaymentMode,
   WorkContract,
   WorkRelationPayload
 } from "../../types/workRelation";
 
 type DialogType = "save";
 
+const PAYMENT_MODE_OPTIONS: Record<
+  WorkContract,
+  PaymentMode[]
+> = {
+  uop: ["monthly", "hourly"],
+  mandate: ["hourly"],
+  uod: ["fixed"]
+};
+
 const INITIAL_FORM: WorkRelationPayload = {
   name: "",
   employerName: "",
   contractType: "uop",
+  paymentMode: "monthly",
   startDate: "",
   endDate: null
 };
@@ -106,6 +119,8 @@ export default function EditWorkRelation() {
               relation.employer_name ?? "",
             contractType:
               relation.contract_type,
+            paymentMode:
+              relation.payment_mode,
             startDate:
               relation.start_date,
             endDate:
@@ -155,6 +170,30 @@ export default function EditWorkRelation() {
     }
   };
 
+  const updateContractType = (
+    contractType: WorkContract
+  ) => {
+    setForm((prev) => {
+      const availablePaymentModes =
+        PAYMENT_MODE_OPTIONS[contractType];
+
+      const paymentMode =
+        availablePaymentModes.includes(prev.paymentMode)
+          ? prev.paymentMode
+          : availablePaymentModes[0];
+
+      return {
+        ...prev,
+        contractType,
+        paymentMode
+      };
+    });
+
+    if (validationError) {
+      setValidationError(null);
+    }
+  };
+
   const validateForm = () => {
     if (!form.name.trim()) {
       return intl.formatMessage({
@@ -165,6 +204,22 @@ export default function EditWorkRelation() {
     if (!form.startDate.trim()) {
       return intl.formatMessage({
         id: "work-relations-start-date-required"
+      });
+    }
+
+    if (!form.paymentMode) {
+      return intl.formatMessage({
+        id: "work-relations-payment-mode-required"
+      });
+    }
+
+    if (
+      !PAYMENT_MODE_OPTIONS[
+        form.contractType
+      ].includes(form.paymentMode)
+    ) {
+      return intl.formatMessage({
+        id: "work-relations-invalid-payment-mode"
       });
     }
 
@@ -194,6 +249,7 @@ export default function EditWorkRelation() {
         employerName:
           form.employerName?.trim() || null,
         contractType: form.contractType,
+        paymentMode: form.paymentMode,
         startDate: form.startDate,
         endDate: form.endDate || null
       };
@@ -245,7 +301,10 @@ export default function EditWorkRelation() {
     setDialogType("save");
   };
 
-  const dialogMap: Record<DialogType, DialogConfig> = {
+  const dialogMap: Record<
+    DialogType,
+    DialogConfig
+  > = {
     save: {
       variant: "success" as const,
       title: (
@@ -296,12 +355,7 @@ export default function EditWorkRelation() {
             maxWidth: 900,
             bgcolor: "#FFFFFF",
             borderRadius: 5,
-            boxShadow:
-              "0 10px 30px rgba(47, 42, 74, 0.10)",
-            p: {
-              xs: 3,
-              sm: 4
-            },
+            p: 4,
             textAlign: "center"
           }}
         >
@@ -492,40 +546,77 @@ export default function EditWorkRelation() {
                   })}
                 </Typography>
 
-                <TextField
-                  select
-                  label={intl.formatMessage({
-                    id: "work-relations-contract-type"
-                  })}
-                  value={form.contractType}
-                  onChange={(e) =>
-                    updateField(
-                      "contractType",
-                      e.target.value as WorkContract
-                    )
-                  }
-                  disabled={saving}
-                  fullWidth
-                  required
+                <Stack
+                  direction={{
+                    xs: "column",
+                    sm: "row"
+                  }}
+                  spacing={2}
                 >
-                  <MenuItem value="uop">
-                    {intl.formatMessage({
-                      id: "salaries-contract-uop"
+                  <TextField
+                    select
+                    label={intl.formatMessage({
+                      id: "work-relations-contract-type"
                     })}
-                  </MenuItem>
+                    value={form.contractType}
+                    onChange={(e) =>
+                      updateContractType(
+                        e.target.value as WorkContract
+                      )
+                    }
+                    disabled={saving}
+                    fullWidth
+                    required
+                  >
+                    <MenuItem value="uop">
+                      {intl.formatMessage({
+                        id: "salaries-contract-uop"
+                      })}
+                    </MenuItem>
 
-                  <MenuItem value="mandate">
-                    {intl.formatMessage({
-                      id: "salaries-contract-mandate"
-                    })}
-                  </MenuItem>
+                    <MenuItem value="mandate">
+                      {intl.formatMessage({
+                        id: "salaries-contract-mandate"
+                      })}
+                    </MenuItem>
 
-                  <MenuItem value="uod">
-                    {intl.formatMessage({
-                      id: "salaries-contract-uod"
+                    <MenuItem value="uod">
+                      {intl.formatMessage({
+                        id: "salaries-contract-uod"
+                      })}
+                    </MenuItem>
+                  </TextField>
+
+                  <TextField
+                    select
+                    label={intl.formatMessage({
+                      id: "salaries-payment-mode"
                     })}
-                  </MenuItem>
-                </TextField>
+                    value={form.paymentMode}
+                    onChange={(e) =>
+                      updateField(
+                        "paymentMode",
+                        e.target.value as PaymentMode
+                      )
+                    }
+                    disabled={saving}
+                    fullWidth
+                    required
+                  >
+                    {PAYMENT_MODE_OPTIONS[
+                      form.contractType
+                    ].map((paymentMode) => (
+                      <MenuItem
+                        key={paymentMode}
+                        value={paymentMode}
+                      >
+                        {intl.formatMessage({
+                          id: `salaries-payment-mode-${paymentMode}`
+                        })}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Stack>
               </Box>
 
               {/* DATES */}
@@ -613,8 +704,6 @@ export default function EditWorkRelation() {
                 </Typography>
               </Box>
 
-              {/* ERROR */}
-
               {validationError && (
                 <Box
                   sx={{
@@ -636,8 +725,6 @@ export default function EditWorkRelation() {
                 </Box>
               )}
 
-              {/* ACTIONS */}
-
               <Stack
                 direction={{
                   xs: "column-reverse",
@@ -655,12 +742,6 @@ export default function EditWorkRelation() {
                       `/view-work-relation/${id}`
                     )
                   }
-                  sx={{
-                    minWidth: 130,
-                    borderRadius: 2.5,
-                    textTransform: "none",
-                    fontWeight: 600
-                  }}
                 >
                   {intl.formatMessage({
                     id: "salaries-cancel"
@@ -674,9 +755,6 @@ export default function EditWorkRelation() {
                   sx={{
                     minWidth: 170,
                     minHeight: 42,
-                    borderRadius: 2.5,
-                    textTransform: "none",
-                    fontWeight: 600,
                     boxShadow: "none"
                   }}
                 >
@@ -728,9 +806,7 @@ export default function EditWorkRelation() {
             : "default"
         }
         onConfirm={() => {
-          if (!dialogType) {
-            return;
-          }
+          if (!dialogType) return;
 
           dialogMap.save.getAction(
             closeDialog,

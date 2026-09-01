@@ -46,6 +46,8 @@ import {
   getWorkRelation
 } from "../../api/work_relations";
 
+// types
+
 import type {
   WorkRelation
 } from "../../types/workRelation";
@@ -154,6 +156,14 @@ export default function ViewWorkRelation() {
   ) => {
     return intl.formatMessage({
       id: `salaries-contract-${contractType}`
+    });
+  };
+
+  const getPaymentModeLabel = (
+    paymentMode: WorkRelation["payment_mode"]
+  ) => {
+    return intl.formatMessage({
+      id: `salaries-payment-mode-${paymentMode}`
     });
   };
 
@@ -284,7 +294,6 @@ export default function ViewWorkRelation() {
           </Typography>
 
           <Button
-            type="button"
             variant="contained"
             onClick={() =>
               navigate("/work-relations")
@@ -398,6 +407,8 @@ export default function ViewWorkRelation() {
             }}
           >
             <Stack spacing={4}>
+              {/* BASIC INFO */}
+
               <Box>
                 <Typography
                   variant="subtitle1"
@@ -416,6 +427,7 @@ export default function ViewWorkRelation() {
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <Box
                       sx={{
+                        height: "100%",
                         p: 2,
                         bgcolor: "#F8F7FF",
                         borderRadius: 3
@@ -430,9 +442,7 @@ export default function ViewWorkRelation() {
                         })}
                       </Typography>
 
-                      <Typography
-                        fontWeight={600}
-                      >
+                      <Typography fontWeight={600}>
                         {workRelation.name}
                       </Typography>
                     </Box>
@@ -441,6 +451,7 @@ export default function ViewWorkRelation() {
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <Box
                       sx={{
+                        height: "100%",
                         p: 2,
                         bgcolor: "#F8F7FF",
                         borderRadius: 3
@@ -455,9 +466,7 @@ export default function ViewWorkRelation() {
                         })}
                       </Typography>
 
-                      <Typography
-                        fontWeight={600}
-                      >
+                      <Typography fontWeight={600}>
                         {workRelation.employer_name ||
                           intl.formatMessage({
                             id: "work-relations-not-provided"
@@ -465,8 +474,62 @@ export default function ViewWorkRelation() {
                       </Typography>
                     </Box>
                   </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Box
+                      sx={{
+                        height: "100%",
+                        p: 2,
+                        bgcolor: "#F8F7FF",
+                        borderRadius: 3
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                      >
+                        {intl.formatMessage({
+                          id: "work-relations-contract-type"
+                        })}
+                      </Typography>
+
+                      <Typography fontWeight={600}>
+                        {getContractLabel(
+                          workRelation.contract_type
+                        )}
+                      </Typography>
+                    </Box>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Box
+                      sx={{
+                        height: "100%",
+                        p: 2,
+                        bgcolor: "#F8F7FF",
+                        borderRadius: 3
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                      >
+                        {intl.formatMessage({
+                          id: "salaries-payment-mode"
+                        })}
+                      </Typography>
+
+                      <Typography fontWeight={600}>
+                        {getPaymentModeLabel(
+                          workRelation.payment_mode
+                        )}
+                      </Typography>
+                    </Box>
+                  </Grid>
                 </Grid>
               </Box>
+
+              {/* PERIOD */}
 
               <Box>
                 <Typography
@@ -500,9 +563,7 @@ export default function ViewWorkRelation() {
                         })}
                       </Typography>
 
-                      <Typography
-                        fontWeight={600}
-                      >
+                      <Typography fontWeight={600}>
                         {formatDate(
                           workRelation.start_date
                         )}
@@ -527,9 +588,7 @@ export default function ViewWorkRelation() {
                         })}
                       </Typography>
 
-                      <Typography
-                        fontWeight={600}
-                      >
+                      <Typography fontWeight={600}>
                         {workRelation.end_date
                           ? formatDate(
                               workRelation.end_date
@@ -542,6 +601,8 @@ export default function ViewWorkRelation() {
                   </Grid>
                 </Grid>
               </Box>
+
+              {/* ADDITIONAL INFO */}
 
               <Box>
                 <Typography
@@ -611,6 +672,8 @@ export default function ViewWorkRelation() {
               </Box>
 
               <Divider />
+
+              {/* ACTIONS */}
 
               <Stack
                 direction={{
@@ -705,9 +768,7 @@ export default function ViewWorkRelation() {
             : "default"
         }
         onConfirm={() => {
-          if (!dialogType) {
-            return;
-          }
+          if (!dialogType) return;
 
           dialogMap.delete.getAction(
             closeDialog,
