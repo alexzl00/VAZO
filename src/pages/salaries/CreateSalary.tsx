@@ -13,8 +13,7 @@ import { useIntl } from 'react-intl';
 import SalaryForm from "../../sections/salary-calculator-form/SalaryCalculatorForm";
 
 // utils
-import { getWorkedDaysInMonth } from '../../utils/monthHelperFunc';
-import { getPolishHolidays } from "../../utils/getHolidays";
+import { getNominalWorkingHoursInMonth } from '../../utils/workingTimeHelper';
 import { calculateTaxesContractOfMandate, calculateTaxesUoP, calculateTaxesUoD } from '../../utils/workTypeSalaryCalc';
 
 // supabase api
@@ -81,10 +80,15 @@ export const initialSalaryFormValues: SalaryCalculatorValues = {
   deductionAfterTax: 0,
   additionAfterTax: 0,
 
+  // Stosunek pracy / okres zatrudnienia
+  workRelationId: null,
+  employmentStartDate: null,
+  employmentEndDate: null,
+
   // Kalendarz i norma czasu pracy
   year: now.getFullYear(),
   month: now.getMonth() + 1,
-  workingHours: getWorkedDaysInMonth(now.getFullYear(), now.getMonth(), [], [], [])*8,
+  workingHours: getNominalWorkingHoursInMonth(now.getFullYear(), now.getMonth()),
 
   // Stawka i premie
   workRateType: 'uop_monthly',
@@ -124,7 +128,6 @@ export const initialSalaryFormValues: SalaryCalculatorValues = {
   reason: null
 };
 
-console.log(getPolishHolidays(now.getFullYear()));
 
 export default function CreateSalaryPage() {
 

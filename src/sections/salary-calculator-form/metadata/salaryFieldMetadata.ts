@@ -29,11 +29,11 @@ export type SalaryFieldValidation = {
   min?: number;
   max?: number;
   maxField?: keyof SalaryCalculatorValues;
-  typeError?: string;
-  requiredMessage?: string;
-  minMessage?: string;
-  maxMessage?: string;
-  maxFieldMessage?: string;
+  typeErrorId?: string;
+  requiredMessageId?: string;
+  minMessageId?: string;
+  maxMessageId?: string;
+  maxFieldMessageId?: string;
 };
 
 export type SalaryFieldValue =
@@ -69,6 +69,11 @@ export type SalaryFieldConfig = {
 
   validation?: SalaryFieldValidation;
 };
+
+export type SalaryValidationMessageFormatter = (
+  id: string,
+  values?: Record<string, string | number>,
+) => string;
 
 export const isSalaryFieldVisible = (
   config: SalaryFieldConfig,
@@ -130,15 +135,21 @@ export const applySalaryFieldDefaults = (
   return normalized;
 };
 
-const buildFieldSchema = (config: SalaryFieldConfig): Yup.AnySchema => {
+const buildFieldSchema = (
+  config: SalaryFieldConfig,
+  formatMessage: SalaryValidationMessageFormatter,
+): Yup.AnySchema => {
   const validation = config.validation ?? {};
   const required = validation.required ?? false;
+
+  const requiredMessage = () =>
+    formatMessage(validation.requiredMessageId ?? 'validation-required');
 
   if (config.type === 'checkbox') {
     let schema = Yup.boolean();
 
     if (required) {
-      schema = schema.required(validation.requiredMessage ?? 'Required');
+      schema = schema.required(requiredMessage());
     }
 
     return schema;
@@ -146,32 +157,41 @@ const buildFieldSchema = (config: SalaryFieldConfig): Yup.AnySchema => {
 
   if (config.type === 'number') {
     let schema = Yup.number().typeError(
-      validation.typeError ?? 'Must be a number',
+      formatMessage(validation.typeErrorId ?? 'validation-number-invalid'),
     );
 
     if (validation.min !== undefined) {
       schema = schema.min(
         validation.min,
-        validation.minMessage ?? `Must be >= ${validation.min}`,
+        formatMessage(
+          validation.minMessageId ?? 'validation-number-min',
+          { min: validation.min },
+        ),
       );
     }
 
     if (validation.max !== undefined) {
       schema = schema.max(
         validation.max,
-        validation.maxMessage ?? `Must be <= ${validation.max}`,
+        formatMessage(
+          validation.maxMessageId ?? 'validation-number-max',
+          { max: validation.max },
+        ),
       );
     }
 
     if (validation.maxField !== undefined) {
       schema = schema.max(
         Yup.ref(String(validation.maxField)),
-        validation.maxFieldMessage ?? `Cannot exceed ${String(validation.maxField)}`,
+        formatMessage(
+          validation.maxFieldMessageId ?? 'validation-number-max-field',
+          { field: String(validation.maxField) },
+        ),
       );
     }
 
     if (required) {
-      schema = schema.required(validation.requiredMessage ?? 'Required');
+      schema = schema.required(requiredMessage());
     }
 
     return schema;
@@ -185,7 +205,7 @@ const buildFieldSchema = (config: SalaryFieldConfig): Yup.AnySchema => {
   }
 
   if (required) {
-    schema = schema.required(validation.requiredMessage ?? 'Required');
+    schema = schema.required(requiredMessage());
   }
 
   return schema;
@@ -193,10 +213,11 @@ const buildFieldSchema = (config: SalaryFieldConfig): Yup.AnySchema => {
 
 export const buildSalaryFieldValidationShape = (
   configs: SalaryFieldConfig[],
+  formatMessage: SalaryValidationMessageFormatter,
 ): Partial<Record<keyof SalaryCalculatorValues, Yup.AnySchema>> => {
   return configs.reduce<Partial<Record<keyof SalaryCalculatorValues, Yup.AnySchema>>>(
     (shape, config) => {
-      shape[config.name] = buildFieldSchema(config);
+      shape[config.name] = buildFieldSchema(config, formatMessage);
       return shape;
     },
     {},

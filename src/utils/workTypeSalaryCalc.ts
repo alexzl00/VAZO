@@ -1,15 +1,45 @@
-import { countDays, getWorkedDaysInMonth } from '../utils/monthHelperFunc';
+import { countDaysWithinPeriod } from '../utils/monthHelperFunc';
+import {
+  getWorkedDaysInMonthWithPolishHolidays,
+  getWorkingHoursOutsideEmploymentPeriod,
+} from '../utils/workingTimeHelper';
 import type {
   Pit0Relief,
   SalaryBonus,
   SalaryCalculatorValues,
 } from '../types/salaryCalculator';
 
+export type SalaryMessageValues = Record<string, string | number>;
+
+export type SalaryCalculationMessage = {
+  id: string;
+  values?: SalaryMessageValues;
+};
+
+export class SalaryCalculationError extends Error {
+  id: string;
+  values?: SalaryMessageValues;
+
+  constructor(id: string, values?: SalaryMessageValues) {
+    super(id);
+    this.name = 'SalaryCalculationError';
+    this.id = id;
+    this.values = values;
+  }
+}
+
 export type SalaryCalculationResult = {
   fullSalaryBrutto: number;
 
   // earnings
   workDaysPayment?: number;
+  employmentReduction?: number;
+  employmentExcludedWorkingHours?: number;
+  l4Reduction?: number;
+  leaveReduction?: number;
+  employmentPeriodStart?: string | null;
+  employmentPeriodEnd?: string | null;
+  workRateType?: SalaryCalculatorValues['workRateType'];
   l4Payment?: number;
   employerSickPay?: number;
   sicknessBenefit?: number;
@@ -63,7 +93,7 @@ export type SalaryCalculationResult = {
   turnOfDayHours?: number;
   nightWorkAllowance?: number;
 
-  warnings?: string[];
+  warnings?: SalaryCalculationMessage[];
 
   yearToDate?: {
     taxableIncome: number;
@@ -150,9 +180,13 @@ const getBonusTotals = (values: SalaryCalculatorValues) => {
 };
 
 const assertSupportedTaxYear = (values: SalaryCalculatorValues) => {
-  if (values.year !== taxes.year) {
-    throw new Error(
-      `Tax rules for ${values.year} are not configured. This calculator currently contains verified rules for ${taxes.year}.`,
+  if (values.year !== taxes.year && values.year >= 1000) {
+    throw new SalaryCalculationError(
+      'salary-calculation-unsupported-tax-year',
+      {
+        year: values.year,
+        supportedYear: taxes.year,
+      },
     );
   }
 };
@@ -354,7 +388,7 @@ const calculatePpk = (
   enabled: boolean,
   base: number,
   values: SalaryCalculatorValues,
-  warnings: string[],
+  warnings: SalaryCalculationMessage[],
 ) => {
   if (!enabled || base <= 0) {
     return { ppkBase: 0, ppkEmployee: 0, ppkEmployer: 0 };
@@ -364,17 +398,21 @@ const calculatePpk = (
   const employerRate = values.ppkEmployerRate ?? taxes.ppkEmployerBasic;
 
   if (employeeRate < 0.5 || employeeRate > 4) {
-    warnings.push('PPK employee rate should be between 0.5% and 4%.');
+    warnings.push({ id: 'salary-warning-ppk-employee-rate-range' });
   }
 
   if (employerRate < 1.5 || employerRate > 4) {
-    warnings.push('PPK employer rate should be between 1.5% and 4%.');
+    warnings.push({ id: 'salary-warning-ppk-employer-rate-range' });
   }
 
   if (employeeRate < 2 && base > taxes.reducedPpkMonthlyIncomeLimit) {
-    warnings.push(
-      `Reduced PPK rate below 2% normally requires total monthly remuneration not to exceed ${taxes.reducedPpkMonthlyIncomeLimit.toFixed(2)} zł in 2026.`,
-    );
+    warnings.push({
+      id: 'salary-warning-ppk-reduced-rate-income-limit',
+      values: {
+        limit: taxes.reducedPpkMonthlyIncomeLimit.toFixed(2),
+        year: taxes.year,
+      },
+    });
   }
 
   return {
@@ -444,7 +482,7 @@ export const calculateTaxesUoD = (
 ): SalaryCalculationResult => {
   assertSupportedTaxYear(values);
 
-  const warnings: string[] = [];
+  const warnings: SalaryCalculationMessage[] = [];
   const {
     bonusTotal,
     cashBonusTotal,
@@ -510,9 +548,10 @@ export const calculateTaxesUoD = (
 
   if (lumpSum) {
     if (fullSalaryBrutto > 200) {
-      warnings.push(
-        'The <=200 zł lump-sum PIT branch is enabled, but gross remuneration exceeds 200 zł.',
-      );
+      warnings.push({
+        id: 'salary-warning-small-contract-lump-sum-over-limit',
+        values: { limit: 200 },
+      });
     }
 
     pitTax = roundPln(
@@ -601,6 +640,7 @@ export const calculateTaxesUoD = (
     }),
 
     warnings,
+    workRateType: values.workRateType,
     calculationType: 'uod_fixed',
   };
 };
@@ -610,7 +650,7 @@ export const calculateTaxesContractOfMandate = (
 ): SalaryCalculationResult => {
   assertSupportedTaxYear(values);
 
-  const warnings: string[] = [];
+  const warnings: SalaryCalculationMessage[] = [];
   const {
     bonusTotal,
     cashBonusTotal,
@@ -622,7 +662,11 @@ export const calculateTaxesContractOfMandate = (
       + bonusTotal,
   );
 
-  const l4DaysCount = countDays(values.l4);
+  const l4DaysCount = countDaysWithinPeriod(
+    values.l4,
+    values.employmentStartDate,
+    values.employmentEndDate,
+  );
 
   const treatedAsEmployee = Boolean(
     values.isOwnEmployerContract || values.performedForOwnEmployer,
@@ -664,17 +708,18 @@ export const calculateTaxesContractOfMandate = (
 
   if (l4DaysCount > 0) {
     if (!values.mandateVoluntarySicknessInsurance) {
-      warnings.push(
-        'L4 on UZ requires sickness-insurance coverage. No sickness benefit was added.',
-      );
+      warnings.push({
+        id: 'salary-warning-mandate-l4-no-sickness-insurance',
+      });
     } else if (!voluntarySicknessInsuranceActive) {
-      warnings.push(
-        'Voluntary sickness insurance cannot be applied to this UZ because compulsory pension/disability insurance is not present for this title.',
-      );
+      warnings.push({
+        id: 'salary-warning-mandate-voluntary-sickness-unavailable',
+      });
     } else if (!values.mandateSicknessBenefitEligible) {
-      warnings.push(
-        'L4 was entered for UZ, but the right to sickness benefit is not confirmed. Normally voluntary sickness insurance requires a 90-day waiting period, unless an exception or qualifying previous insurance period applies.',
-      );
+      warnings.push({
+        id: 'salary-warning-mandate-sickness-benefit-not-eligible',
+        values: { waitingDays: 90 },
+      });
     } else {
       sicknessBenefit = round2(
         (values.l4Base / 30) * l4DaysCount * 0.8,
@@ -730,9 +775,9 @@ export const calculateTaxesContractOfMandate = (
   );
 
   if (values.ppkEnabled && !ppkAllowedFromThisTitle) {
-    warnings.push(
-      'PPK is not calculated from this UZ because compulsory pension/disability insurance is not present for this title.',
-    );
+    warnings.push({
+      id: 'salary-warning-mandate-ppk-unavailable',
+    });
   }
 
   const employerPpkTaxableContribution =
@@ -766,9 +811,10 @@ export const calculateTaxesContractOfMandate = (
 
   if (lumpSum) {
     if (regularRemunerationBrutto > 200) {
-      warnings.push(
-        'The <=200 zł lump-sum PIT branch is enabled, but gross remuneration exceeds 200 zł.',
-      );
+      warnings.push({
+        id: 'salary-warning-small-contract-lump-sum-over-limit',
+        values: { limit: 200 },
+      });
     }
 
     const contractLumpSumTax = roundPln(
@@ -843,9 +889,14 @@ export const calculateTaxesContractOfMandate = (
   }
 
   if (values.rate < taxes.minimumHourlyRate) {
-    warnings.push(
-      `Entered UZ hourly rate ${values.rate.toFixed(2)} zł is below the 2026 statutory minimum hourly rate of ${taxes.minimumHourlyRate.toFixed(2)} zł. Verify whether the contract is covered by the statutory minimum-rate rules.`,
-    );
+    warnings.push({
+      id: 'salary-warning-mandate-minimum-hourly-rate',
+      values: {
+        rate: values.rate.toFixed(2),
+        minimumRate: taxes.minimumHourlyRate.toFixed(2),
+        year: taxes.year,
+      },
+    });
   }
 
   const netto = round2(
@@ -921,6 +972,7 @@ export const calculateTaxesContractOfMandate = (
     }),
 
     warnings,
+    workRateType: values.workRateType,
     calculationType: 'mandate',
   };
 };
@@ -930,22 +982,28 @@ export const calculateTaxesUoP = (
 ): SalaryCalculationResult => {
   assertSupportedTaxYear(values);
 
-  const warnings: string[] = [];
+  const warnings: SalaryCalculationMessage[] = [];
   const {
     bonusTotal,
     cashBonusTotal,
     nonCashBonusTotal,
   } = getBonusTotals(values);
 
-  const workingDaysInMonth = getWorkedDaysInMonth(
+  const workingDaysInMonth = getWorkedDaysInMonthWithPolishHolidays(
     values.year,
     values.month - 1,
     values.holidays,
     values.l4,
     values.leave,
+    values.employmentStartDate,
+    values.employmentEndDate,
   );
 
-  const l4DaysCount = countDays(values.l4);
+  const l4DaysCount = countDaysWithinPeriod(
+    values.l4,
+    values.employmentStartDate,
+    values.employmentEndDate,
+  );
 
   const employerSickPayLimit =
     values.uopEmployerSickPayLimit ?? 33;
@@ -987,12 +1045,14 @@ export const calculateTaxesUoP = (
     employerSickPay + sicknessBenefit,
   );
 
-  const leaveDaysCount = countDays(
+  const leaveDaysCount = countDaysWithinPeriod(
     values.leave,
+    values.employmentStartDate,
+    values.employmentEndDate,
   );
 
   const allWorkDaysInMonth =
-    getWorkedDaysInMonth(
+    getWorkedDaysInMonthWithPolishHolidays(
       values.year,
       values.month - 1,
       values.holidays,
@@ -1029,24 +1089,52 @@ export const calculateTaxesUoP = (
       ? perHourRaw
       : perHour;
 
+  const employmentExcludedWorkingHours =
+    getWorkingHoursOutsideEmploymentPeriod(
+      values.year,
+      values.month - 1,
+      values.holidays,
+      values.employmentStartDate,
+      values.employmentEndDate,
+    );
+
   let workDaysPayment: number;
+  let leaveReduction = 0;
+  let l4Reduction = 0;
+  let employmentReduction = 0;
 
   if (values.workRateType === 'uop_monthly') {
-    const leaveReduction =
+    leaveReduction =
       allWorkDaysInMonth > 0
-        ? (values.rate / allWorkDaysInMonth)
-          * leaveDaysCount
+        ? round2(
+            (values.rate / allWorkDaysInMonth)
+              * leaveDaysCount,
+          )
         : 0;
 
-    const l4Reduction =
-      (values.rate / 30) * l4DaysCount;
+    l4Reduction = round2(
+      (values.rate / 30) * l4DaysCount,
+    );
+
+    // For starting/ending employment during the month, payroll reduces the
+    // monthly rate using the full monthly working-time norm as the divisor.
+    // Keep the raw division until the final component is rounded; this matches
+    // cases such as 7,500 / 184 * 72 = 2,934.78.
+    employmentReduction =
+      nominalWorkingHours > 0
+        ? round2(
+            (values.rate / nominalWorkingHours)
+              * employmentExcludedWorkingHours,
+          )
+        : 0;
 
     workDaysPayment = round2(
       Math.max(
         0,
         values.rate
           - leaveReduction
-          - l4Reduction,
+          - l4Reduction
+          - employmentReduction,
       ),
     );
   } else {
@@ -1231,6 +1319,13 @@ export const calculateTaxesUoP = (
     fullSalaryBrutto,
 
     workDaysPayment,
+    employmentReduction,
+    employmentExcludedWorkingHours,
+    l4Reduction,
+    leaveReduction,
+    employmentPeriodStart: values.employmentStartDate ?? null,
+    employmentPeriodEnd: values.employmentEndDate ?? null,
+    workRateType: values.workRateType,
 
     l4Payment,
     employerSickPay,

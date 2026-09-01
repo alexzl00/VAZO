@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 // mui
 import {
   Box,
   Button,
   Stack,
-  Alert
+  Alert,
+  CircularProgress,
+  MenuItem,
+  TextField,
+  Typography
 } from '@mui/material';
 
 import FormHelperText from '@mui/material/FormHelperText';
@@ -14,6 +18,7 @@ import { useTheme } from '@mui/material/styles';
 
 // third party
 import { FormattedMessage, useIntl } from 'react-intl';
+import { useNavigate } from 'react-router-dom';
 import {
   Formik,
   Form,
@@ -38,18 +43,27 @@ import TaxChart from '../../components/Calculator/TaxChart';
 
 import EditSalaryCalculation from '../../components/Modals/EditSalaryCalculation';
 import ConfirmActionDialog from '../../components/Modals/ConfirmActionDialog';
+import AuthRequiredDialog from '../../components/Modals/AuthRequiredDialog';
 import AdvancedSalarySettingsDialog from './AdvancedSalarySettingsDialog';
 import SalaryBonusesEditor from './SalaryBonusesEditor';
 
+// auth
+import { useAuth } from '../../auth/AuthContext';
+
+// api
+import { getWorkRelationsForMonth } from '../../api/work_relations';
+
 // utils
 import { MultiRangeMonthPicker } from '../../components/DaysPicker';
-import { isInMonth, isoToDayjsRanges, getWorkedDaysInMonth } from '../../utils/monthHelperFunc';
-import { calculateTaxesUoP, calculateTaxesContractOfMandate, calculateTaxesUoD} from '../../utils/workTypeSalaryCalc';
+import { isInMonth, isoToDayjsRanges } from '../../utils/monthHelperFunc';
+import { getNominalWorkingHoursInMonth } from '../../utils/workingTimeHelper';
+import { calculateTaxesUoP, calculateTaxesContractOfMandate, calculateTaxesUoD, SalaryCalculationError } from '../../utils/workTypeSalaryCalc';
 import type { SalaryCalculationResult } from '../../utils/workTypeSalaryCalc';
 import type { DateRange } from '../../components/DaysPicker';
 
 // types
-import type { SalaryCalculatorValues } from '../../types/salaryCalculator';
+import type { SalaryCalculatorValues, WorkRate } from '../../types/salaryCalculator';
+import type { WorkRelation } from '../../types/workRelation';
 import type { DialogConfig } from '../../components/Modals/ConfirmActionDialog';
 
 
@@ -78,6 +92,372 @@ type LegacySalaryBonusValues = {
   attendanceBonus?: number;
   discretionaryBonus?: number;
   otherBonus?: number;
+};
+
+const getWorkRateTypeFromRelation = (
+  relation: WorkRelation,
+): WorkRate | null => {
+  if (relation.contract_type === 'uop') {
+    if (relation.payment_mode === 'monthly') return 'uop_monthly';
+    if (relation.payment_mode === 'hourly') return 'uop_hourly';
+    return null;
+  }
+
+  if (relation.contract_type === 'mandate') {
+    return relation.payment_mode === 'hourly'
+      ? 'mandate_hourly'
+      : null;
+  }
+
+  if (relation.contract_type === 'uod') {
+    return relation.payment_mode === 'fixed'
+      ? 'uod_fixed'
+      : null;
+  }
+
+  return null;
+};
+
+const getEffectiveEmploymentPeriod = (
+  relation: WorkRelation,
+  year: number,
+  month: number,
+) => {
+  const monthStart = dayjs(
+    `${year}-${String(month).padStart(2, '0')}-01`,
+  );
+  const monthEnd = monthStart.endOf('month');
+
+  const relationStart = dayjs(relation.start_date);
+  const relationEnd = relation.end_date
+    ? dayjs(relation.end_date)
+    : null;
+
+  const effectiveStart = relationStart.isAfter(monthStart, 'day')
+    ? relationStart
+    : monthStart;
+
+  const effectiveEnd = relationEnd && relationEnd.isBefore(monthEnd, 'day')
+    ? relationEnd
+    : monthEnd;
+
+  return {
+    start: effectiveStart.format('YYYY-MM-DD'),
+    end: effectiveEnd.format('YYYY-MM-DD'),
+    isPartialMonth:
+      !effectiveStart.isSame(monthStart, 'day') ||
+      !effectiveEnd.isSame(monthEnd, 'day'),
+  };
+};
+
+type WorkRelationSelectorProps = {
+  formMode: 'create' | 'update';
+};
+
+const WorkRelationSelector = ({ formMode }: WorkRelationSelectorProps) => {
+  const intl = useIntl();
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const { values, setFieldValue } = useFormikContext<SalaryCalculatorValues>();
+
+  const [relations, setRelations] = useState<WorkRelation[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+
+  const clearRelationContext = useCallback(() => {
+    setFieldValue('workRelationId', null, false);
+    setFieldValue('employmentStartDate', null, false);
+    setFieldValue('employmentEndDate', null, false);
+  }, [setFieldValue]);
+
+  const applyRelation = useCallback((relation: WorkRelation) => {
+    const workRateType = getWorkRateTypeFromRelation(relation);
+
+    if (!workRateType) {
+      setLoadError(true);
+      clearRelationContext();
+      return;
+    }
+
+    const period = getEffectiveEmploymentPeriod(
+      relation,
+      values.year,
+      values.month,
+    );
+
+    setFieldValue('workRelationId', relation.id, false);
+    setFieldValue('employmentStartDate', period.start, false);
+    setFieldValue('employmentEndDate', period.end, false);
+    setFieldValue('workRateType', workRateType, false);
+  }, [
+    clearRelationContext,
+    setFieldValue,
+    values.month,
+    values.year,
+  ]);
+
+  useEffect(() => {
+    if (formMode !== 'create' || authLoading) return;
+
+    if (!user) {
+      setRelations([]);
+      setLoadError(false);
+      clearRelationContext();
+      return;
+    }
+
+    let active = true;
+
+    const loadRelations = async () => {
+      try {
+        setLoading(true);
+        setLoadError(false);
+
+        const data = await getWorkRelationsForMonth(
+          values.year,
+          values.month,
+        );
+
+        if (!active) return;
+
+        setRelations(data);
+
+        if (data.length === 0) {
+          clearRelationContext();
+          return;
+        }
+
+        const currentRelation = data.find(
+          relation => relation.id === values.workRelationId,
+        );
+
+        if (currentRelation) {
+          applyRelation(currentRelation);
+          return;
+        }
+
+        if (data.length === 1) {
+          applyRelation(data[0]);
+          return;
+        }
+
+        clearRelationContext();
+      } catch (error) {
+        console.error(error);
+
+        if (!active) return;
+
+        setRelations([]);
+        setLoadError(true);
+        clearRelationContext();
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadRelations();
+
+    return () => {
+      active = false;
+    };
+  }, [
+    applyRelation,
+    authLoading,
+    clearRelationContext,
+    formMode,
+    user,
+    values.month,
+    values.workRelationId,
+    values.year,
+  ]);
+
+  if (formMode !== 'create' || authLoading || !user) {
+    return null;
+  }
+
+  const selectedRelation = relations.find(
+    relation => relation.id === values.workRelationId,
+  );
+
+  const selectedPeriod = selectedRelation
+    ? getEffectiveEmploymentPeriod(
+        selectedRelation,
+        values.year,
+        values.month,
+      )
+    : null;
+
+  return (
+    <Stack
+      spacing={1.5}
+      sx={{
+        mb: 3,
+        width: '320px',
+        maxWidth: '100%',
+        minWidth: 0,
+        mx: 'auto',
+      }}
+    >
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
+          <CircularProgress size={24} />
+        </Box>
+      )}
+
+      {!loading && loadError && (
+        <Alert severity="error">
+          {intl.formatMessage({
+            id: 'salary-work-relation-load-failed',
+            defaultMessage: 'Nie udało się pobrać stosunków pracy dla wybranego miesiąca.',
+          })}
+        </Alert>
+      )}
+
+      {!loading && !loadError && relations.length === 0 && (
+        <Alert
+          severity="warning"
+          sx={{
+            width: '100%',
+            minWidth: 0,
+            '& .MuiAlert-message': {
+              width: '100%',
+              minWidth: 0,
+              overflowWrap: 'anywhere',
+            },
+          }}
+        >
+          <Stack spacing={1.5} sx={{ width: '100%', minWidth: 0 }}>
+            <Box>
+              <Typography component="div" fontWeight={600} mb={0.5}>
+                <FormattedMessage
+                  id="salary-work-relation-missing-title"
+                  defaultMessage="Brak stosunku pracy dla wybranego miesiąca"
+                />
+              </Typography>
+              <FormattedMessage
+                id="salary-work-relation-missing-description"
+                defaultMessage="Możesz korzystać z kalkulatora, ale nie zapiszesz wynagrodzenia, dopóki nie dodasz stosunku pracy obejmującego wybrany miesiąc."
+              />
+            </Box>
+
+            <Button
+              variant="outlined"
+              color="inherit"
+              size="small"
+              sx={{
+                alignSelf: 'flex-start',
+                maxWidth: '100%',
+                whiteSpace: 'normal',
+              }}
+              onClick={() => navigate('/create-work-relation')}
+            >
+              <FormattedMessage
+                id="salary-work-relation-create"
+                defaultMessage="Dodaj stosunek pracy"
+              />
+            </Button>
+          </Stack>
+        </Alert>
+      )}
+
+      {!loading && !loadError && relations.length > 0 && (
+        <>
+          <TextField
+            select
+            fullWidth
+            size="small"
+            sx={{
+              minWidth: 0,
+              '& .MuiSelect-select': {
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              },
+            }}
+            label={intl.formatMessage({
+              id: 'salary-work-relation-label',
+              defaultMessage: 'Stosunek pracy',
+            })}
+            value={values.workRelationId ?? ''}
+            onChange={(event) => {
+              const relation = relations.find(
+                item => item.id === event.target.value,
+              );
+
+              if (relation) {
+                applyRelation(relation);
+              } else {
+                clearRelationContext();
+              }
+            }}
+          >
+            {relations.length > 1 && (
+              <MenuItem value="">
+                <FormattedMessage
+                  id="salary-work-relation-placeholder"
+                  defaultMessage="Wybierz stosunek pracy"
+                />
+              </MenuItem>
+            )}
+
+            {relations.map(relation => (
+              <MenuItem
+                key={relation.id}
+                value={relation.id}
+                sx={{ maxWidth: 320, minWidth: 0 }}
+              >
+                <Box sx={{ minWidth: 0, maxWidth: '100%' }}>
+                  <Typography
+                    fontSize={14}
+                    fontWeight={600}
+                    noWrap
+                  >
+                    {relation.name}
+                  </Typography>
+                  {relation.employer_name && (
+                    <Typography
+                      fontSize={12}
+                      color="text.secondary"
+                      noWrap
+                    >
+                      {relation.employer_name}
+                    </Typography>
+                  )}
+                </Box>
+              </MenuItem>
+            ))}
+          </TextField>
+
+          {relations.length > 1 && !selectedRelation && (
+            <Alert severity="info">
+              <FormattedMessage
+                id="salary-work-relation-select-to-save"
+                defaultMessage="Wybierz stosunek pracy, aby móc zapisać to wynagrodzenie. Do tego czasu możesz nadal korzystać z kalkulatora."
+              />
+            </Alert>
+          )}
+
+          {selectedRelation && selectedPeriod?.isPartialMonth && (
+            <Alert severity="info">
+              {intl.formatMessage(
+                {
+                  id: 'salary-work-relation-partial-month',
+                  defaultMessage:
+                    'Wybrany stosunek pracy nie obejmuje całego miesiąca. Kalkulator uwzględni okres od {start} do {end}.',
+                },
+                {
+                  start: dayjs(selectedPeriod.start).format('DD.MM.YYYY'),
+                  end: dayjs(selectedPeriod.end).format('DD.MM.YYYY'),
+                },
+              )}
+            </Alert>
+          )}
+        </>
+      )}
+    </Stack>
+  );
 };
 
 const normalizeSalaryValues = (
@@ -119,14 +499,32 @@ const normalizeSalaryValues = (
 };
 
 
-const positiveNumber = () =>
+const relationAwareRateFieldConfigs = rateFieldConfigs.map((config) =>
+  config.name === 'workRateType'
+    ? {
+        ...config,
+        disabledWhen: (
+          values: SalaryCalculatorValues,
+          context: { formMode: 'create' | 'update' },
+        ) => context.formMode === 'update' || Boolean(values.workRelationId),
+      }
+    : config,
+);
+
+type ValidationMessageFormatter = (
+  id: string,
+  values?: Record<string, string | number>,
+) => string;
+
+const positiveNumber = (formatMessage: ValidationMessageFormatter) =>
   Yup.number()
-    .typeError('Must be a number')
-    .required('Required')
-    .test('positive', 'Must be >= 0', (value) => {
-      // value can be number or NaN
-      return typeof value === 'number' && !isNaN(value) && value >= 0;
-    });
+    .typeError(formatMessage('validation-number-invalid'))
+    .required(formatMessage('validation-required'))
+    .test(
+      'positive',
+      formatMessage('validation-number-min-zero'),
+      (value) => typeof value === 'number' && !isNaN(value) && value >= 0,
+    );
 
 const SalaryTabAvailabilityGuard = ({
   activeTab,
@@ -162,134 +560,170 @@ const SalaryTabAvailabilityGuard = ({
   return null;
 };
 
-const SalarySchema = Yup.object().shape({
-  // Legacy fields remain because older saved records still contain them.
-  // They are not rendered directly by metadata.
-  taxRegime: Yup.mixed<0 | 12>().oneOf([0, 12]).required(),
-  pit2: Yup.boolean().required(),
+const buildSalarySchema = (formatMessage: ValidationMessageFormatter) =>
+  Yup.object().shape({
+    // Legacy fields remain because older saved records still contain them.
+    // They are not rendered directly by metadata.
+    taxRegime: Yup.mixed<0 | 12>()
+      .oneOf([0, 12])
+      .required(formatMessage('validation-required')),
+    pit2: Yup.boolean().required(formatMessage('validation-required')),
 
-  // All simple input validation is generated from the same metadata
-  // that renders those fields.
-  ...buildSalaryFieldValidationShape(metadataDrivenFieldConfigs),
+    // All simple input validation is generated from the same metadata
+    // that renders those fields.
+    ...buildSalaryFieldValidationShape(metadataDrivenFieldConfigs, formatMessage),
 
-  bonuses: Yup.array()
-    .of(
+    bonuses: Yup.array()
+      .of(
+        Yup.object().shape({
+          id: Yup.string().required(formatMessage('validation-required')),
+          name: Yup.string()
+            .trim()
+            .required(formatMessage('validation-bonus-name-required')),
+          amount: Yup.number()
+            .typeError(formatMessage('validation-number-invalid'))
+            .min(0, formatMessage('validation-number-min-zero'))
+            .required(formatMessage('validation-required')),
+          frequency: Yup.mixed<'monthly' | 'quarterly' | 'annual' | 'oneOff'>()
+            .oneOf(['monthly', 'quarterly', 'annual', 'oneOff'])
+            .required(formatMessage('validation-required')),
+          amountType: Yup.mixed<'fixed' | 'variable'>()
+            .oneOf(['fixed', 'variable'])
+            .notRequired(),
+          sickLeaveTreatment: Yup.mixed<
+            'paidInFull' | 'proportional' | 'nonProportional' | 'notPaid'
+          >()
+            .oneOf(['paidInFull', 'proportional', 'nonProportional', 'notPaid'])
+            .notRequired(),
+        }),
+      )
+      .required(formatMessage('validation-required')),
+
+    year: Yup.number()
+      .typeError(formatMessage('validation-number-invalid'))
+      .required(formatMessage('validation-required'))
+      .min(2000, formatMessage('validation-number-min', { min: 2000 })),
+    month: Yup.number()
+      .typeError(formatMessage('validation-number-invalid'))
+      .required(formatMessage('validation-required'))
+      .min(1, formatMessage('validation-number-min', { min: 1 }))
+      .max(12, formatMessage('validation-number-max', { max: 12 })),
+    workingHours: positiveNumber(formatMessage).min(
+      1,
+      formatMessage('validation-number-min', { min: 1 }),
+    ),
+
+    l4Base: positiveNumber(formatMessage),
+
+    l4: Yup.array().of(
       Yup.object().shape({
-        id: Yup.string().required(),
-        name: Yup.string().trim().required('Bonus name is required'),
-        amount: Yup.number()
-          .typeError('Must be a number')
-          .min(0, 'Must be >= 0')
-          .required('Required'),
-        frequency: Yup.mixed<'monthly' | 'quarterly' | 'annual' | 'oneOff'>()
-          .oneOf(['monthly', 'quarterly', 'annual', 'oneOff'])
-          .required(),
-        amountType: Yup.mixed<'fixed' | 'variable'>()
-          .oneOf(['fixed', 'variable'])
-          .notRequired(),
-        sickLeaveTreatment: Yup.mixed<
-          'paidInFull' | 'proportional' | 'nonProportional' | 'notPaid'
-        >()
-          .oneOf(['paidInFull', 'proportional', 'nonProportional', 'notPaid'])
-          .notRequired(),
+        start: Yup.string().required(formatMessage('validation-required')),
+        end: Yup.string().required(formatMessage('validation-required')),
       }),
-    )
-    .required(),
+    ).test(
+      'l4-in-month',
+      formatMessage('validation-l4-in-month'),
+      function (ranges) {
+        const { year, month } = this.parent;
+        if (!ranges) return true;
+        return ranges.every(r =>
+          isInMonth(r.start, year, month) && isInMonth(r.end, year, month)
+        );
+      },
+    ),
 
-  year: Yup.number().required().min(2000),
-  month: Yup.number().required().min(1).max(12),
-  workingHours: positiveNumber().min(1),
+    leaveBase: positiveNumber(formatMessage),
 
-  l4Base: positiveNumber(),
+    leave: Yup.array().of(
+      Yup.object().shape({
+        start: Yup.string().required(formatMessage('validation-required')),
+        end: Yup.string().required(formatMessage('validation-required')),
+      }),
+    ).test(
+      'leave-in-month',
+      formatMessage('validation-leave-in-month'),
+      function (ranges) {
+        const { year, month } = this.parent;
+        if (!ranges) return true;
+        return ranges.every(r =>
+          isInMonth(r.start, year, month) && isInMonth(r.end, year, month)
+        );
+      },
+    ),
 
-  l4: Yup.array().of(
-    Yup.object().shape({
-      start: Yup.string().required(),
-      end: Yup.string().required(),
-    })
-  ).test('l4-in-month', 'L4 must be within selected month', function (ranges) {
-    const { year, month } = this.parent;
-    if (!ranges) return true;
-    return ranges.every(r =>
-      isInMonth(r.start, year, month) && isInMonth(r.end, year, month)
-    );
-  }),
+    holidays: Yup.array().of(
+      Yup.object().shape({
+        start: Yup.string().required(formatMessage('validation-required')),
+        end: Yup.string().required(formatMessage('validation-required')),
+      }),
+    ).test(
+      'holidays-in-month',
+      formatMessage('validation-holidays-in-month'),
+      function (ranges) {
+        const { year, month } = this.parent;
+        if (!ranges) return true;
+        return ranges.every(r =>
+          isInMonth(r.start, year, month) && isInMonth(r.end, year, month)
+        );
+      },
+    ),
 
-  leaveBase: positiveNumber(),
+    netSalaryOverride: Yup.number()
+      .nullable()
+      .typeError(formatMessage('validation-number-invalid'))
+      .min(0, formatMessage('validation-number-min-zero')),
 
-  leave: Yup.array().of(
-    Yup.object().shape({
-      start: Yup.string().required(),
-      end: Yup.string().required(),
-    })
-  ).test('leave-in-month', 'Leave must be within selected month', function (ranges) {
-    const { year, month } = this.parent;
-    if (!ranges) return true;
-    return ranges.every(r =>
-      isInMonth(r.start, year, month) && isInMonth(r.end, year, month)
-    );
-  }),
+    grossSalaryOverride: Yup.number()
+      .nullable()
+      .typeError(formatMessage('validation-number-invalid'))
+      .min(0, formatMessage('validation-number-min-zero')),
 
-  holidays: Yup.array().of(
-    Yup.object().shape({
-      start: Yup.string().required(),
-      end: Yup.string().required(),
-    })
-  ).test('holidays-in-month', 'Hlidays must be within selected month', function (ranges) {
-    const { year, month } = this.parent;
-    if (!ranges) return true;
-    return ranges.every(r =>
-      isInMonth(r.start, year, month) && isInMonth(r.end, year, month)
-    );
-  }),
+    reason: Yup.string().nullable(),
 
-  netSalaryOverride: Yup.number()
-    .nullable()
-    .typeError('Must be a number')
-    .min(0, 'Must be >= 0'),
+  }).test('overtime-sum', function (values) {
+    // The metadata-generated validation shape is dynamic, so Yup cannot infer
+    // every SalaryCalculatorValues key in this object-level test.
+    const salaryValues = values as Partial<SalaryCalculatorValues>;
 
-  grossSalaryOverride: Yup.number()
-    .nullable()
-    .typeError('Must be a number')
-    .min(0, 'Must be >= 0'),
+    const {
+      dailyOvertime = 0,
+      weekendHolidayOvertime = 0,
+      nightOvertime = 0,
+      overtimeLimit = 0,
+    } = salaryValues;
 
-  reason: Yup.string().nullable(),
+    if (
+      dailyOvertime +
+      weekendHolidayOvertime +
+      nightOvertime >
+      overtimeLimit
+    ) {
+      return this.createError({
+        path: 'totalOvertime',
+        message: formatMessage('validation-total-overtime-limit'),
+      });
+    }
 
-}).test('overtime-sum', function (values) {
-  // The metadata-generated validation shape is dynamic, so Yup cannot infer
-  // every SalaryCalculatorValues key in this object-level test. Keep the
-  // runtime schema dynamic, but restore the domain type here without using any.
-  const salaryValues = values as Partial<SalaryCalculatorValues>;
-
-  const {
-    dailyOvertime = 0,
-    weekendHolidayOvertime = 0,
-    nightOvertime = 0,
-    overtimeLimit = 0,
-  } = salaryValues;
-
-  if (
-    dailyOvertime +
-    weekendHolidayOvertime +
-    nightOvertime >
-    overtimeLimit
-  ) {
-    return this.createError({
-      path: 'totalOvertime',
-      message: 'Total overtime cannot exceed overtime limit',
-    });
-  }
-
-  return true;
-});
+    return true;
+  });
 
 export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: SalaryFormProps) {
   const intl = useIntl();
+  const formatValidationMessage = useCallback<ValidationMessageFormatter>(
+    (id, values) => intl.formatMessage({ id }, values),
+    [intl],
+  );
+  const salarySchema = useMemo(
+    () => buildSalarySchema(formatValidationMessage),
+    [formatValidationMessage],
+  );
+  const { user, loading: authLoading } = useAuth();
   const normalizedInitialValues = normalizeSalaryValues(initialValues);
   const [value, setValue] = useState(0);
 
   const [editCalculationOpen, setEditCalculationOpen] = useState(false);
   const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
+  const [authRequiredOpen, setAuthRequiredOpen] = useState(false);
 
   const [dialogType, setDialogType] = useState<"reset" | "save" | null>(null);
 
@@ -348,7 +782,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
     >
       <Formik
         initialValues={normalizedInitialValues}
-        validationSchema={SalarySchema}
+        validationSchema={salarySchema}
         onSubmit={ async (values) => {
           await onSubmit(values);
         }}
@@ -367,7 +801,16 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
               calculation = calculateTaxesUoD(values);
             }
           } catch (error) {
-            calculationError = error instanceof Error ? error.message : 'Salary calculation failed';
+            if (error instanceof SalaryCalculationError) {
+              calculationError = intl.formatMessage(
+                { id: error.id },
+                error.values,
+              );
+            } else {
+              calculationError = intl.formatMessage({
+                id: 'salary-calculation-failed',
+              });
+            }
           }
 
           const mandateL4Enabled =
@@ -385,6 +828,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
             <>
               <Form>
                 <SalaryTabAvailabilityGuard activeTab={value} setActiveTab={setValue} />
+                <WorkRelationSelector formMode={type} />
                 <CardTabs value={value} labels={labels} onChange={changeTab} disabledTabs={disabledTabs}/>
 
                 <Box
@@ -410,7 +854,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                         >
                           <Stack spacing={2}>
                             <DynamicSalaryFields
-                              fields={rateFieldConfigs}
+                              fields={relationAwareRateFieldConfigs}
                               values={values}
                               formMode={type}
                               setFieldValue={setFieldValue}
@@ -467,7 +911,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                               onChange={(newYear, form) => {
                                 const month = form.values.month;
                                 const holidays = form.values.holidays;
-                                const newWorkingHours = getWorkedDaysInMonth(newYear, month - 1, holidays, [], []) * 8;
+                                const newWorkingHours = getNominalWorkingHoursInMonth(newYear, month - 1, holidays);
                                 form.setFieldValue("workingHours", newWorkingHours);
                               }}
                             />
@@ -476,7 +920,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                               value={values.month}
                               onChange={(val) => {
                                 setFieldValue("month", val)
-                                setFieldValue("workingHours", getWorkedDaysInMonth(values.year, val-1, values.holidays, [], []) * 8)
+                                setFieldValue("workingHours", getNominalWorkingHoursInMonth(values.year, val - 1, values.holidays))
                               }}
                               label={intl.formatMessage({id: "month-picker-label"})}
                               error={Boolean(touched.month && errors.month)}
@@ -507,7 +951,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                                         end: r.end.format("YYYY-MM-DD"),
                                       }));
                                       setFieldValue("holidays", isoRanges);
-                                      setFieldValue("workingHours", getWorkedDaysInMonth(values.year, values.month-1, isoRanges, [], []) * 8)
+                                      setFieldValue("workingHours", getNominalWorkingHoursInMonth(values.year, values.month - 1, isoRanges))
                                     }}
                                   />
                                   {errors.holidays && <FormHelperText error>{errors.holidays as string}</FormHelperText>}
@@ -611,7 +1055,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                       {calculation ? (
                         <TaxChart calculation={calculation}/>
                       ) : (
-                        <Alert severity="warning" sx={{ maxWidth: 420 }}>
+                        <Alert severity="warning" sx={{ maxWidth: 320, ml: isMidScreen ? 0 : 4, mt: isMidScreen ? 2 : 0 }}>
                           {calculationError}
                         </Alert>
                       )}
@@ -623,7 +1067,26 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                   <Stack direction="row" spacing={2} justifyContent="center">
                     {dirty &&
                       <>
-                        <Button variant="contained" sx={{backgroundColor: 'rgb(7, 173, 82)'}} onClick={()=>{setDialogType("save")}}>
+                        <Button
+                          variant="contained"
+                          sx={{backgroundColor: 'rgb(7, 173, 82)'}}
+                          disabled={
+                            authLoading ||
+                            (type === 'create' && Boolean(user) && !values.workRelationId)
+                          }
+                          onClick={() => {
+                            if (!user) {
+                              setAuthRequiredOpen(true);
+                              return;
+                            }
+
+                            if (type === 'create' && !values.workRelationId) {
+                              return;
+                            }
+
+                            setDialogType("save");
+                          }}
+                        >
                           <FormattedMessage id={"save"}/>
                         </Button>
 
@@ -692,6 +1155,11 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                   }
                 }}
                 onCancel={closeDialog}
+              />
+
+              <AuthRequiredDialog
+                open={authRequiredOpen}
+                onClose={() => setAuthRequiredOpen(false)}
               />
             </>
           )

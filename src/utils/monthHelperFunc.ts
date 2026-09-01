@@ -1,5 +1,3 @@
-import { getPolishHolidays } from "./getHolidays";
-
 import dayjs from "dayjs";
 import type { DateRange } from '../components/DaysPicker';
 
@@ -30,13 +28,14 @@ export const isInMonth = (dateStr: string, year: number, month: number) => {
   return d >= start && d <= end;
 };
 
-
 export function getWorkedDaysInMonth(
   year: number,
   month: number,
   holidays: ISODateRange[],
   sickLeaves: ISODateRange[],
-  vacations: ISODateRange[]
+  vacations: ISODateRange[],
+  periodStart?: string | null,
+  periodEnd?: string | null,
 ) {
   let workedDays = 0;
 
@@ -46,14 +45,18 @@ export function getWorkedDaysInMonth(
     const dayOfWeek = date.getDay();
     const dateStr = toISODateLocal(date);
 
+    const isBeforePeriod = Boolean(periodStart && dateStr < periodStart);
+    const isAfterPeriod = Boolean(periodEnd && dateStr > periodEnd);
+
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
     const isHoliday = isInRanges(dateStr, holidays);
     const isSick = isInRanges(dateStr, sickLeaves);
     const isVacation = isInRanges(dateStr, vacations);
 
-    // ---- PRIORITY LOGIC ----
-
-    if (isWeekend) {
+    if (isBeforePeriod || isAfterPeriod) {
+      // outside the employment/calculation period
+    }
+    else if (isWeekend) {
       // free day
     }
     else if (isSick) {
@@ -92,6 +95,34 @@ export function countDays(ranges: ISODateRange[]): number {
     const days = end.diff(start, "day") + 1;
 
     total += days;
+  }
+
+  return total;
+}
+
+/**
+ * Counts only the part of each range that falls inside the supplied period.
+ * When no period boundary is provided it behaves like countDays().
+ */
+export function countDaysWithinPeriod(
+  ranges: ISODateRange[],
+  periodStart?: string | null,
+  periodEnd?: string | null,
+): number {
+  let total = 0;
+
+  for (const range of ranges) {
+    const start = periodStart && range.start < periodStart
+      ? dayjs(periodStart)
+      : dayjs(range.start);
+
+    const end = periodEnd && range.end > periodEnd
+      ? dayjs(periodEnd)
+      : dayjs(range.end);
+
+    if (end.isBefore(start, 'day')) continue;
+
+    total += end.diff(start, 'day') + 1;
   }
 
   return total;

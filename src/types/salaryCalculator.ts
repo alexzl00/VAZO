@@ -167,6 +167,18 @@ export type SalaryCalculatorValues = {
    */
   ppkEmployerTaxableContribution?: number;
 
+  // --- Work relation / employment period ---
+
+  /** Selected persisted work relation. Empty for guest calculations. */
+  workRelationId?: string | null;
+
+  /**
+   * Effective relation period inside the selected salary month. These values
+   * are derived from WorkRelation.start_date/end_date and clamped to the month.
+   */
+  employmentStartDate?: string | null;
+  employmentEndDate?: string | null;
+
   // --- Calendar and working-time norm ---
 
   year: number;

@@ -229,9 +229,15 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
       ) ??
       0;
 
+    const isMonthlyUop =
+      calculation.calculationType === 'uop' &&
+      calculation.workRateType === 'uop_monthly';
+
     const baseSalary =
       calculation.calculationType === 'uop'
-        ? calculation.workDaysPayment ?? 0
+        ? isMonthlyUop
+          ? calculation.rate ?? 0
+          : calculation.workDaysPayment ?? 0
         : calculation.calculationType === 'mandate'
           ? Math.max(0, calculation.fullSalaryBrutto - bonusTotal - (calculation.sicknessBenefit ?? 0))
           : calculation.rate ?? 0;
@@ -244,14 +250,72 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
         }),
         value: formatNumber(baseSalary),
       },
-      {
-        label: intl.formatMessage({
-          id: 'salary-bonuses-brutto',
-          defaultMessage: 'Bonuses',
-        }),
-        value: formatNumber(bonusTotal),
-      },
     ];
+
+    if (isMonthlyUop && (calculation.employmentReduction ?? 0) > 0) {
+      salaryItems.push({
+        label: intl.formatMessage({
+          id: 'salary-employment-reduction',
+          defaultMessage: 'Reduction for period outside employment',
+        }),
+        value: formatNumber(calculation.employmentReduction),
+        negative: true,
+      });
+
+      salaryItems.push({
+        label: intl.formatMessage({
+          id: 'salary-employment-excluded-hours',
+          defaultMessage: 'Working hours outside employment period',
+        }),
+        value: calculation.employmentExcludedWorkingHours ?? 0,
+        unit: 'h',
+      });
+    }
+
+    if (isMonthlyUop && (calculation.l4Reduction ?? 0) > 0) {
+      salaryItems.push({
+        label: intl.formatMessage({
+          id: 'salary-l4-reduction',
+          defaultMessage: 'Salary reduction for L4',
+        }),
+        value: formatNumber(calculation.l4Reduction),
+        negative: true,
+      });
+    }
+
+    if (isMonthlyUop && (calculation.leaveReduction ?? 0) > 0) {
+      salaryItems.push({
+        label: intl.formatMessage({
+          id: 'salary-leave-reduction',
+          defaultMessage: 'Salary reduction for annual leave',
+        }),
+        value: formatNumber(calculation.leaveReduction),
+        negative: true,
+      });
+    }
+
+    if (
+      calculation.employmentPeriodStart &&
+      calculation.employmentPeriodEnd &&
+      (calculation.employmentReduction ?? 0) > 0
+    ) {
+      salaryItems.push({
+        label: intl.formatMessage({
+          id: 'salary-employment-period',
+          defaultMessage: 'Employment period in month',
+        }),
+        value: `${calculation.employmentPeriodStart} – ${calculation.employmentPeriodEnd}`,
+        unit: '',
+      });
+    }
+
+    salaryItems.push({
+      label: intl.formatMessage({
+        id: 'salary-bonuses-brutto',
+        defaultMessage: 'Bonuses',
+      }),
+      value: formatNumber(bonusTotal),
+    });
 
     if (nonCashBonusTotal > 0) {
       salaryItems.push({
@@ -676,8 +740,11 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
               {(calculation.warnings?.length ?? 0) > 0 && (
                 <Stack spacing={1} mb={3}>
                   {calculation.warnings?.map((warning, index) => (
-                    <Alert severity="warning" key={`${warning}-${index}`}>
-                      {warning}
+                    <Alert severity="warning" key={`${warning.id}-${index}`}>
+                      {intl.formatMessage(
+                        { id: warning.id },
+                        warning.values,
+                      )}
                     </Alert>
                   ))}
                 </Stack>

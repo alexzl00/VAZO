@@ -7,7 +7,7 @@ const PPK_CONTRACTS = ['uop_monthly', 'uop_hourly', 'mandate_hourly'] as const;
 const positiveRequired = {
   required: true,
   min: 0,
-  minMessage: 'Must be >= 0',
+  minMessageId: 'validation-number-min-zero',
 } as const;
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
@@ -193,8 +193,8 @@ export const taxFieldConfigs: SalaryFieldConfig[] = [
       required: true,
       min: 0.5,
       max: 4,
-      minMessage: 'PPK employee rate must be at least 0.5%',
-      maxMessage: 'PPK employee rate cannot exceed 4%',
+      minMessageId: 'validation-ppk-employee-rate-min',
+      maxMessageId: 'validation-ppk-employee-rate-max',
     },
   },
   {
@@ -209,8 +209,8 @@ export const taxFieldConfigs: SalaryFieldConfig[] = [
       required: true,
       min: 1.5,
       max: 4,
-      minMessage: 'PPK employer rate must be at least 1.5%',
-      maxMessage: 'PPK employer rate cannot exceed 4%',
+      minMessageId: 'validation-ppk-employer-rate-min',
+      maxMessageId: 'validation-ppk-employer-rate-max',
     },
   },
   {
@@ -300,7 +300,7 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
     validation: {
       ...positiveRequired,
       maxField: 'uopEmployerSickPayLimit',
-      maxFieldMessage: 'Cannot exceed the selected employer sick-pay limit',
+      maxFieldMessageId: 'validation-uop-sick-pay-days-limit',
     },
   },
   {
@@ -420,7 +420,7 @@ export const overtimeFieldConfigs: SalaryFieldConfig[] = [
     validation: {
       ...positiveRequired,
       maxField: 'overtimeLimit',
-      maxFieldMessage: 'Cannot exceed overtime limit',
+      maxFieldMessageId: 'validation-number-cannot-exceed-overtime-limit',
     },
   },
   {
@@ -431,7 +431,7 @@ export const overtimeFieldConfigs: SalaryFieldConfig[] = [
     validation: {
       ...positiveRequired,
       maxField: 'overtimeLimit',
-      maxFieldMessage: 'Cannot exceed overtime limit',
+      maxFieldMessageId: 'validation-number-cannot-exceed-overtime-limit',
     },
   },
   {
@@ -442,7 +442,7 @@ export const overtimeFieldConfigs: SalaryFieldConfig[] = [
     validation: {
       ...positiveRequired,
       maxField: 'overtimeLimit',
-      maxFieldMessage: 'Cannot exceed overtime limit',
+      maxFieldMessageId: 'validation-number-cannot-exceed-overtime-limit',
     },
   },
   {
