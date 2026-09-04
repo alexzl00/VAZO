@@ -721,8 +721,12 @@ export const calculateTaxesContractOfMandate = (
         values: { waitingDays: 90 },
       });
     } else {
+      const dailySickPayment = round2(
+        (values.l4Base / 30) * 0.8,
+      );
+
       sicknessBenefit = round2(
-        (values.l4Base / 30) * l4DaysCount * 0.8,
+        dailySickPayment * l4DaysCount,
       );
     }
   }
@@ -1030,7 +1034,7 @@ export const calculateTaxesUoP = (
   );
 
   const dailySickPayment = values.l4Base > 0
-    ? (values.l4Base / 30) * 0.8
+    ? round2((values.l4Base / 30) * 0.8)
     : 0;
 
   const employerSickPay = round2(
