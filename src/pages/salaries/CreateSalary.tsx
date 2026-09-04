@@ -39,9 +39,6 @@ const getBonusTotal = (values: SalaryCalculatorValues) =>
 
 export const initialSalaryFormValues: SalaryCalculatorValues = {
   // podatki i potrącenia
-  // legacy fields - kept so existing API/update flows do not break
-  taxRegime: 12,
-  pit2: false,
 
   // PIT / KUP
   pit2MonthlyReduction: 0,
@@ -186,7 +183,7 @@ export default function CreateSalaryPage() {
           kup: values.kup,
           isStudent: values.isStudent,
           isUnder26: values.isUnder26,
-          pit2: values.pit2,
+          pit2: values.pit2MonthlyReduction,
 
           // Temporary DB compatibility bridge.
           attendanceBonus: 0,
@@ -212,8 +209,7 @@ export default function CreateSalaryPage() {
           rate: values.rate,
           additionAfterTax: values.additionAfterTax,
           deductionAfterTax: values.deductionAfterTax,
-          taxRegime: values.taxRegime,
-          pit2: values.pit2,
+          pit2: values.pit2MonthlyReduction,
 
           // Temporary DB compatibility bridge.
           attendanceBonus: 0,
@@ -251,7 +247,7 @@ export default function CreateSalaryPage() {
           additionAfterTax: values.additionAfterTax,
           deductionAfterTax: values.deductionAfterTax,
           kup: values.kup,
-          pit2: values.pit2,
+          pit2: values.pit2MonthlyReduction,
 
           // Temporary DB compatibility bridge.
           discretionaryBonus: bonusTotal,

@@ -59,8 +59,6 @@ export default function UpdateSalary() {
 
         setInitialValues({
           // Podatki i potrącenia
-          taxRegime: inputs?.tax_regime ?? 12,
-          pit2: inputs?.pit2 ?? false,
 
           kup: inputs?.kup ?? 20,
           isStudent: inputs?.is_student ?? false,
@@ -172,7 +170,7 @@ export default function UpdateSalary() {
           kup: values.kup,
           isStudent: values.isStudent,
           isUnder26: values.isUnder26,
-          pit2: values.pit2,
+          pit2: values.pit2MonthlyReduction,
 
           attendanceBonus: values.attendanceBonus,
           discretionaryBonus: values.discretionaryBonus,
@@ -197,7 +195,7 @@ export default function UpdateSalary() {
           additionAfterTax: values.additionAfterTax,
           deductionAfterTax: values.deductionAfterTax,
           taxRegime: values.taxRegime,
-          pit2: values.pit2,
+          pit2: values.pit2MonthlyReduction,
 
           attendanceBonus: values.attendanceBonus,
           discretionaryBonus: values.discretionaryBonus,
@@ -232,7 +230,7 @@ export default function UpdateSalary() {
           additionAfterTax: values.additionAfterTax,
           deductionAfterTax: values.deductionAfterTax,
           kup: values.kup,
-          pit2: values.pit2,
+          pit2: values.pit2MonthlyReduction,
 
           discretionaryBonus: values.discretionaryBonus,
         })

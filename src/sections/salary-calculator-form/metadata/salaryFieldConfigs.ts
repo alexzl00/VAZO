@@ -93,8 +93,7 @@ export const taxFieldConfigs: SalaryFieldConfig[] = [
     type: 'select',
     labelId: 'taxes-and-deductions-pit0-relief',
     contracts: [...PPK_CONTRACTS],
-    defaultValue: (values) =>
-      values.taxRegime === 0 || values.isUnder26
+    defaultValue: (values) => values.isUnder26
         ? 'young'
         : 'none',
     options: [
@@ -142,7 +141,7 @@ export const taxFieldConfigs: SalaryFieldConfig[] = [
     name: 'pit2MonthlyReduction',
     type: 'select',
     labelId: 'taxes-and-deductions-pit2-reduction',
-    defaultValue: (values) => values.pit2 ? 300 : 0,
+    defaultValue: 0,
     options: [
       { value: 0, label: '0 zł' },
       { value: 100, label: '100 zł' },

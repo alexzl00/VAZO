@@ -59,16 +59,6 @@ export type SalaryCalculatorValues = {
   // --- PIT / tax ---
 
   /**
-   * @deprecated Legacy field. Do not use it as the tax-rate source anymore.
-   * 32% is determined from year-to-date taxable income, and PIT-0 from pit0Relief.
-   */
-  taxRegime: 0 | 12;
-
-  /** Legacy PIT-2 switch kept so the current form does not break. */
-  pit2: boolean;
-
-  /**
-   * Preferred PIT-2 value. If omitted, pit2=true is treated as 300 zł.
    * Allows splitting the tax-reducing amount between 1/12, 1/24 and 1/36.
    */
   pit2MonthlyReduction?: Pit2MonthlyReduction;

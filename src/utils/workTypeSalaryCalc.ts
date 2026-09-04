@@ -230,8 +230,6 @@ const buildYearToDate = ({
   ),
 });
 
-const getPit2Reduction = (values: SalaryCalculatorValues) =>
-  values.pit2MonthlyReduction ?? (values.pit2 ? taxes.PIT2_relief : 0);
 
 const getPit0Relief = (values: SalaryCalculatorValues): Pit0Relief => {
   if (values.pit0Relief) return values.pit0Relief;
@@ -579,7 +577,7 @@ export const calculateTaxesUoD = (
     const pit = calculateProgressivePitAdvance(
       pitBase,
       values.previousTaxableIncome ?? 0,
-      getPit2Reduction(values),
+      values.pit2MonthlyReduction ?? 0,
       values.doNotWithholdPitAdvance,
     );
 
@@ -837,7 +835,7 @@ export const calculateTaxesContractOfMandate = (
       calculateProgressivePitAdvance(
         benefitPitBase,
         values.previousTaxableIncome ?? 0,
-        getPit2Reduction(values),
+        values.pit2MonthlyReduction ?? 0,
         values.doNotWithholdPitAdvance,
       );
 
@@ -885,7 +883,7 @@ export const calculateTaxesContractOfMandate = (
     const pit = calculateProgressivePitAdvance(
       pitBase,
       values.previousTaxableIncome ?? 0,
-      getPit2Reduction(values),
+      values.pit2MonthlyReduction ?? 0,
       values.doNotWithholdPitAdvance,
     );
 
@@ -1304,7 +1302,7 @@ export const calculateTaxesUoP = (
   const pit = calculateProgressivePitAdvance(
     pitBase,
     values.previousTaxableIncome ?? 0,
-    getPit2Reduction(values),
+    values.pit2MonthlyReduction ?? 0,
     values.doNotWithholdPitAdvance,
   );
 
