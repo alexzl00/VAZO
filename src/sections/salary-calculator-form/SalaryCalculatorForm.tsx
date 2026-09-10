@@ -562,13 +562,6 @@ const SalaryTabAvailabilityGuard = ({
 
 const buildSalarySchema = (formatMessage: ValidationMessageFormatter) =>
   Yup.object().shape({
-    // Legacy fields remain because older saved records still contain them.
-    // They are not rendered directly by metadata.
-    taxRegime: Yup.mixed<0 | 12>()
-      .oneOf([0, 12])
-      .required(formatMessage('validation-required')),
-    pit2: Yup.boolean().required(formatMessage('validation-required')),
-
     // All simple input validation is generated from the same metadata
     // that renders those fields.
     ...buildSalaryFieldValidationShape(metadataDrivenFieldConfigs, formatMessage),
@@ -1068,6 +1061,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                     {dirty &&
                       <>
                         <Button
+                          type="button"
                           variant="contained"
                           sx={{backgroundColor: 'rgb(7, 173, 82)'}}
                           disabled={
@@ -1090,13 +1084,13 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                           <FormattedMessage id={"save"}/>
                         </Button>
 
-                        <Button variant="contained" sx={{backgroundColor: 'rgb(149, 57, 4)'}} onClick={() => setDialogType('reset')} >
+                        <Button type="button" variant="contained" sx={{backgroundColor: 'rgb(149, 57, 4)'}} onClick={() => setDialogType('reset')} >
                           <FormattedMessage id={"reset"}/>
                         </Button>
                       </>
                     }
 
-                    <Button variant="contained" onClick={() => setEditCalculationOpen(true)}>
+                    <Button type="button" variant="contained" onClick={() => setEditCalculationOpen(true)}>
                       <FormattedMessage id={"calculation-edit"}/>
                     </Button>
                   </Stack>
@@ -1137,21 +1131,18 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                 message={dialogType ? dialogMap[dialogType].message : ''}
                 confirmText={dialogType ? dialogMap[dialogType].confirmText : ''}
                 variant={dialogType ? dialogMap[dialogType].variant : 'default'}
-                onConfirm={() => {
+                onConfirm={async () => {
                   if (!dialogType) return;
 
-                  console.log(submitForm)
-
                   if (dialogType === 'save') {
-                    dialogMap["save"].getAction(
-                      closeDialog,
-                      submitForm
-                    )();
-                  } else if (dialogType === 'reset') {
-                    dialogMap["reset"].getAction(
-                      closeDialog,
-                      resetForm
-                    )();
+                    await submitForm();
+                    closeDialog();
+                    return;
+                  }
+
+                  if (dialogType === 'reset') {
+                    resetForm();
+                    closeDialog();
                   }
                 }}
                 onCancel={closeDialog}

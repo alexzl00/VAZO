@@ -3,62 +3,54 @@ import { useNavigate } from "react-router-dom";
 // third parties
 import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import { useSnackbar } from "notistack";
+import { useIntl } from "react-intl";
 
 dayjs.extend(isSameOrBefore);
-
-import { useSnackbar } from "notistack";
-import { useIntl } from 'react-intl';
 
 // project imports
 import SalaryForm from "../../sections/salary-calculator-form/SalaryCalculatorForm";
 
 // utils
-import { getNominalWorkingHoursInMonth } from '../../utils/workingTimeHelper';
-import { calculateTaxesContractOfMandate, calculateTaxesUoP, calculateTaxesUoD } from '../../utils/workTypeSalaryCalc';
+import { getNominalWorkingHoursInMonth } from "../../utils/workingTimeHelper";
+import {
+  calculateTaxesContractOfMandate,
+  calculateTaxesUoD,
+  calculateTaxesUoP
+} from "../../utils/workTypeSalaryCalc";
 
 // supabase api
-import { createUopSalary } from '../../api/UoP';
-import { createMandateSalary } from '../../api/CoM';
+import { createUopSalary } from "../../api/UoP";
+import { createMandateSalary } from "../../api/CoM";
 import { createUoDSalary } from "../../api/UoD";
+import { overrideSalaryCalculations } from "../../api/overrideSalaryCalculations";
 
 // types
-import type { SalaryCalculatorValues } from '../../types/salaryCalculator';
-
-// for test
-import { overrideSalaryCalculations } from "../../api/overrideSalaryCalculations";
+import type { SalaryCalculatorValues } from "../../types/salaryCalculator";
 
 const now = new Date();
 
-const getBonusTotal = (values: SalaryCalculatorValues) =>
-  Math.round(
-    (values.bonuses ?? []).reduce(
-      (sum, bonus) => sum + Math.max(0, Number(bonus.amount) || 0),
-      0,
-    ) * 100,
-  ) / 100;
-
 export const initialSalaryFormValues: SalaryCalculatorValues = {
-  // podatki i potrącenia
-
   // PIT / KUP
   pit2MonthlyReduction: 0,
   uopKup: 250,
   hasMultipleEmploymentRelationships: false,
   kup: 20,
-  pit0Relief: 'none',
+  pit0Relief: "none",
   isStudent: false,
   isUnder26: false,
-  doNotWithholdPitAdvance: false,
-  uopEmployerSickPayLimit: 33,
-  previousEmployerSickPayDays: 0,
 
-  // annual state before the calculated month
-  // TODO: populate automatically from salary history once API/history aggregation is connected
   previousTaxableIncome: 0,
   previousPit0Revenue: 0,
   previousPensionDisabilityBase: 0,
   previous50KupUsed: 0,
   previousUopKupUsed: 0,
+
+  doNotWithholdPitAdvance: false,
+
+  // UoP sickness
+  uopEmployerSickPayLimit: 33,
+  previousEmployerSickPayDays: 0,
 
   // UZ / UoD insurance status
   mandateVoluntarySicknessInsurance: false,
@@ -77,194 +69,134 @@ export const initialSalaryFormValues: SalaryCalculatorValues = {
   deductionAfterTax: 0,
   additionAfterTax: 0,
 
-  // Stosunek pracy / okres zatrudnienia
+  // Work relation / employment period
   workRelationId: null,
   employmentStartDate: null,
   employmentEndDate: null,
 
-  // Kalendarz i norma czasu pracy
+  // Calendar
   year: now.getFullYear(),
   month: now.getMonth() + 1,
-  workingHours: getNominalWorkingHoursInMonth(now.getFullYear(), now.getMonth()),
+  workingHours: getNominalWorkingHoursInMonth(
+    now.getFullYear(),
+    now.getMonth()
+  ),
 
-  // Stawka i premie
-  workRateType: 'uop_monthly',
+  // Rate and bonuses
+  workRateType: "uop_monthly",
   rate: 0,
-
-  // Preserve the calculator's previous behaviour by default.
-  // Users can switch to full precision in Advanced Settings for payrolls
-  // that keep the raw monthly-rate / working-hours result.
-  hourlyRateCalculationMode: 'roundedTo2',
-
+  hourlyRateCalculationMode: "roundedTo2",
   bonuses: [],
 
   holidays: [],
 
-  // Nadgodziny i godziny nocne
+  // Overtime / night work
   dailyOvertime: 0,
   weekendHolidayOvertime: 0,
   nightOvertime: 0,
-
   nightHours: 0,
   turnOfDayHours: 0,
-
   overtimeLimit: 30,
 
-  // Zwolnienie lekarskie (L4)
+  // L4
   l4: [],
   l4Base: 0,
 
-  // Urlop
+  // Leave
   leave: [],
   leaveBase: 0,
 
-  // --- For edit form ---
+  // Edit / override fields
   isOverride: false,
   netSalaryOverride: null,
   grossSalaryOverride: null,
   reason: null
 };
 
-
 export default function CreateSalaryPage() {
-
   const intl = useIntl();
   const { enqueueSnackbar } = useSnackbar();
-
   const navigate = useNavigate();
 
   const navigateToSalaries = () => {
     navigate({
-      pathname: '/salaries'
-    })
-  }
-
-  const handleOverride = async (id: string, values: SalaryCalculatorValues) => {
-    if (values.netSalaryOverride || values.grossSalaryOverride) {
-      await overrideSalaryCalculations(id, {
-        netSalaryOverride: values.netSalaryOverride,
-        grossSalaryOverride: values.grossSalaryOverride,
-        reason: values.reason
-      });
-    }
+      pathname: "/salaries"
+    });
   };
 
-  // IMPORTANT:
-  // The supplied API files/database schema still use the old
-  // attendanceBonus/discretionaryBonus/otherBonus columns.
-  //
-  // Until those files and the database are migrated to persist bonuses[] as
-  // structured data, this create flow stores only the TOTAL in the old
-  // "other/discretionary" compatibility column. That keeps current gross/net
-  // persistence working, but amountType/sickLeaveTreatment are not persisted.
-  //
-  // hourlyRateCalculationMode also needs a persistence field when the salary
-  // settings are migrated to the database. The in-form calculation works now.
+  const handleOverride = async (
+    id: string,
+    values: SalaryCalculatorValues
+  ) => {
+    const hasOverride =
+      values.netSalaryOverride !== null ||
+      values.grossSalaryOverride !== null;
+
+    if (!hasOverride) return;
+
+    await overrideSalaryCalculations(id, {
+      netSalaryOverride: values.netSalaryOverride,
+      grossSalaryOverride: values.grossSalaryOverride,
+      reason: values.reason
+    });
+  };
+
   const handleCreate = async (values: SalaryCalculatorValues) => {
-
     try {
-      let salary_id: string | null = null;
-      const bonusTotal = getBonusTotal(values);
+      if (!values.workRelationId) {
+        throw new Error("Work relation is required to save salary.");
+      }
 
-      if (values.workRateType === 'mandate_hourly') {
+      let salaryId: string | null = null;
+
+      if (values.workRateType === "mandate_hourly") {
         const calculated = calculateTaxesContractOfMandate(values);
 
-        salary_id = await createMandateSalary({
-          year: values.year,
-          month: values.month,
-
+        salaryId = await createMandateSalary({
+          ...values,
           brutto: calculated.brutto,
-          netto: calculated.netto,
-          workingHours: values.workingHours,
-
-          rate: values.rate,
-          additionAfterTax: values.additionAfterTax,
-          deductionAfterTax: values.deductionAfterTax,
-          kup: values.kup,
-          isStudent: values.isStudent,
-          isUnder26: values.isUnder26,
-          pit2: values.pit2MonthlyReduction,
-
-          // Temporary DB compatibility bridge.
-          attendanceBonus: 0,
-          discretionaryBonus: 0,
-          otherBonus: bonusTotal,
-
-          holidays: values.holidays
+          netto: calculated.netto
         });
-
-      } else if (values.workRateType === 'uop_monthly' || values.workRateType === 'uop_hourly') {
+      } else if (
+        values.workRateType === "uop_monthly" ||
+        values.workRateType === "uop_hourly"
+      ) {
         const calculated = calculateTaxesUoP(values);
 
-        salary_id = await createUopSalary({
-          year: values.year,
-          month: values.month,
-
-          workRateType: values.workRateType,
-
+        salaryId = await createUopSalary({
+          ...values,
           brutto: calculated.brutto,
-          netto: calculated.netto,
-          workingHours: values.workingHours,
-
-          rate: values.rate,
-          additionAfterTax: values.additionAfterTax,
-          deductionAfterTax: values.deductionAfterTax,
-          pit2: values.pit2MonthlyReduction,
-
-          // Temporary DB compatibility bridge.
-          attendanceBonus: 0,
-          discretionaryBonus: 0,
-          otherBonus: bonusTotal,
-
-          dailyOvertime: values.dailyOvertime,
-          weekendHolidayOvertime: values.weekendHolidayOvertime,
-          nightOvertime: values.nightOvertime,
-
-          nightHours: values.nightHours,
-          turnOfDayHours: values.turnOfDayHours,
-
-          holidays: values.holidays,
-
-          l4: values.l4,
-          l4Base: values.l4Base,
-
-          leave: values.leave,
-          leaveBase: values.leaveBase
+          netto: calculated.netto
         });
-      } else if (values.workRateType === 'uod_fixed') {
+      } else if (values.workRateType === "uod_fixed") {
         const calculated = calculateTaxesUoD(values);
 
-        salary_id = await createUoDSalary({
-          year: values.year,
-          month: values.month,
-          contractType: 'uod',
-          paymentMode: 'fixed',
-
+        salaryId = await createUoDSalary({
+          ...values,
           brutto: calculated.brutto,
-          netto: calculated.netto,
-
-          rate: values.rate,
-          additionAfterTax: values.additionAfterTax,
-          deductionAfterTax: values.deductionAfterTax,
-          kup: values.kup,
-          pit2: values.pit2MonthlyReduction,
-
-          // Temporary DB compatibility bridge.
-          discretionaryBonus: bonusTotal,
-        })
+          netto: calculated.netto
+        });
       }
 
-      if (!salary_id) {
-        throw new Error("Failed to create salary");
+      if (!salaryId) {
+        throw new Error("Failed to create salary.");
       }
 
-      await handleOverride(salary_id, values);
-      enqueueSnackbar(intl.formatMessage({id: 'salary-saved'}), { variant: "success" });
+      await handleOverride(salaryId, values);
+
+      enqueueSnackbar(
+        intl.formatMessage({ id: "salary-saved" }),
+        { variant: "success" }
+      );
+
       navigateToSalaries();
+    } catch (error) {
+      console.error(error);
 
-    } catch (e) {
-      console.error(e);
-      enqueueSnackbar(intl.formatMessage({id: 'error'}), { variant: "error" });
+      enqueueSnackbar(
+        intl.formatMessage({ id: "error" }),
+        { variant: "error" }
+      );
     }
   };
 
@@ -276,4 +208,3 @@ export default function CreateSalaryPage() {
     />
   );
 }
-

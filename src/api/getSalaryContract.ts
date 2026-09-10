@@ -1,140 +1,73 @@
 import { supabase } from "../lib/supabase";
+import type { SalaryBonus } from "../types/salaryCalculator";
 
-export type ContractType = 'uop' | 'mandate' | 'uod';
+export type SalaryOverride = {
+  netSalaryOverride: number | null;
+  grossSalaryOverride: number | null;
+  reason: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
 
 export interface SalaryContract {
   salary_record: any;
   inputs: any;
+  bonuses: SalaryBonus[];
+  calculationSettings: Record<string, unknown>;
 
-  override: {
-    netSalaryOverride: number | null;
-    grossSalaryOverride: number | null;
-    reason: string | null;
-    createdAt: string | null;
-  } | null;
+  override: SalaryOverride | null;
 }
 
-export async function getSalaryContract(id: string): Promise<SalaryContract | null> {
-  // --- 1. Get salary record + override ---
-  const { data: sr, error: srError } = await supabase
-    .from('salary_records')
-    .select(`
-      *,
-      salary_overrides (
-        net_salary_override,
-        gross_salary_override,
-        reason,
-        created_at
-      )
-    `)
-    .eq('id', id)
-    .single();
+const mapBonus = (bonus: any): SalaryBonus => ({
+  id: bonus.id,
+  name: bonus.name,
+  amount: Number(bonus.amount),
+  frequency: bonus.frequency,
+  paymentType: bonus.payment_type,
+  amountType: bonus.amount_type ?? undefined,
+  sickLeaveTreatment: bonus.sick_leave_treatment ?? undefined
+});
 
-  if (srError) {
-    console.error(srError);
+export async function getSalaryContract(
+  id: string
+): Promise<SalaryContract | null> {
+  const { data, error } = await supabase.rpc("get_salary_contract", {
+    p_salary_id: id
+  });
+
+  if (error) {
+    console.error(error);
     return null;
   }
 
-  const override = sr.salary_overrides ?? null;
-
-  let inputs = null;
-
-  // --- 2. Conditional fetch ---
-  if (sr.contract_type === 'uop') {
-    const { data: sui, error } = await supabase
-      .from('salary_uop_inputs')
-      .select(`
-        rate,
-        working_hours,
-        tax_regime,
-        pit2,
-        attendance_bonus,
-        discretionary_bonus,
-        other_bonus,
-        daily_overtime,
-        weekend_overtime,
-        night_overtime,
-        night_hours,
-        turn_of_day_hours,
-        holidays,
-        l4,
-        leave,
-        addition_after_tax,
-        deduction_after_tax,
-        l4_base,
-        leave_base
-      `)
-      .eq('salary_id', sr.id)
-      .single();
-
-    if (error) {
-      console.error(error);
-      return null;
-    }
-
-    inputs = sui;
+  if (!data) {
+    return null;
   }
 
-  if (sr.contract_type === 'mandate') {
-    const { data: smi, error } = await supabase
-      .from('salary_mandate_inputs')
-      .select(`
-        rate,
-        working_hours,
-        kup,
-        is_student,
-        is_under26,
-        pit2,
-        attendance_bonus,
-        discretionary_bonus,
-        other_bonus,
-        addition_after_tax,
-        deduction_after_tax,
-        holidays
-      `)
-      .eq('salary_id', sr.id)
-      .single();
-
-    if (error) {
-      console.error(error);
-      return null;
-    }
-
-    inputs = smi;
-  }
-
-  if (sr.contract_type === "uod") {
-    const { data: uod, error } = await supabase
-      .from("salary_uod_inputs")
-      .select(`
-        rate,
-        kup,
-        pit2,
-        addition_after_tax,
-        deduction_after_tax,
-        discretionary_bonus
-      `)
-      .eq("salary_id", sr.id)
-      .single();
-
-    if (error) {
-      console.error(error);
-      return null;
-    }
-
-    inputs = uod;
-  }
+  const result = data as any;
+  const override = result.override ?? null;
 
   return {
-    salary_record: sr,
-    inputs,
+    salary_record: result.salary,
+    inputs: result.inputs,
+
+    bonuses: Array.isArray(result.bonuses)
+      ? result.bonuses.map(mapBonus)
+      : [],
+
+    calculationSettings:
+      result.calculation_settings &&
+      typeof result.calculation_settings === "object"
+        ? result.calculation_settings
+        : {},
 
     override: override
       ? {
-          netSalaryOverride: override.net_salary_override,
-          grossSalaryOverride: override.gross_salary_override,
+          netSalaryOverride: override.net_salary_override ?? null,
+          grossSalaryOverride: override.gross_salary_override ?? null,
           reason: override.reason ?? null,
-          createdAt: override.created_at ?? null
+          createdAt: override.created_at ?? null,
+          updatedAt: override.updated_at ?? null
         }
       : null
   };

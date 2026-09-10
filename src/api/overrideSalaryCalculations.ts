@@ -1,7 +1,16 @@
 import { supabase } from "../lib/supabase";
 
-export async function overrideSalaryCalculations(id: string, values: any) {
-  const { data, error } = await supabase.rpc('override_salary_calculations', {
+export type SalaryOverrideValues = {
+  netSalaryOverride: number | null;
+  grossSalaryOverride: number | null;
+  reason: string | null;
+};
+
+export async function overrideSalaryCalculations(
+  id: string,
+  values: SalaryOverrideValues
+) {
+  const { data, error } = await supabase.rpc("override_salary_calculations", {
     p_id: id,
     p_net_salary_override: values.netSalaryOverride,
     p_gross_salary_override: values.grossSalaryOverride,
@@ -14,7 +23,7 @@ export async function overrideSalaryCalculations(id: string, values: any) {
 }
 
 export async function deleteSalaryOverride(id: string) {
-  const { data, error } = await supabase.rpc('delete_salary_override', {
+  const { data, error } = await supabase.rpc("delete_salary_override", {
     p_salary_id: id
   });
 

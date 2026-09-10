@@ -1,7 +1,5 @@
 import { supabase } from "../lib/supabase";
-
-export type ContractType = "uop" | "mandate" | "uod";
-export type PaymentMode = "hourly" | "month" | "fixed";
+import type { PaymentMode, WorkContract } from "../types/workRelation";
 
 export type SalaryFilters = {
   id: string | "";
@@ -9,15 +7,24 @@ export type SalaryFilters = {
   startMonth: number;
   endYear: number;
   endMonth: number;
-  contractType: ContractType | "";
+  contractType: WorkContract | "";
 };
 
 export interface SalaryRecord {
   id: string;
+  workRelationId: string;
+
   year: number;
   month: number;
-  contractType: ContractType;
+
+  contractType: WorkContract;
   paymentMode: PaymentMode;
+
+  engineId: string;
+  inputSchemaId: string;
+
+  employmentStartDate: string;
+  employmentEndDate: string;
 
   grossSalaryCalculated: number;
   netSalaryCalculated: number;
@@ -47,8 +54,6 @@ export async function getSalaries(
   const safePageSize = Math.max(pageSize, 1);
 
   const from = (safePage - 1) * safePageSize;
-
-  // Fetch one extra row to detect if there is another page.
   const to = from + safePageSize;
 
   let query = supabase
@@ -96,9 +101,7 @@ export async function getSalaries(
   }
 
   const rows = data ?? [];
-
   const hasMore = rows.length > safePageSize;
-
   const visibleRows = hasMore ? rows.slice(0, safePageSize) : rows;
 
   const res: SalaryRecord[] = visibleRows.map((salary: any) => {
@@ -108,15 +111,24 @@ export async function getSalaries(
 
     return {
       id: salary.id,
+      workRelationId: salary.work_relation_id,
+
       year: salary.year,
       month: salary.month,
+
       contractType: salary.contract_type,
       paymentMode: salary.payment_mode,
+
+      engineId: salary.engine_id,
+      inputSchemaId: salary.input_schema_id,
+
+      employmentStartDate: salary.employment_start_date,
+      employmentEndDate: salary.employment_end_date,
 
       grossSalaryCalculated: salary.gross_salary_calculated,
       netSalaryCalculated: salary.net_salary_calculated,
 
-      isOverridden: salary.is_overridden,
+      isOverridden: Boolean(override),
       grossSalaryOverride: override?.gross_salary_override ?? null,
       netSalaryOverride: override?.net_salary_override ?? null,
 

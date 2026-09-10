@@ -1,40 +1,43 @@
-
-import { useEffect, useState, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 // material-ui
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import CircularProgress from "@mui/material/CircularProgress";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
-import { useTheme, useMediaQuery } from "@mui/material";
-
 // project imports
-import MobileSalaryList from './MobileSalaryList';
-import ConfirmActionDialog from '../../components/Modals/ConfirmActionDialog';
+import MobileSalaryList from "./MobileSalaryList";
+import ConfirmActionDialog from "../../components/Modals/ConfirmActionDialog";
 
 // third-party
-import { FormattedMessage, useIntl } from 'react-intl';
+import { FormattedMessage, useIntl } from "react-intl";
 import { useSnackbar } from "notistack";
 
 // types
-import type { SalaryFilters, ContractType, SalaryRecord } from '../../api/Salaries';
-import type { DialogConfig } from '../../components/Modals/ConfirmActionDialog';
+import type { SalaryFilters, SalaryRecord } from "../../api/Salaries";
+import type { WorkContract } from "../../types/workRelation";
+import type { DialogConfig } from "../../components/Modals/ConfirmActionDialog";
 
-// api 
-import { getSalaries } from '../../api/Salaries';
-import { deleteSalaryContract } from '../../api/deleteSalaryContract';
+// api
+import { getSalaries } from "../../api/Salaries";
+import { deleteSalaryContract } from "../../api/deleteSalaryContract";
 
 type DialogType = "delete" | null;
 
-export const contractTypes: ContractType[] = ["uop", "mandate"] as const;
+export const contractTypes: WorkContract[] = [
+  "uop",
+  "mandate",
+  "uod"
+];
 
-const asContractType = (v: string | null): ContractType | "" => {
-  return v && contractTypes.includes(v as ContractType)
-    ? (v as ContractType)
+const asContractType = (
+  value: string | null
+): WorkContract | "" => {
+  return value && contractTypes.includes(value as WorkContract)
+    ? (value as WorkContract)
     : "";
 };
 
@@ -44,32 +47,52 @@ interface TableProps {
 
 export default function SalariesTable({ editClick }: TableProps) {
   const intl = useIntl();
-  const theme = useTheme();
-
   const { enqueueSnackbar } = useSnackbar();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
   const now = new Date();
 
+  const initialRequestedPage = useRef(
+    Math.max(Number(searchParams.get("page")) || 1, 1)
+  );
+
+  const firstLoad = useRef(true);
+
   const [initialLoading, setInitialLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const [salaryToDelete, setSalaryToDelete] = useState<string | null>(null);
-  const [dialogType, setDialogType] = useState<DialogType>(null);
+  const [salaryToDelete, setSalaryToDelete] =
+    useState<string | null>(null);
 
-  const [globalFilter, setGlobalFilter] = useState<SalaryFilters>({
-    id: searchParams.get("id") || "",
-    startYear: Number(searchParams.get("startYear")) || now.getFullYear(),
-    startMonth: Number(searchParams.get("startMonth")) || 1,
-    endYear: Number(searchParams.get("endYear")) || now.getFullYear(),
-    endMonth: Number(searchParams.get("endMonth")) || now.getMonth() + 1,
-    contractType: asContractType(searchParams.get("contractType") || "")
-  });
+  const [dialogType, setDialogType] =
+    useState<DialogType>(null);
 
-  const [page, setPage] = useState(Number(searchParams.get("page")) || 1);
-  const [rowsPerPage, setRowsPerPage] = useState(
-    Number(searchParams.get("limit")) || 9
+  const [globalFilter, setGlobalFilter] =
+    useState<SalaryFilters>({
+      id: searchParams.get("id") || "",
+      startYear:
+        Number(searchParams.get("startYear")) ||
+        now.getFullYear(),
+      startMonth:
+        Number(searchParams.get("startMonth")) || 1,
+      endYear:
+        Number(searchParams.get("endYear")) ||
+        now.getFullYear(),
+      endMonth:
+        Number(searchParams.get("endMonth")) ||
+        now.getMonth() + 1,
+      contractType: asContractType(
+        searchParams.get("contractType")
+      )
+    });
+
+  const [page, setPage] = useState(
+    initialRequestedPage.current
+  );
+
+  const [rowsPerPage] = useState(
+    Math.max(Number(searchParams.get("limit")) || 9, 1)
   );
 
   const [items, setItems] = useState<SalaryRecord[]>([]);
@@ -77,18 +100,27 @@ export default function SalariesTable({ editClick }: TableProps) {
 
   const dialogMap: Record<string, DialogConfig> = {
     delete: {
-      variant: "danger" as const,
-      title: <FormattedMessage id="dialog-delete-salary-title" />,
-      message: <FormattedMessage id="dialog-delete-salary-message" />,
-      confirmText: <FormattedMessage id="dialog-delete-salary-confirm" />,
-      getAction: (closeDialog: () => void, deleteSalary: () => void) => () => {
+      variant: "danger",
+      title: (
+        <FormattedMessage id="dialog-delete-salary-title" />
+      ),
+      message: (
+        <FormattedMessage id="dialog-delete-salary-message" />
+      ),
+      confirmText: (
+        <FormattedMessage id="dialog-delete-salary-confirm" />
+      ),
+      getAction: (
+        closeDialog: () => void,
+        deleteSalary: () => void
+      ) => () => {
         deleteSalary();
         closeDialog();
       }
     }
   };
 
-  const loadSalaries = async (
+  const loadSinglePage = async (
     targetPage: number,
     mode: "replace" | "append"
   ) => {
@@ -98,25 +130,69 @@ export default function SalariesTable({ editClick }: TableProps) {
       setLoadingMore(true);
     }
 
-    const result = await getSalaries(globalFilter, targetPage, rowsPerPage);
+    try {
+      const result = await getSalaries(
+        globalFilter,
+        targetPage,
+        rowsPerPage
+      );
 
-    setItems((prev) => {
-      if (mode === "replace") {
-        return result.res;
+      setItems((prev) =>
+        mode === "replace"
+          ? result.res
+          : [...prev, ...result.res]
+      );
+
+      setHasMore(result.hasMore);
+      setPage(targetPage);
+    } finally {
+      setInitialLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadThroughPage = async (targetPage: number) => {
+    setInitialLoading(true);
+
+    try {
+      const loaded: SalaryRecord[] = [];
+      let actualPage = 1;
+      let more = false;
+
+      for (
+        let currentPage = 1;
+        currentPage <= targetPage;
+        currentPage += 1
+      ) {
+        const result = await getSalaries(
+          globalFilter,
+          currentPage,
+          rowsPerPage
+        );
+
+        loaded.push(...result.res);
+        actualPage = currentPage;
+        more = result.hasMore;
+
+        if (!result.hasMore) break;
       }
 
-      return [...prev, ...result.res];
-    });
-
-    setHasMore(result.hasMore);
-    setPage(targetPage);
-
-    setInitialLoading(false);
-    setLoadingMore(false);
+      setItems(loaded);
+      setHasMore(more);
+      setPage(actualPage);
+    } finally {
+      setInitialLoading(false);
+    }
   };
 
   useEffect(() => {
-    loadSalaries(1, "replace");
+    if (firstLoad.current) {
+      firstLoad.current = false;
+      loadThroughPage(initialRequestedPage.current);
+      return;
+    }
+
+    loadSinglePage(1, "replace");
   }, [globalFilter, rowsPerPage]);
 
   useEffect(() => {
@@ -126,15 +202,26 @@ export default function SalariesTable({ editClick }: TableProps) {
     };
 
     Object.entries(globalFilter).forEach(([key, value]) => {
-      if (value !== "" && value !== undefined && value !== null) {
+      if (
+        value !== "" &&
+        value !== undefined &&
+        value !== null
+      ) {
         params[key] = String(value);
       }
     });
 
-    setSearchParams(params);
-  }, [page, rowsPerPage, globalFilter, setSearchParams]);
+    setSearchParams(params, { replace: true });
+  }, [
+    page,
+    rowsPerPage,
+    globalFilter,
+    setSearchParams
+  ]);
 
-  const handleGlobalFilter = <K extends keyof SalaryFilters>(
+  const handleGlobalFilter = <
+    K extends keyof SalaryFilters
+  >(
     key: K,
     value: SalaryFilters[K]
   ) => {
@@ -150,6 +237,7 @@ export default function SalariesTable({ editClick }: TableProps) {
 
   const closeDialog = () => {
     setDialogType(null);
+    setSalaryToDelete(null);
   };
 
   const deleteApproved = async (id: string) => {
@@ -157,17 +245,23 @@ export default function SalariesTable({ editClick }: TableProps) {
 
     if (error) {
       console.error(error);
-      enqueueSnackbar(intl.formatMessage({ id: "error" }), {
-        variant: "error"
-      });
+
+      enqueueSnackbar(
+        intl.formatMessage({ id: "error" }),
+        { variant: "error" }
+      );
+
       return;
     }
 
-    setItems((prev) => prev.filter((item) => item.id !== id));
+    setItems((prev) =>
+      prev.filter((item) => item.id !== id)
+    );
 
-    enqueueSnackbar(intl.formatMessage({ id: "salary-deleted" }), {
-      variant: "success"
-    });
+    enqueueSnackbar(
+      intl.formatMessage({ id: "salary-deleted" }),
+      { variant: "success" }
+    );
   };
 
   const deleteSalary = (id: string) => {
@@ -176,9 +270,15 @@ export default function SalariesTable({ editClick }: TableProps) {
   };
 
   const handleLoadMore = () => {
-    if (initialLoading || loadingMore || !hasMore) return;
+    if (
+      initialLoading ||
+      loadingMore ||
+      !hasMore
+    ) {
+      return;
+    }
 
-    loadSalaries(page + 1, "append");
+    loadSinglePage(page + 1, "append");
   };
 
   return (
@@ -191,9 +291,8 @@ export default function SalariesTable({ editClick }: TableProps) {
           deleteClick={deleteSalary}
           globalFilter={globalFilter}
           onFilterChange={handleGlobalFilter}
-          setPage={setPage}
         />
-        
+
         {hasMore && items.length > 0 && (
           <Stack alignItems="center" sx={{ mt: 3 }}>
             <Button
@@ -215,44 +314,77 @@ export default function SalariesTable({ editClick }: TableProps) {
                 textTransform: "none",
                 fontWeight: 700,
                 letterSpacing: 0.2,
-                borderColor: "rgba(74, 58, 255, 0.35)",
+                borderColor:
+                  "rgba(74, 58, 255, 0.35)",
                 color: "#4A3AFF",
-                backgroundColor: "rgba(74, 58, 255, 0.04)",
-                boxShadow: "0 8px 20px rgba(74, 58, 255, 0.08)",
+                backgroundColor:
+                  "rgba(74, 58, 255, 0.04)",
+                boxShadow:
+                  "0 8px 20px rgba(74, 58, 255, 0.08)",
                 "&:hover": {
                   borderColor: "#4A3AFF",
-                  backgroundColor: "rgba(74, 58, 255, 0.08)",
-                  boxShadow: "0 10px 24px rgba(74, 58, 255, 0.12)"
+                  backgroundColor:
+                    "rgba(74, 58, 255, 0.08)",
+                  boxShadow:
+                    "0 10px 24px rgba(74, 58, 255, 0.12)"
                 },
                 "&.Mui-disabled": {
-                  borderColor: "rgba(0, 0, 0, 0.12)",
+                  borderColor:
+                    "rgba(0, 0, 0, 0.12)",
                   color: "text.disabled",
-                  backgroundColor: "rgba(0, 0, 0, 0.03)",
+                  backgroundColor:
+                    "rgba(0, 0, 0, 0.03)",
                   boxShadow: "none"
                 }
               }}
             >
-              {loadingMore ? "Loading salaries" : "Load more"}
+              {loadingMore
+                ? "Loading salaries"
+                : "Load more"}
             </Button>
           </Stack>
         )}
       </Box>
 
       <ConfirmActionDialog
-        open={!!dialogType}
+        open={Boolean(dialogType)}
         form={false}
-        extraContent={dialogType ? dialogMap[dialogType].extraContent : undefined}
-        title={dialogType ? dialogMap[dialogType].title : ""}
-        message={dialogType ? dialogMap[dialogType].message : ""}
-        confirmText={dialogType ? dialogMap[dialogType].confirmText : ""}
-        variant={dialogType ? dialogMap[dialogType].variant : "default"}
+        extraContent={
+          dialogType
+            ? dialogMap[dialogType].extraContent
+            : undefined
+        }
+        title={
+          dialogType
+            ? dialogMap[dialogType].title
+            : ""
+        }
+        message={
+          dialogType
+            ? dialogMap[dialogType].message
+            : ""
+        }
+        confirmText={
+          dialogType
+            ? dialogMap[dialogType].confirmText
+            : ""
+        }
+        variant={
+          dialogType
+            ? dialogMap[dialogType].variant
+            : "default"
+        }
         onConfirm={() => {
-          if (!dialogType) return;
-
-          if (dialogType === "delete" && salaryToDelete) {
-            const action = dialogMap["delete"].getAction(closeDialog, () =>
-              deleteApproved(salaryToDelete)
-            );
+          if (
+            dialogType === "delete" &&
+            salaryToDelete
+          ) {
+            const action =
+              dialogMap.delete.getAction(
+                closeDialog,
+                () =>
+                  deleteApproved(salaryToDelete)
+              );
 
             action();
           }

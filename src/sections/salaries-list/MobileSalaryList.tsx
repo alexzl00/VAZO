@@ -1,5 +1,8 @@
-import { useState, useEffect } from "react";
-import { FormattedMessage } from "react-intl";
+import { useEffect, useState } from "react";
+import {
+  FormattedMessage,
+  useIntl
+} from "react-intl";
 
 // mui
 import {
@@ -23,26 +26,33 @@ import DeleteIcon from "@mui/icons-material/Delete";
 // utils
 import { formatMoneyPl } from "../../utils/money-format";
 
-// third-party
-import { useIntl } from "react-intl";
-
 // api
-import type { SalaryRecord, SalaryFilters } from "../../api/Salaries";
+import type {
+  SalaryRecord,
+  SalaryFilters
+} from "../../api/Salaries";
 
 interface Props {
   items: SalaryRecord[];
   loading: boolean;
+
   editClick: (id: string) => void;
   deleteClick: (id: string) => void;
+
   globalFilter: SalaryFilters;
-  onFilterChange: <K extends keyof SalaryFilters>(
+
+  onFilterChange: <
+    K extends keyof SalaryFilters
+  >(
     key: K,
     value: SalaryFilters[K]
   ) => void;
-  setPage: React.Dispatch<React.SetStateAction<number>>;
 }
 
-const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
+const MONTH_OPTIONS = Array.from(
+  { length: 12 },
+  (_, index) => index + 1
+);
 
 function getCurrentYearMonth() {
   const now = new Date();
@@ -76,8 +86,11 @@ function isInvalidRange(filters: SalaryFilters) {
     return true;
   }
 
-  const startValue = filters.startYear * 100 + filters.startMonth;
-  const endValue = filters.endYear * 100 + filters.endMonth;
+  const startValue =
+    filters.startYear * 100 + filters.startMonth;
+
+  const endValue =
+    filters.endYear * 100 + filters.endMonth;
 
   return startValue > endValue;
 }
@@ -88,51 +101,93 @@ export default function MobileSalaryList({
   editClick,
   deleteClick,
   globalFilter,
-  onFilterChange,
-  setPage
+  onFilterChange
 }: Props) {
-  const [openFilters, setOpenFilters] = useState(false);
+  const [openFilters, setOpenFilters] =
+    useState(false);
 
-  const [draft, setDraft] = useState<SalaryFilters>(() => ({
-    ...createDefaultSalaryFilters(),
-    ...globalFilter
-  }));
+  const [draft, setDraft] =
+    useState<SalaryFilters>(() => ({
+      ...createDefaultSalaryFilters(),
+      ...globalFilter
+    }));
 
   const intl = useIntl();
 
   useEffect(() => {
-    if (openFilters) {
-      setDraft({
-        ...createDefaultSalaryFilters(),
-        ...globalFilter
-      });
-    }
+    if (!openFilters) return;
+
+    setDraft({
+      ...createDefaultSalaryFilters(),
+      ...globalFilter
+    });
   }, [openFilters, globalFilter]);
 
   const rangeError = isInvalidRange(draft);
 
+  const applyFilters = () => {
+    onFilterChange(
+      "startYear",
+      draft.startYear
+    );
+
+    onFilterChange(
+      "startMonth",
+      draft.startMonth
+    );
+
+    onFilterChange(
+      "endYear",
+      draft.endYear
+    );
+
+    onFilterChange(
+      "endMonth",
+      draft.endMonth
+    );
+
+    onFilterChange(
+      "contractType",
+      draft.contractType
+    );
+
+    setOpenFilters(false);
+  };
+
   return (
     <Box>
       {/* FILTER BUTTON */}
-      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "flex-end",
+          mb: 2
+        }}
+      >
         <Button
           variant="outlined"
           startIcon={<FilterListIcon />}
           onClick={() => setOpenFilters(true)}
           sx={{ width: 100 }}
         >
-          {intl.formatMessage({ id: "salaries-filters" })}
+          {intl.formatMessage({
+            id: "salaries-filters"
+          })}
         </Button>
       </Box>
 
       {/* FILTER MODAL */}
-      <Modal open={openFilters} onClose={() => setOpenFilters(false)}>
+      <Modal
+        open={openFilters}
+        onClose={() => setOpenFilters(false)}
+      >
         <Box
           sx={{
             position: "absolute",
             top: "50%",
             left: "50%",
-            transform: "translate(-50%, -50%)",
+            transform:
+              "translate(-50%, -50%)",
             width: "90%",
             maxWidth: 420,
             bgcolor: "background.paper",
@@ -142,7 +197,9 @@ export default function MobileSalaryList({
           }}
         >
           <Typography variant="h6" mb={2}>
-            {intl.formatMessage({ id: "salaries-filters" })}
+            {intl.formatMessage({
+              id: "salaries-filters"
+            })}
           </Typography>
 
           <Stack spacing={2}>
@@ -151,20 +208,32 @@ export default function MobileSalaryList({
               <Typography
                 variant="caption"
                 color="text.secondary"
-                sx={{ display: "block", mb: 0.75 }}
+                sx={{
+                  display: "block",
+                  mb: 0.75
+                }}
               >
-                {intl.formatMessage({ id: "salaries-start" })}
+                {intl.formatMessage({
+                  id: "salaries-start"
+                })}
               </Typography>
 
-              <Stack direction="row" spacing={1}>
+              <Stack
+                direction="row"
+                spacing={1}
+              >
                 <TextField
-                  label={intl.formatMessage({ id: "salaries-year" })}
+                  label={intl.formatMessage({
+                    id: "salaries-year"
+                  })}
                   type="number"
                   value={draft.startYear}
-                  onChange={(e) =>
-                    setDraft((p) => ({
-                      ...p,
-                      startYear: Number(e.target.value)
+                  onChange={(event) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      startYear: Number(
+                        event.target.value
+                      )
                     }))
                   }
                   fullWidth
@@ -179,22 +248,34 @@ export default function MobileSalaryList({
 
                 <TextField
                   select
-                  label={intl.formatMessage({ id: "salaries-month" })}
+                  label={intl.formatMessage({
+                    id: "salaries-month"
+                  })}
                   value={draft.startMonth}
-                  onChange={(e) =>
-                    setDraft((p) => ({
-                      ...p,
-                      startMonth: Number(e.target.value)
+                  onChange={(event) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      startMonth: Number(
+                        event.target.value
+                      )
                     }))
                   }
                   fullWidth
                   required
                 >
-                  {MONTH_OPTIONS.map((month) => (
-                    <MenuItem key={month} value={month}>
-                      {String(month).padStart(2, "0")}
-                    </MenuItem>
-                  ))}
+                  {MONTH_OPTIONS.map(
+                    (month) => (
+                      <MenuItem
+                        key={month}
+                        value={month}
+                      >
+                        {String(month).padStart(
+                          2,
+                          "0"
+                        )}
+                      </MenuItem>
+                    )
+                  )}
                 </TextField>
               </Stack>
             </Box>
@@ -204,20 +285,32 @@ export default function MobileSalaryList({
               <Typography
                 variant="caption"
                 color="text.secondary"
-                sx={{ display: "block", mb: 0.75 }}
+                sx={{
+                  display: "block",
+                  mb: 0.75
+                }}
               >
-                {intl.formatMessage({ id: "salaries-end" })}
+                {intl.formatMessage({
+                  id: "salaries-end"
+                })}
               </Typography>
 
-              <Stack direction="row" spacing={1}>
+              <Stack
+                direction="row"
+                spacing={1}
+              >
                 <TextField
-                  label={intl.formatMessage({ id: "salaries-year" })}
+                  label={intl.formatMessage({
+                    id: "salaries-year"
+                  })}
                   type="number"
                   value={draft.endYear}
-                  onChange={(e) =>
-                    setDraft((p) => ({
-                      ...p,
-                      endYear: Number(e.target.value)
+                  onChange={(event) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      endYear: Number(
+                        event.target.value
+                      )
                     }))
                   }
                   fullWidth
@@ -232,75 +325,119 @@ export default function MobileSalaryList({
 
                 <TextField
                   select
-                  label={intl.formatMessage({ id: "salaries-month" })}
+                  label={intl.formatMessage({
+                    id: "salaries-month"
+                  })}
                   value={draft.endMonth}
-                  onChange={(e) =>
-                    setDraft((p) => ({
-                      ...p,
-                      endMonth: Number(e.target.value)
+                  onChange={(event) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      endMonth: Number(
+                        event.target.value
+                      )
                     }))
                   }
                   fullWidth
                   required
                 >
-                  {MONTH_OPTIONS.map((month) => (
-                    <MenuItem key={month} value={month}>
-                      {String(month).padStart(2, "0")}
-                    </MenuItem>
-                  ))}
+                  {MONTH_OPTIONS.map(
+                    (month) => (
+                      <MenuItem
+                        key={month}
+                        value={month}
+                      >
+                        {String(month).padStart(
+                          2,
+                          "0"
+                        )}
+                      </MenuItem>
+                    )
+                  )}
                 </TextField>
               </Stack>
             </Box>
 
             {rangeError && (
-              <Typography variant="caption" color="error">
-                {intl.formatMessage({ id: "salaries-invalid-date-range" })}
+              <Typography
+                variant="caption"
+                color="error"
+              >
+                {intl.formatMessage({
+                  id:
+                    "salaries-invalid-date-range"
+                })}
               </Typography>
             )}
 
             <TextField
               select
-              label={intl.formatMessage({ id: "salaries-contract-type" })}
+              label={intl.formatMessage({
+                id: "salaries-contract-type"
+              })}
               value={draft.contractType}
-              onChange={(e) =>
-                setDraft((p) => ({
-                  ...p,
-                  contractType: e.target.value as SalaryFilters["contractType"]
+              onChange={(event) =>
+                setDraft((prev) => ({
+                  ...prev,
+                  contractType:
+                    event.target
+                      .value as SalaryFilters["contractType"]
                 }))
               }
               fullWidth
             >
-              <MenuItem value="">{intl.formatMessage({ id: "salaries-all" })}</MenuItem>
-              <MenuItem value="uop">{intl.formatMessage({ id: "salaries-contract-uop" })}</MenuItem>
-              <MenuItem value="mandate">{intl.formatMessage({ id: "salaries-contract-mandate" })}</MenuItem>
-              <MenuItem value="uod">{intl.formatMessage({ id: "salaries-contract-uod" })}</MenuItem>
+              <MenuItem value="">
+                {intl.formatMessage({
+                  id: "salaries-all"
+                })}
+              </MenuItem>
+
+              <MenuItem value="uop">
+                {intl.formatMessage({
+                  id:
+                    "salaries-contract-uop"
+                })}
+              </MenuItem>
+
+              <MenuItem value="mandate">
+                {intl.formatMessage({
+                  id:
+                    "salaries-contract-mandate"
+                })}
+              </MenuItem>
+
+              <MenuItem value="uod">
+                {intl.formatMessage({
+                  id:
+                    "salaries-contract-uod"
+                })}
+              </MenuItem>
             </TextField>
 
-            <Stack direction="row" spacing={1}>
+            <Stack
+              direction="row"
+              spacing={1}
+            >
               <Button
                 fullWidth
                 variant="outlined"
-                onClick={() => setOpenFilters(false)}
+                onClick={() =>
+                  setOpenFilters(false)
+                }
               >
-                {intl.formatMessage({ id: "salaries-cancel" })}
+                {intl.formatMessage({
+                  id: "salaries-cancel"
+                })}
               </Button>
 
               <Button
                 fullWidth
                 variant="contained"
                 disabled={rangeError}
-                onClick={() => {
-                  onFilterChange("startYear", draft.startYear);
-                  onFilterChange("startMonth", draft.startMonth);
-                  onFilterChange("endYear", draft.endYear);
-                  onFilterChange("endMonth", draft.endMonth);
-                  onFilterChange("contractType", draft.contractType);
-
-                  setPage(0);
-                  setOpenFilters(false);
-                }}
+                onClick={applyFilters}
               >
-                {intl.formatMessage({ id: "salaries-apply" })}
+                {intl.formatMessage({
+                  id: "salaries-apply"
+                })}
               </Button>
             </Stack>
           </Stack>
@@ -309,34 +446,42 @@ export default function MobileSalaryList({
 
       {/* CONTENT */}
       {loading ? (
-        <Stack alignItems="center" mt={4}>
+        <Stack
+          alignItems="center"
+          mt={4}
+        >
           <CircularProgress />
         </Stack>
       ) : items.length === 0 ? (
         <Box
           sx={{
             py: 6,
-            textAlign: 'center',
+            textAlign: "center"
           }}
         >
           <Typography
             variant="h6"
             sx={{
-              color: '#2F2A4A',
+              color: "#2F2A4A",
               fontWeight: 600,
-              mb: 1,
+              mb: 1
             }}
           >
-            {intl.formatMessage({ id: 'salaries-no-results' })}
+            {intl.formatMessage({
+              id: "salaries-no-results"
+            })}
           </Typography>
 
           <Typography
             variant="body2"
             sx={{
-              color: '#77728D',
+              color: "#77728D"
             }}
           >
-            {intl.formatMessage({ id: 'salaries-no-results-description' })}
+            {intl.formatMessage({
+              id:
+                "salaries-no-results-description"
+            })}
           </Typography>
         </Box>
       ) : (
@@ -356,15 +501,24 @@ export default function MobileSalaryList({
             } = item;
 
             const net = isOverridden
-              ? netSalaryOverride ?? netSalaryCalculated
+              ? netSalaryOverride ??
+                netSalaryCalculated
               : netSalaryCalculated;
 
             const gross = isOverridden
-              ? grossSalaryOverride ?? grossSalaryCalculated
+              ? grossSalaryOverride ??
+                grossSalaryCalculated
               : grossSalaryCalculated;
 
             return (
-              <Grid size={{ xs: 12, md: 6, lg: 4 }} key={id}>
+              <Grid
+                size={{
+                  xs: 12,
+                  md: 6,
+                  lg: 4
+                }}
+                key={id}
+              >
                 <Box
                   sx={{
                     width: "100%",
@@ -372,7 +526,8 @@ export default function MobileSalaryList({
                     borderRadius: 5,
                     background:
                       "linear-gradient(135deg, #F7F6FF 0%, #FFFFFF 100%)",
-                    boxShadow: "0 6px 16px rgba(0,0,0,0.1)"
+                    boxShadow:
+                      "0 6px 16px rgba(0,0,0,0.1)"
                   }}
                 >
                   {/* HEADER */}
@@ -383,63 +538,133 @@ export default function MobileSalaryList({
                     alignItems="center"
                   >
                     <Chip
-                      label={contractType.toUpperCase()}
+                      label={
+                        intl.formatMessage({
+                          id: `salaries-contract-${contractType}`
+                        })
+                      }
                       sx={{
                         minWidth: 100,
                         fontWeight: 600,
-                        backgroundColor: "#E6E4FF",
+                        backgroundColor:
+                          "#E6E4FF",
                         color: "#4A3AFF"
                       }}
                     />
 
-                    <Typography variant="body2" color="text.secondary">
-                      {String(month).padStart(2, "0")}/{year}
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                    >
+                      {String(month).padStart(
+                        2,
+                        "0"
+                      )}
+                      /{year}
                     </Typography>
 
-                    <Stack direction="row" spacing={0.5}>
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                    >
                       <IconButton
-                        onClick={() => editClick(id)}
-                        sx={{ p: 1, backgroundColor: "#EFEFFF" }}
+                        aria-label="edit salary"
+                        onClick={() =>
+                          editClick(id)
+                        }
+                        sx={{
+                          p: 1,
+                          backgroundColor:
+                            "#EFEFFF"
+                        }}
                       >
                         <EditIcon />
                       </IconButton>
 
                       <IconButton
-                        onClick={() => deleteClick(id)}
-                        sx={{ p: 1, backgroundColor: "#EFEFFF" }}
+                        aria-label="delete salary"
+                        onClick={() =>
+                          deleteClick(id)
+                        }
+                        sx={{
+                          p: 1,
+                          backgroundColor:
+                            "#EFEFFF"
+                        }}
                       >
-                        <DeleteIcon sx={{ color: "rgb(250, 70, 70)" }} />
+                        <DeleteIcon
+                          sx={{
+                            color:
+                              "rgb(250, 70, 70)"
+                          }}
+                        />
                       </IconButton>
                     </Stack>
                   </Stack>
 
                   {/* SALARY */}
-                  <Stack direction="row" justifyContent="space-between" mt={2}>
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    mt={2}
+                  >
                     <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        {intl.formatMessage({ id: "salaries-net" })}
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                      >
+                        {intl.formatMessage({
+                          id: "salaries-net"
+                        })}
                       </Typography>
 
-                      <Typography variant="h6" fontWeight={700}>
+                      <Typography
+                        variant="h6"
+                        fontWeight={700}
+                      >
                         {formatMoneyPl(net)}
                       </Typography>
                     </Box>
 
                     <Box textAlign="right">
-                      <Typography variant="caption" color="text.secondary">
-                        {intl.formatMessage({ id: "salaries-gross" })}
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                      >
+                        {intl.formatMessage({
+                          id: "salaries-gross"
+                        })}
                       </Typography>
 
-                      <Typography variant="h6" fontWeight={700}>
+                      <Typography
+                        variant="h6"
+                        fontWeight={700}
+                      >
                         {formatMoneyPl(gross)}
                       </Typography>
                     </Box>
                   </Stack>
 
                   {/* FOOTER */}
-                  <Stack direction="row" justifyContent="space-between" mt={2}>
-                    <Typography variant="body2" color="text.secondary">
-                      {intl.formatMessage({ id: "salaries-payment-mode" })}: {intl.formatMessage({ id: `salaries-payment-mode-${paymentMode}` })}
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    mt={2}
+                  >
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                    >
+                      {intl.formatMessage({
+                        id:
+                          "salaries-payment-mode"
+                      })}
+                      :{" "}
+                      {intl.formatMessage({
+                        id:
+                          `salaries-payment-mode-${paymentMode}`
+                      })}
                     </Typography>
 
                     {isOverridden && (
