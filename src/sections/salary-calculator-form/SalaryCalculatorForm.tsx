@@ -89,10 +89,11 @@ type SalaryFormProps =
   | (BaseProps & { type: "create" })
   | (BaseProps & { type: "update"; deleteOverride: () => void });
 
-type LegacySalaryBonusValues = {
+type LegacySalaryValues = {
   attendanceBonus?: number;
   discretionaryBonus?: number;
   otherBonus?: number;
+  mandateSicknessBenefitEligible?: boolean;
 };
 
 const getWorkRateTypeFromRelation = (
@@ -189,11 +190,20 @@ const WorkRelationSelector = ({ formMode }: WorkRelationSelectorProps) => {
     setFieldValue('workRelationId', relation.id, false);
     setFieldValue('employmentStartDate', period.start, false);
     setFieldValue('employmentEndDate', period.end, false);
+    if (workRateType !== values.workRateType) {
+      setFieldValue(
+        'sicknessBenefitEligible',
+        workRateType === 'uop_monthly' || workRateType === 'uop_hourly',
+        false,
+      );
+    }
+
     setFieldValue('workRateType', workRateType, false);
   }, [
     clearRelationContext,
     setFieldValue,
     values.month,
+    values.workRateType,
     values.year,
   ]);
 
@@ -464,7 +474,7 @@ const WorkRelationSelector = ({ formMode }: WorkRelationSelectorProps) => {
 const normalizeSalaryValues = (
   values: SalaryCalculatorValues,
 ): SalaryCalculatorValues => {
-  const legacyValues = values as SalaryCalculatorValues & LegacySalaryBonusValues;
+  const legacyValues = values as SalaryCalculatorValues & LegacySalaryValues;
 
   let bonuses = Array.isArray(legacyValues.bonuses)
     ? legacyValues.bonuses
@@ -490,10 +500,17 @@ const normalizeSalaryValues = (
     }
   }
 
+  const sicknessBenefitEligible =
+    values.sicknessBenefitEligible
+      ?? legacyValues.mandateSicknessBenefitEligible
+      ?? (values.workRateType === 'uop_monthly'
+        || values.workRateType === 'uop_hourly');
+
   return applySalaryFieldDefaults(
     {
       ...values,
       bonuses,
+      sicknessBenefitEligible,
       l4: normalizeL4Ranges(values.l4),
     },
     metadataDrivenFieldConfigs,

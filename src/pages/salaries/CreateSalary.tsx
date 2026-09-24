@@ -48,13 +48,13 @@ export const initialSalaryFormValues: SalaryCalculatorValues = {
 
   doNotWithholdPitAdvance: false,
 
-  // UoP sickness
+  // Sickness eligibility / UoP sickness
+  sicknessBenefitEligible: true,
   uopEmployerSickPayLimit: 33,
   previousEmployerSickPayDays: 0,
 
   // UZ / UoD insurance status
   mandateVoluntarySicknessInsurance: false,
-  mandateSicknessBenefitEligible: false,
   mandateHasOtherUopAtLeastMinimumBase: false,
   mandateOtherSocialBaseBeforeThisContract: 0,
   isOwnEmployerContract: false,
@@ -154,6 +154,8 @@ export default function CreateSalaryPage() {
 
         salaryId = await createMandateSalary({
           ...values,
+          // Temporary adapter while the DB/API still use the old UZ-specific name.
+          mandateSicknessBenefitEligible: values.sicknessBenefitEligible,
           brutto: calculated.brutto,
           netto: calculated.netto
         });

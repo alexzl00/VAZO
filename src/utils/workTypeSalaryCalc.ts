@@ -754,7 +754,7 @@ export const calculateTaxesContractOfMandate = (
 
   const ordinarySicknessBenefitEligible = Boolean(
     voluntarySicknessInsuranceActive
-      && values.mandateSicknessBenefitEligible,
+      && values.sicknessBenefitEligible,
   );
 
   // Within the currently supported UZ model, compulsory pension/disability
@@ -774,7 +774,7 @@ export const calculateTaxesContractOfMandate = (
       warnings.push({
         id: 'salary-warning-mandate-voluntary-sickness-unavailable',
       });
-    } else if (!values.mandateSicknessBenefitEligible) {
+    } else if (!values.sicknessBenefitEligible) {
       warnings.push({
         id: 'salary-warning-mandate-sickness-benefit-not-eligible',
         values: { waitingDays: 90 },
@@ -1118,6 +1118,22 @@ export const calculateTaxesUoP = (
   let employerSickPayAmount = 0;
   let sicknessBenefitAmount = 0;
 
+  const ordinarySicknessBenefitEligible =
+    values.sicknessBenefitEligible ?? true;
+
+  const ordinaryL4DaysCountForEligibility = countDaysWithinPeriod(
+    values.l4.filter((range) => getL4PaymentType(range) !== 'accident100'),
+    values.employmentStartDate,
+    values.employmentEndDate,
+  );
+
+  if (ordinaryL4DaysCountForEligibility > 0 && !ordinarySicknessBenefitEligible) {
+    warnings.push({
+      id: 'salary-warning-sickness-benefit-not-eligible',
+      values: { waitingDays: 30 },
+    });
+  }
+
   // Process ranges chronologically because the 33/14-day Art. 92 limit applies
   // only to ordinary sickness/full-100 sickness from sickness insurance.
   // A work accident / occupational disease is paid from accident insurance
@@ -1140,6 +1156,13 @@ export const calculateTaxesUoP = (
     if (paymentType === 'accident100') {
       sicknessBenefitDays += days;
       sicknessBenefitAmount += amount;
+      return;
+    }
+
+    // Art. 92 §3 pkt 2: employer-funded sick pay is not due in cases where
+    // the employee has no right to sickness benefit. Accident-insurance L4 is
+    // handled above and is not subject to the ordinary waiting-period flag.
+    if (!ordinarySicknessBenefitEligible) {
       return;
     }
 

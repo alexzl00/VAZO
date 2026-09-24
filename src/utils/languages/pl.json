@@ -138,8 +138,8 @@
   "taxes-and-deductions-uop-sick-pay-limit-14": "14 dni",
   "taxes-and-deductions-previous-employer-sick-pay-days": "Wykorzystane dni wynagrodzenia chorobowego przed tym miesiącem",
   "taxes-and-deductions-previous-employer-sick-pay-days-help": "Podaj liczbę dni wynagrodzenia chorobowego wykorzystanych wcześniej w tym samym roku kalendarzowym. Docelowo wartość powinna być pobierana automatycznie z historii.",
-  "taxes-and-deductions-mandate-sickness-benefit-eligible": "Masz prawo do zasiłku chorobowego z umowy zlecenia",
-  "taxes-and-deductions-mandate-sickness-benefit-eligible-help": "Zaznacz, jeśli nabyłeś prawo do zasiłku chorobowego — zwykle po 90 dniach nieprzerwanego dobrowolnego ubezpieczenia chorobowego albo na podstawie ustawowego wyjątku lub wcześniejszego okresu ubezpieczenia.",
+  "taxes-and-deductions-sickness-benefit-eligible": "Masz prawo do świadczeń chorobowych",
+  "taxes-and-deductions-sickness-benefit-eligible-help": "Zaznacz, jeśli nabyłeś prawo do świadczeń chorobowych. Przy umowie o pracę co do zasady prawo powstaje po 30 dniach nieprzerwanego obowiązkowego ubezpieczenia chorobowego, a przy umowie zlecenia po 90 dniach dobrowolnego ubezpieczenia chorobowego, z uwzględnieniem ustawowych wyjątków i kwalifikujących wcześniejszych okresów ubezpieczenia.",
   "taxes-and-deductions-other-uop-minimum-help": "Jeżeli inna umowa o pracę zapewnia co najmniej wymaganą podstawę, składki społeczne z tej umowy zlecenia mogą nie być obowiązkowe; wpływa to także na możliwość dobrowolnego ubezpieczenia chorobowego.",
 
   "taxes-and-deductions-uop-kup": "Koszty uzyskania przychodu (UoP)",
@@ -350,6 +350,7 @@
   "salary-warning-small-contract-lump-sum-over-limit": "Włączono ryczałtowy PIT dla umowy do {limit} zł, ale wynagrodzenie brutto przekracza ten limit.",
   "salary-warning-mandate-l4-no-sickness-insurance": "Dodano L4 dla umowy zlecenia bez dobrowolnego ubezpieczenia chorobowego. Zasiłek chorobowy nie został doliczony.",
   "salary-warning-mandate-voluntary-sickness-unavailable": "Dobrowolne ubezpieczenie chorobowe nie może zostać zastosowane do tej umowy zlecenia, ponieważ z tego tytułu nie występują obowiązkowe składki emerytalna i rentowa.",
+  "salary-warning-uop-sickness-benefit-not-eligible": "Dodano L4 dla umowy o pracę, ale nie potwierdzono prawa do świadczeń chorobowych. Co do zasady przy obowiązkowym ubezpieczeniu chorobowym obowiązuje 30-dniowy okres wyczekiwania, z uwzględnieniem ustawowych wyjątków i kwalifikujących wcześniejszych okresów ubezpieczenia.",
   "salary-warning-mandate-sickness-benefit-not-eligible": "Dodano L4 dla umowy zlecenia, ale nie potwierdzono prawa do zasiłku chorobowego. Co do zasady przy dobrowolnym ubezpieczeniu obowiązuje {waitingDays}-dniowy okres wyczekiwania, z uwzględnieniem ustawowych wyjątków i kwalifikujących wcześniejszych okresów ubezpieczenia.",
   "salary-warning-mandate-ppk-unavailable": "PPK nie jest naliczane z tej umowy zlecenia, ponieważ z tego tytułu nie występują obowiązkowe składki emerytalna i rentowa.",
   "salary-warning-mandate-minimum-hourly-rate": "Wprowadzona stawka godzinowa umowy zlecenia ({rate} zł) jest niższa niż minimalna stawka godzinowa {minimumRate} zł obowiązująca w {year} roku. Sprawdź, czy do tej umowy mają zastosowanie przepisy o minimalnej stawce godzinowej.",

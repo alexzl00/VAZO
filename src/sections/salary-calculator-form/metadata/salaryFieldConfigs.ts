@@ -24,6 +24,14 @@ export const rateFieldConfigs: SalaryFieldConfig[] = [
       { value: 'uod_fixed', labelId: 'rate-contract-for-specific-work' },
     ],
     disabledWhen: (_, context) => context.formMode === 'update',
+    onChange: (value, { setFieldValue }) => {
+      const workRateType = String(value);
+      setFieldValue(
+        'sicknessBenefitEligible',
+        workRateType === 'uop_monthly' || workRateType === 'uop_hourly',
+        false,
+      );
+    },
     validation: {
       required: true,
     },
@@ -163,7 +171,7 @@ export const taxFieldConfigs: SalaryFieldConfig[] = [
     defaultValue: false,
     onChange: (value, { setFieldValue }) => {
       if (!Boolean(value)) {
-        setFieldValue('mandateSicknessBenefitEligible', false, false);
+        setFieldValue('sicknessBenefitEligible', false, false);
       }
     },
     validation: {
@@ -303,13 +311,17 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
     },
   },
   {
-    name: 'mandateSicknessBenefitEligible',
+    name: 'sicknessBenefitEligible',
     type: 'checkbox',
-    labelId: 'taxes-and-deductions-mandate-sickness-benefit-eligible',
-    helperTextId: 'taxes-and-deductions-mandate-sickness-benefit-eligible-help',
-    contracts: ['mandate_hourly'],
-    visibleWhen: (values) => Boolean(values.mandateVoluntarySicknessInsurance),
-    defaultValue: false,
+    labelId: 'taxes-and-deductions-sickness-benefit-eligible',
+    helperTextId: 'taxes-and-deductions-sickness-benefit-eligible-help',
+    contracts: [...PPK_CONTRACTS],
+    visibleWhen: (values) =>
+      values.workRateType !== 'mandate_hourly'
+        || Boolean(values.mandateVoluntarySicknessInsurance),
+    defaultValue: (values) =>
+      values.workRateType === 'uop_monthly'
+        || values.workRateType === 'uop_hourly',
     validation: {
       required: true,
     },

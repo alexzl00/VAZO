@@ -129,17 +129,20 @@ export type SalaryCalculatorValues = {
   deductionAfterTax: number;
   additionAfterTax: number;
 
-  // --- UZ insurance status ---
+  // --- Sickness eligibility / UZ insurance status ---
 
   /** Voluntary sickness insurance on an ordinary UZ. */
   mandateVoluntarySicknessInsurance?: boolean;
 
   /**
-   * True when the zleceniobiorca has already acquired the right to sickness benefit
-   * (normally after the 90-day waiting period, or under a statutory exception /
-   * qualifying previous insurance period).
+   * True when the insured person has acquired the right to ordinary sickness
+   * benefits for this title. For UoP this normally follows the compulsory
+   * sickness-insurance waiting period; for ordinary UZ it normally follows the
+   * voluntary sickness-insurance waiting period. Statutory exceptions can make
+   * the person eligible earlier. Accident-insurance L4 (accident100) is handled
+   * separately and is not blocked by this flag.
    */
-  mandateSicknessBenefitEligible?: boolean;
+  sicknessBenefitEligible?: boolean;
 
   /**
    * True when another UoP gives at least the minimum base required to make
