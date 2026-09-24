@@ -87,6 +87,8 @@ export const initialSalaryFormValues: SalaryCalculatorValues = {
   rate: 0,
   hourlyRateCalculationMode: "roundedTo2",
   bonuses: [],
+  functionalAllowance: 0,
+  functionalAllowanceRetainedDuringSickness: false,
 
   holidays: [],
 
@@ -103,6 +105,7 @@ export const initialSalaryFormValues: SalaryCalculatorValues = {
   l4Base: 0,
 
   // Leave
+  vacationBaseMonths: 3,
   leave: [],
   leaveBase: 0,
 
@@ -154,8 +157,6 @@ export default function CreateSalaryPage() {
 
         salaryId = await createMandateSalary({
           ...values,
-          // Temporary adapter while the DB/API still use the old UZ-specific name.
-          mandateSicknessBenefitEligible: values.sicknessBenefitEligible,
           brutto: calculated.brutto,
           netto: calculated.netto
         });

@@ -25,7 +25,8 @@ const mapBonus = (bonus: any): SalaryBonus => ({
   frequency: bonus.frequency,
   paymentType: bonus.payment_type,
   amountType: bonus.amount_type ?? undefined,
-  sickLeaveTreatment: bonus.sick_leave_treatment ?? undefined
+  sickLeaveTreatment: bonus.sick_leave_treatment ?? undefined,
+  vacationTreatment: bonus.vacation_treatment ?? undefined
 });
 
 export async function getSalaryContract(

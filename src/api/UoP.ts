@@ -53,6 +53,7 @@ export async function createUopSalary(values: any) {
 
     p_l4: values.l4 ?? [],
     p_l4_base: values.l4Base ?? 0,
+    p_sickness_benefit_eligible: values.sicknessBenefitEligible ?? true,
     p_uop_employer_sick_pay_limit:
       values.uopEmployerSickPayLimit ?? 33,
     p_previous_employer_sick_pay_days:
@@ -60,6 +61,11 @@ export async function createUopSalary(values: any) {
 
     p_leave: values.leave ?? [],
     p_leave_base: values.leaveBase ?? 0,
+    p_vacation_base_months: values.vacationBaseMonths ?? 3,
+
+    p_functional_allowance: values.functionalAllowance ?? 0,
+    p_functional_allowance_retained_during_sickness:
+      values.functionalAllowanceRetainedDuringSickness ?? false,
 
     p_addition_after_tax: values.additionAfterTax ?? 0,
     p_deduction_after_tax: values.deductionAfterTax ?? 0,
@@ -117,6 +123,7 @@ export async function updateUopSalary(id: string, values: any) {
 
     p_l4: values.l4 ?? [],
     p_l4_base: values.l4Base ?? 0,
+    p_sickness_benefit_eligible: values.sicknessBenefitEligible ?? true,
     p_uop_employer_sick_pay_limit:
       values.uopEmployerSickPayLimit ?? 33,
     p_previous_employer_sick_pay_days:
@@ -124,6 +131,11 @@ export async function updateUopSalary(id: string, values: any) {
 
     p_leave: values.leave ?? [],
     p_leave_base: values.leaveBase ?? 0,
+    p_vacation_base_months: values.vacationBaseMonths ?? 3,
+
+    p_functional_allowance: values.functionalAllowance ?? 0,
+    p_functional_allowance_retained_during_sickness:
+      values.functionalAllowanceRetainedDuringSickness ?? false,
 
     p_addition_after_tax: values.additionAfterTax ?? 0,
     p_deduction_after_tax: values.deductionAfterTax ?? 0,

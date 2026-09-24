@@ -118,14 +118,9 @@ export default function UpdateSalary() {
           doNotWithholdPitAdvance:
             inputs.do_not_withhold_pit_advance ?? false,
 
-          // Shared sickness-benefit eligibility. UZ still reads the existing
-          // DB column; UoP persistence will be added in the later DB pass.
           sicknessBenefitEligible:
-            salaryRecord.contract_type === "mandate"
-              ? inputs.mandate_sickness_benefit_eligible ?? false
-              : salaryRecord.contract_type === "uop"
-                ? true
-                : false,
+            inputs.sickness_benefit_eligible ??
+            (salaryRecord.contract_type === "uop"),
 
           // UoP sickness
           uopEmployerSickPayLimit:
@@ -211,6 +206,12 @@ export default function UpdateSalary() {
           bonuses:
             data.bonuses ?? [],
 
+          functionalAllowance:
+            inputs.functional_allowance ?? 0,
+
+          functionalAllowanceRetainedDuringSickness:
+            inputs.functional_allowance_retained_during_sickness ?? false,
+
           holidays:
             inputs.holidays ?? [],
 
@@ -241,6 +242,9 @@ export default function UpdateSalary() {
             inputs.l4_base ?? 0,
 
           // Leave
+          vacationBaseMonths:
+            inputs.vacation_base_months === 12 ? 12 : 3,
+
           leave:
             inputs.leave ?? [],
 
@@ -354,8 +358,6 @@ export default function UpdateSalary() {
 
         await updateMandateSalary(id, {
           ...values,
-          // Temporary adapter while the DB/API still use the old UZ-specific name.
-          mandateSicknessBenefitEligible: values.sicknessBenefitEligible,
           brutto: calculated.brutto,
           netto: calculated.netto
         });

@@ -23,6 +23,13 @@ export type SickLeaveTreatment =
   | 'nonProportional'
   | 'notPaid';
 
+export type VacationTreatment =
+  | 'paidInFull'
+  | 'variableBase'
+  | 'excluded';
+
+export type VacationBaseMonths = 3 | 12;
+
 export type L4PaymentType =
   | 'standard80'
   | 'full100'
@@ -74,6 +81,14 @@ export type SalaryBonus = {
 
   amountType?: BonusAmountType;
   sickLeaveTreatment?: SickLeaveTreatment;
+
+  /**
+   * Future vacation-base policy for this bonus.
+   * paidInFull: the employee keeps the component during annual leave.
+   * variableBase: include it in the variable vacation-pay base.
+   * excluded: do not include it in vacation pay.
+   */
+  vacationTreatment?: VacationTreatment;
 };
 
 export type SalaryCalculatorValues = {
@@ -218,6 +233,20 @@ export type SalaryCalculatorValues = {
    */
   bonuses?: SalaryBonus[];
 
+  /**
+   * Fixed monthly functional allowance for UoP.
+   * Old records may omit it; the calculator treats undefined as 0.
+   */
+  functionalAllowance?: number;
+
+  /**
+   * Whether the employee keeps the functional allowance for periods of L4.
+   * When true, the sickness-period part is paid but excluded from social/health
+   * contribution bases and should later be excluded from the in-employment
+   * sickness-benefit base.
+   */
+  functionalAllowanceRetainedDuringSickness?: boolean;
+
   holidays: ISODateRange[];
 
   // --- Overtime and night work ---
@@ -244,6 +273,13 @@ export type SalaryCalculatorValues = {
   l4Base: number;
 
   // --- Annual leave ---
+
+  /**
+   * Look-back period for variable vacation-pay components.
+   * 3 months is standard; 12 months can be used for significant fluctuations.
+   * Stored now for the future automatic vacation-base calculation.
+   */
+  vacationBaseMonths?: VacationBaseMonths;
 
   leave: ISODateRange[];
   leaveBase: number;

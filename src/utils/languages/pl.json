@@ -42,6 +42,7 @@
   "rate-contract-of-mandate": "Umowa zlecenia (BRUTTO/h)",
   "rate-contract-for-specific-work": "Umowa o dzieło (BRUTTO)",
   "rate-and-bonuses-rate": "Stawka",
+  "rate-and-bonuses-functional-allowance": "Dodatek funkcyjny (miesięczny)",
 
   "rate-and-bonuses-empty": "Nie dodano żadnych premii.",
   "rate-and-bonuses-bonus-name": "Nazwa premii",
@@ -60,7 +61,6 @@
 
   "calendar-and-working-time-working-hours": "Wymiar czasu pracy w miesiącu",
   "calendar-and-working-time-info": "Kalendarz – czas pracy w miesiącu\nTen blok przedstawia kalendarz danego miesiąca i służy do ustalenia wymiaru czasu pracy.\n\n• Kalkulator automatycznie uwzględnia: dni robocze, weekendy oraz święta ustawowe.\n• Na tej podstawie wyliczany jest wymiar czasu pracy dla miesiąca.\n• Możesz ręcznie zmienić tę wartość, jeśli w Twoim zakładzie pracy lub dla Twojego stanowiska obowiązuje inny wymiar czasu pracy.\n\nZmiana wymiaru czasu pracy nie zmienia stałej miesięcznej stawki brutto, ale wpływa na stawkę godzinową używaną m.in. do obliczania nadgodzin i dodatków godzinowych.",
-
 
   "header-title": "Salary & Productivity",
   "header-subtitle": "Zarządzaj wynagrodzeniem i swoimi danymi",
@@ -109,7 +109,7 @@
   "advanced-settings-open": "Ustawienia zaawansowane",
   "advanced-settings-title": "Zaawansowane ustawienia wynagrodzenia",
   "advanced-settings-description": "Tutaj znajdują się rzadziej używane ustawienia sposobu obliczania wynagrodzenia oraz ustawienia podatkowe i ubezpieczeniowe.",
-  
+
   "advanced-settings-hourly-rate-calculation-mode": "Sposób liczenia stawki godzinowej",
   "advanced-settings-hourly-rate-calculation-mode-help": "Dotyczy stawki godzinowej wyliczanej z miesięcznej stawki brutto. Wybierz, czy przed obliczeniem nadgodzin i dodatków godzinowych kalkulator ma zaokrąglić stawkę do 2 miejsc, czy używać pełnej wartości wynikającej z dzielenia. Różne systemy kadrowo-płacowe mogą stosować inny moment zaokrąglenia.",
   "advanced-settings-hourly-rate-rounded-to-2": "Zaokrąglaj do 2 miejsc przed dalszymi obliczeniami",
@@ -120,14 +120,32 @@
   "advanced-settings-bonuses-empty": "Nie dodano żadnych premii. Najpierw dodaj premię w zakładce „Stawka i premie”.",
   "advanced-settings-bonus-amount-type": "Rodzaj kwoty",
   "advanced-settings-bonus-sick-leave-treatment": "Sposób rozliczania podczas L4",
+  "advanced-settings-bonus-vacation-treatment": "Sposób rozliczania podczas urlopu",
+
   "bonus-setting-not-configured": "Nie skonfigurowano",
+
   "bonus-amount-type-fixed": "Stała",
   "bonus-amount-type-variable": "Zmienna",
+
   "bonus-sick-leave-paid-in-full": "Wypłacana w pełnej wysokości",
   "bonus-sick-leave-proportional": "Pomniejszana proporcjonalnie",
   "bonus-sick-leave-non-proportional": "Pomniejszana według zasad firmy",
   "bonus-sick-leave-not-paid": "Niewypłacana za okres L4",
+
+  "bonus-vacation-paid-in-full": "Wypłacana w pełnej wysokości",
+  "bonus-vacation-variable-base": "Uwzględniana w zmiennej podstawie urlopowej",
+  "bonus-vacation-excluded": "Wyłączona z wynagrodzenia urlopowego",
+
   "bonus-unnamed": "Premia bez nazwy",
+
+  "advanced-settings-vacation-base-months": "Okres podstawy urlopowej",
+  "advanced-settings-vacation-base-months-help": "Okres używany dla zmiennych składników wynagrodzenia przy przyszłym automatycznym wyliczaniu podstawy urlopowej. Standardowo stosuje się 3 miesiące; przy znacznych wahaniach wysokości składników okres może zostać wydłużony do 12 miesięcy.",
+  "advanced-settings-vacation-base-months-3": "3 miesiące",
+  "advanced-settings-vacation-base-months-12": "12 miesięcy",
+
+  "advanced-settings-functional-allowance-retained-during-sickness": "Dodatek funkcyjny zachowywany podczas L4",
+  "advanced-settings-functional-allowance-retained-during-sickness-help": "Zaznacz, jeżeli pracownik zachowuje prawo do dodatku funkcyjnego za okres choroby. Część dodatku przypadająca na dni, za które przysługuje wynagrodzenie chorobowe lub zasiłek, pozostaje wypłacona, ale nie wchodzi do podstawy składek ZUS. Przy przyszłym automatycznym wyliczaniu podstawy L4 taki składnik nie powinien być uwzględniany za okres trwania zatrudnienia.",
+
   "advanced-settings-payroll-title": "Ustawienia płacowe i podatkowe",
 
   "taxes-and-deductions-no-pit-advance-help": "Wybierz tylko wtedy, gdy złożyłeś płatnikowi wniosek o niepobieranie zaliczek i przewidujesz dochód opodatkowany skalą do 30 000 zł w roku. Po przekroczeniu progu zaliczki są ponownie naliczane bez pomniejszenia PIT-2.",
@@ -149,7 +167,7 @@
   "taxes-and-deductions-pit0-return": "Ulga na powrót",
   "taxes-and-deductions-pit0-family4plus": "Ulga dla rodzin 4+",
   "taxes-and-deductions-pit0-working-senior": "Ulga dla pracujących seniorów",
-  "taxes-and-deductions-pit2-reduction": "Miesięczne pomniejszenie zaliczki PIT (PIT\u20112)",
+  "taxes-and-deductions-pit2-reduction": "Miesięczne pomniejszenie zaliczki PIT (PIT-2)",
   "taxes-and-deductions-no-pit-advance": "Nie pobieraj zaliczki PIT (tylko jeśli spełniasz warunki)",
   "taxes-and-deductions-multiple-employments": "Więcej niż jeden stosunek pracy",
   "taxes-and-deductions-voluntary-sickness": "Dobrowolne ubezpieczenie chorobowe",
@@ -378,8 +396,8 @@
   "calculation-edit-net-salary-override": "Netto",
   "calculation-edit-gross-salary-override": "Brutto",
   "calculation-edit-reason": "Powód zmiany",
-  "calculation-edit-delete-override" : "Usuń wcześniejsze nadpisanie",
-  "calculation-edit-reset-override" : "Resetuj nadpisanie teraźniejszej edycji",
+  "calculation-edit-delete-override": "Usuń wcześniejsze nadpisanie",
+  "calculation-edit-reset-override": "Resetuj nadpisanie teraźniejszej edycji",
 
   "bonus-payment-cash": "Pieniężna",
   "bonus-payment-non-cash": "Niepieniężna",

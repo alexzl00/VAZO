@@ -60,6 +60,15 @@ export const rateFieldConfigs: SalaryFieldConfig[] = [
     },
     validation: positiveRequired,
   },
+  {
+    name: 'functionalAllowance',
+    type: 'number',
+    labelId: 'rate-and-bonuses-functional-allowance',
+    contracts: [...UOP_CONTRACTS],
+    unit: 'zł',
+    defaultValue: 0,
+    validation: positiveRequired,
+  },
 ];
 
 /**
@@ -256,6 +265,32 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
         labelId: 'advanced-settings-hourly-rate-full-precision',
       },
     ],
+    validation: {
+      required: true,
+    },
+  },
+  {
+    name: 'vacationBaseMonths',
+    type: 'select',
+    labelId: 'advanced-settings-vacation-base-months',
+    helperTextId: 'advanced-settings-vacation-base-months-help',
+    contracts: [...UOP_CONTRACTS],
+    defaultValue: 3,
+    options: [
+      { value: 3, labelId: 'advanced-settings-vacation-base-months-3' },
+      { value: 12, labelId: 'advanced-settings-vacation-base-months-12' },
+    ],
+    validation: {
+      required: true,
+    },
+  },
+  {
+    name: 'functionalAllowanceRetainedDuringSickness',
+    type: 'checkbox',
+    labelId: 'advanced-settings-functional-allowance-retained-during-sickness',
+    helperTextId: 'advanced-settings-functional-allowance-retained-during-sickness-help',
+    contracts: [...UOP_CONTRACTS],
+    defaultValue: false,
     validation: {
       required: true,
     },

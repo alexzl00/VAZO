@@ -32,8 +32,8 @@ export async function createMandateSalary(values: any) {
 
     p_mandate_voluntary_sickness_insurance:
       values.mandateVoluntarySicknessInsurance ?? false,
-    p_mandate_sickness_benefit_eligible:
-      values.mandateSicknessBenefitEligible ?? false,
+    p_sickness_benefit_eligible:
+      values.sicknessBenefitEligible ?? false,
     p_mandate_has_other_uop_at_least_minimum_base:
       values.mandateHasOtherUopAtLeastMinimumBase ?? false,
     p_mandate_other_social_base_before_this_contract:
@@ -96,8 +96,8 @@ export async function updateMandateSalary(id: string, values: any) {
 
     p_mandate_voluntary_sickness_insurance:
       values.mandateVoluntarySicknessInsurance ?? false,
-    p_mandate_sickness_benefit_eligible:
-      values.mandateSicknessBenefitEligible ?? false,
+    p_sickness_benefit_eligible:
+      values.sicknessBenefitEligible ?? false,
     p_mandate_has_other_uop_at_least_minimum_base:
       values.mandateHasOtherUopAtLeastMinimumBase ?? false,
     p_mandate_other_social_base_before_this_contract:

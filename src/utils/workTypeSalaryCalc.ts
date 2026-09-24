@@ -52,6 +52,10 @@ export type SalaryCalculationResult = {
   bonusTotal?: number;
   cashBonusTotal?: number;
   nonCashBonusTotal?: number;
+  functionalAllowance?: number;
+  functionalAllowanceSicknessReduction?: number;
+  functionalAllowanceEmploymentReduction?: number;
+  functionalAllowanceContributionExempt?: number;
   overtimes?: number;
   perHour: number;
   rate?: number;
@@ -1252,6 +1256,60 @@ export const calculateTaxesUoP = (
       values.employmentEndDate,
     );
 
+  const configuredFunctionalAllowance = round2(
+    Math.max(0, Number(values.functionalAllowance) || 0),
+  );
+
+  const functionalAllowanceRetainedDuringSickness = Boolean(
+    values.functionalAllowanceRetainedDuringSickness,
+  );
+
+  // The functional allowance is modelled as a fixed monthly UoP component.
+  // Annual leave does not reduce it. Starting/ending employment does.
+  const functionalAllowanceEmploymentReduction =
+    nominalWorkingHours > 0
+      ? round2(
+          (configuredFunctionalAllowance / nominalWorkingHours)
+            * employmentExcludedWorkingHours,
+        )
+      : 0;
+
+  // A fixed monthly component that is not retained during sickness is reduced
+  // by 1/30 for every L4 calendar day. If it is retained, it remains payable.
+  const functionalAllowanceSicknessReduction =
+    functionalAllowanceRetainedDuringSickness
+      ? 0
+      : round2(
+          (configuredFunctionalAllowance / 30)
+            * l4DaysCount,
+        );
+
+  const functionalAllowancePayment = round2(
+    Math.max(
+      0,
+      configuredFunctionalAllowance
+        - functionalAllowanceEmploymentReduction
+        - functionalAllowanceSicknessReduction,
+    ),
+  );
+
+  // When the allowance is retained during sickness, the part attributable to
+  // days for which employer sick pay / sickness benefit is due is paid but is
+  // excluded from social and health contribution bases. It remains PIT income.
+  const paidSicknessDays =
+    employerSickPayDays + sicknessBenefitDays;
+
+  const functionalAllowanceContributionExempt =
+    functionalAllowanceRetainedDuringSickness
+      ? round2(
+          Math.min(
+            functionalAllowancePayment,
+            (configuredFunctionalAllowance / 30)
+              * paidSicknessDays,
+          ),
+        )
+      : 0;
+
   let workDaysPayment: number;
   let leaveReduction = 0;
   let l4Reduction = 0;
@@ -1354,6 +1412,7 @@ export const calculateTaxesUoP = (
       + employerSickPay
       + sicknessBenefit
       + leavePayment
+      + functionalAllowancePayment
       + bonusTotal
       + overtimes,
   );
@@ -1364,7 +1423,8 @@ export const calculateTaxesUoP = (
       0,
       fullSalaryBrutto
         - employerSickPay
-        - sicknessBenefit,
+        - sicknessBenefit
+        - functionalAllowanceContributionExempt,
     ),
   );
 
@@ -1377,11 +1437,13 @@ export const calculateTaxesUoP = (
     });
 
   // Employer-funded sick pay is included in the health base. Sickness benefit is not.
+  // The sickness-period part of a retained functional allowance is also excluded.
   const healthInsuranceBase = round2(
     Math.max(
       0,
       fullSalaryBrutto
         - sicknessBenefit
+        - functionalAllowanceContributionExempt
         - social.zusTaxes,
     ),
   );
@@ -1493,6 +1555,11 @@ export const calculateTaxesUoP = (
     bonusTotal,
     cashBonusTotal,
     nonCashBonusTotal,
+
+    functionalAllowance: functionalAllowancePayment,
+    functionalAllowanceSicknessReduction,
+    functionalAllowanceEmploymentReduction,
+    functionalAllowanceContributionExempt,
 
     overtimes,
     dailyOvertimes,

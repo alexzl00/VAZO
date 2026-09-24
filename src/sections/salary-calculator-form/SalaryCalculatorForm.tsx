@@ -89,13 +89,6 @@ type SalaryFormProps =
   | (BaseProps & { type: "create" })
   | (BaseProps & { type: "update"; deleteOverride: () => void });
 
-type LegacySalaryValues = {
-  attendanceBonus?: number;
-  discretionaryBonus?: number;
-  otherBonus?: number;
-  mandateSicknessBenefitEligible?: boolean;
-};
-
 const getWorkRateTypeFromRelation = (
   relation: WorkRelation,
 ): WorkRate | null => {
@@ -473,50 +466,21 @@ const WorkRelationSelector = ({ formMode }: WorkRelationSelectorProps) => {
 
 const normalizeSalaryValues = (
   values: SalaryCalculatorValues,
-): SalaryCalculatorValues => {
-  const legacyValues = values as SalaryCalculatorValues & LegacySalaryValues;
-
-  let bonuses = Array.isArray(legacyValues.bonuses)
-    ? legacyValues.bonuses
-    : [];
-
-  // Temporary read compatibility for salary records created before bonuses[]
-  // was introduced. New calculations and new UI never write these old fields.
-  if (bonuses.length === 0) {
-    const legacyBonusTotal =
-      (legacyValues.attendanceBonus ?? 0) +
-      (legacyValues.discretionaryBonus ?? 0) +
-      (legacyValues.otherBonus ?? 0);
-
-    if (legacyBonusTotal > 0) {
-      bonuses = [
-        {
-          id: 'legacy-bonus-total',
-          name: 'Legacy bonuses',
-          amount: legacyBonusTotal,
-          frequency: 'monthly',
-        },
-      ];
-    }
-  }
-
-  const sicknessBenefitEligible =
-    values.sicknessBenefitEligible
-      ?? legacyValues.mandateSicknessBenefitEligible
-      ?? (values.workRateType === 'uop_monthly'
-        || values.workRateType === 'uop_hourly');
-
-  return applySalaryFieldDefaults(
+): SalaryCalculatorValues =>
+  applySalaryFieldDefaults(
     {
       ...values,
-      bonuses,
-      sicknessBenefitEligible,
+      bonuses: Array.isArray(values.bonuses)
+        ? values.bonuses
+        : [],
+      sicknessBenefitEligible:
+        values.sicknessBenefitEligible
+        ?? (values.workRateType === 'uop_monthly'
+          || values.workRateType === 'uop_hourly'),
       l4: normalizeL4Ranges(values.l4),
     },
     metadataDrivenFieldConfigs,
   );
-};
-
 
 const relationAwareRateFieldConfigs = rateFieldConfigs.map((config) =>
   config.name === 'workRateType'
@@ -545,6 +509,22 @@ const positiveNumber = (formatMessage: ValidationMessageFormatter) =>
       (value) => typeof value === 'number' && !isNaN(value) && value >= 0,
     );
 
+const getDisabledSalaryTabs = (
+  values: SalaryCalculatorValues,
+): number[] => {
+  if (values.workRateType === 'uod_fixed') {
+    return [3, 4, 5];
+  }
+
+  if (values.workRateType === 'mandate_hourly') {
+    return values.mandateVoluntarySicknessInsurance
+      ? [3, 5]
+      : [3, 4, 5];
+  }
+
+  return [];
+};
+
 const SalaryTabAvailabilityGuard = ({
   activeTab,
   setActiveTab,
@@ -555,12 +535,7 @@ const SalaryTabAvailabilityGuard = ({
   const { values } = useFormikContext<SalaryCalculatorValues>();
 
   useEffect(() => {
-    const disabledTabs =
-      values.workRateType === 'uod_fixed'
-        ? [3, 4, 5]
-        : values.workRateType === 'mandate_hourly'
-          ? [3, 5]
-          : [];
+    const disabledTabs = getDisabledSalaryTabs(values);
 
     if (disabledTabs.includes(activeTab)) {
       setActiveTab(1);
@@ -569,6 +544,7 @@ const SalaryTabAvailabilityGuard = ({
     activeTab,
     setActiveTab,
     values.workRateType,
+    values.mandateVoluntarySicknessInsurance,
   ]);
 
   return null;
@@ -601,6 +577,11 @@ const buildSalarySchema = (formatMessage: ValidationMessageFormatter) =>
             'paidInFull' | 'proportional' | 'nonProportional' | 'notPaid'
           >()
             .oneOf(['paidInFull', 'proportional', 'nonProportional', 'notPaid'])
+            .notRequired(),
+          vacationTreatment: Yup.mixed<
+            'paidInFull' | 'variableBase' | 'excluded'
+          >()
+            .oneOf(['paidInFull', 'variableBase', 'excluded'])
             .notRequired(),
         }),
       )
@@ -823,12 +804,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
             }
           }
 
-          const disabledTabs =
-            values.workRateType === 'uod_fixed'
-              ? [3, 4, 5]
-              : values.workRateType === 'mandate_hourly'
-                ? [3, 5]
-                : [];
+          const disabledTabs = getDisabledSalaryTabs(values);
 
           return (
             <>

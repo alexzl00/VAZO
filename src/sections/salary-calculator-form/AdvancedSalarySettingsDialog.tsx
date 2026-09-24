@@ -20,6 +20,7 @@ import type {
   SalaryBonus,
   SalaryCalculatorValues,
   SickLeaveTreatment,
+  VacationTreatment,
 } from '../../types/salaryCalculator';
 import DynamicSalaryFields from './DynamicSalaryFields';
 import { advancedTaxFieldConfigs } from './metadata/salaryFieldConfigs';
@@ -45,6 +46,10 @@ export default function AdvancedSalarySettingsDialog({
   setFieldValue,
 }: AdvancedSalarySettingsDialogProps) {
   const intl = useIntl();
+
+  const isUop =
+    values.workRateType === 'uop_monthly'
+    || values.workRateType === 'uop_hourly';
 
   const formatBonusFrequency = (frequency: SalaryBonus['frequency']) => {
     switch (frequency) {
@@ -156,8 +161,7 @@ export default function AdvancedSalarySettingsDialog({
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}{' '}
-                          zł ·{' '}
-{formatBonusFrequency(bonus.frequency)}
+                          zł · {formatBonusFrequency(bonus.frequency)}
                         </Typography>
                       </Box>
 
@@ -271,6 +275,63 @@ export default function AdvancedSalarySettingsDialog({
                           </MenuItem>
                         </Select>
                       </FormControl>
+
+                      {isUop && (
+                        <FormControl fullWidth size="small">
+                          <InputLabel>
+                            {intl.formatMessage({
+                              id: 'advanced-settings-bonus-vacation-treatment',
+                              defaultMessage: 'Treatment during vacation',
+                            })}
+                          </InputLabel>
+  
+                          <Select
+                            value={bonus.vacationTreatment ?? ''}
+                            label={intl.formatMessage({
+                              id: 'advanced-settings-bonus-vacation-treatment',
+                              defaultMessage: 'Treatment during vacation',
+                            })}
+                            onChange={(event) => {
+                              const value = event.target.value as '' | VacationTreatment;
+  
+                              updateBonus(bonus.id, {
+                                vacationTreatment:
+                                  value === ''
+                                    ? undefined
+                                    : value,
+                              });
+                            }}
+                          >
+                            <MenuItem value="">
+                              {intl.formatMessage({
+                                id: 'bonus-setting-not-configured',
+                                defaultMessage: 'Not configured',
+                              })}
+                            </MenuItem>
+  
+                            <MenuItem value="paidInFull">
+                              {intl.formatMessage({
+                                id: 'bonus-vacation-paid-in-full',
+                                defaultMessage: 'Paid in full',
+                              })}
+                            </MenuItem>
+  
+                            <MenuItem value="variableBase">
+                              {intl.formatMessage({
+                                id: 'bonus-vacation-variable-base',
+                                defaultMessage: 'Include in variable vacation base',
+                              })}
+                            </MenuItem>
+  
+                            <MenuItem value="excluded">
+                              {intl.formatMessage({
+                                id: 'bonus-vacation-excluded',
+                                defaultMessage: 'Excluded from vacation pay',
+                              })}
+                            </MenuItem>
+                          </Select>
+                        </FormControl>
+                      )}
                     </Stack>
                   </Box>
                 ))}
