@@ -23,6 +23,27 @@ export type SickLeaveTreatment =
   | 'nonProportional'
   | 'notPaid';
 
+export type L4PaymentType =
+  | 'standard80'
+  | 'full100'
+  | 'accident100';
+
+export type L4Range = ISODateRange & {
+  paymentType: L4PaymentType;
+};
+
+export const normalizeL4Ranges = (
+  ranges: Array<ISODateRange & { paymentType?: string }> | null | undefined,
+): L4Range[] =>
+  (ranges ?? []).map((range) => ({
+    start: range.start,
+    end: range.end,
+    paymentType:
+      range.paymentType === 'full100' || range.paymentType === 'accident100'
+        ? range.paymentType
+        : 'standard80',
+  }));
+
 export type BonusPaymentType =
   | 'cash'
   | 'nonCash';
@@ -216,7 +237,7 @@ export type SalaryCalculatorValues = {
 
   // --- Sick leave (L4) ---
 
-  l4: ISODateRange[];
+  l4: L4Range[];
   l4Base: number;
 
   // --- Annual leave ---

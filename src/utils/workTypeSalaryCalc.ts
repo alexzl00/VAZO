@@ -4,6 +4,8 @@ import {
   getWorkingHoursOutsideEmploymentPeriod,
 } from '../utils/workingTimeHelper';
 import type {
+  L4PaymentType,
+  L4Range,
   Pit0Relief,
   SalaryBonus,
   SalaryCalculatorValues,
@@ -153,6 +155,47 @@ export const taxes = {
 const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 const roundPln = (value: number) => Math.round(value);
 const percent = (value: number, rate: number) => round2(value * rate / 100);
+
+const getL4PaymentType = (range: L4Range): L4PaymentType => {
+  // Runtime fallback for historical records created before paymentType existed.
+  if (range.paymentType === 'full100' || range.paymentType === 'accident100') {
+    return range.paymentType;
+  }
+
+  return 'standard80';
+};
+
+const getL4PaymentMultiplier = (paymentType: L4PaymentType) =>
+  paymentType === 'standard80' ? 0.8 : 1;
+
+const calculateL4RangePayment = (
+  range: L4Range,
+  l4Base: number,
+  employmentStartDate?: string | null,
+  employmentEndDate?: string | null,
+) => {
+  const days = countDaysWithinPeriod(
+    [range],
+    employmentStartDate,
+    employmentEndDate,
+  );
+
+  if (days <= 0 || l4Base <= 0) {
+    return { days, amount: 0 };
+  }
+
+  // Preserve the calculator's existing rounding approach: calculate and round
+  // the daily payment first, then multiply it by the number of L4 days.
+  const dailyPayment = round2(
+    (l4Base / 30)
+      * getL4PaymentMultiplier(getL4PaymentType(range)),
+  );
+
+  return {
+    days,
+    amount: dailyPayment * days,
+  };
+};
 
 const getBonusTotals = (values: SalaryCalculatorValues) => {
   let cashBonusTotal = 0;
@@ -660,12 +703,6 @@ export const calculateTaxesContractOfMandate = (
       + bonusTotal,
   );
 
-  const l4DaysCount = countDaysWithinPeriod(
-    values.l4,
-    values.employmentStartDate,
-    values.employmentEndDate,
-  );
-
   const treatedAsEmployee = Boolean(
     values.isOwnEmployerContract || values.performedForOwnEmployer,
   );
@@ -697,14 +734,38 @@ export const calculateTaxesContractOfMandate = (
       && !treatedAsEmployee,
   );
 
-  const sicknessBenefitEligible = Boolean(
+  const ordinaryL4Ranges = values.l4.filter(
+    (range) => getL4PaymentType(range) !== 'accident100',
+  );
+  const accidentL4Ranges = values.l4.filter(
+    (range) => getL4PaymentType(range) === 'accident100',
+  );
+
+  const ordinaryL4DaysCount = countDaysWithinPeriod(
+    ordinaryL4Ranges,
+    values.employmentStartDate,
+    values.employmentEndDate,
+  );
+  const accidentL4DaysCount = countDaysWithinPeriod(
+    accidentL4Ranges,
+    values.employmentStartDate,
+    values.employmentEndDate,
+  );
+
+  const ordinarySicknessBenefitEligible = Boolean(
     voluntarySicknessInsuranceActive
       && values.mandateSicknessBenefitEligible,
   );
 
-  let sicknessBenefit = 0;
+  // Within the currently supported UZ model, compulsory pension/disability
+  // insurance from this title also means accident insurance is active.
+  // Voluntary pension/disability edge cases are intentionally not modelled.
+  const accidentInsuranceActive = compulsorySocial && !treatedAsEmployee;
 
-  if (l4DaysCount > 0) {
+  let ordinarySicknessBenefit = 0;
+  let accidentSicknessBenefit = 0;
+
+  if (ordinaryL4DaysCount > 0) {
     if (!values.mandateVoluntarySicknessInsurance) {
       warnings.push({
         id: 'salary-warning-mandate-l4-no-sickness-insurance',
@@ -719,15 +780,47 @@ export const calculateTaxesContractOfMandate = (
         values: { waitingDays: 90 },
       });
     } else {
-      const dailySickPayment = round2(
-        (values.l4Base / 30) * 0.8,
-      );
-
-      sicknessBenefit = round2(
-        dailySickPayment * l4DaysCount,
+      ordinarySicknessBenefit = round2(
+        ordinaryL4Ranges.reduce(
+          (total, range) =>
+            total
+              + calculateL4RangePayment(
+                  range,
+                  values.l4Base,
+                  values.employmentStartDate,
+                  values.employmentEndDate,
+                ).amount,
+          0,
+        ),
       );
     }
   }
+
+  if (accidentL4DaysCount > 0) {
+    if (!accidentInsuranceActive) {
+      warnings.push({
+        id: 'salary-warning-mandate-accident-insurance-unavailable',
+      });
+    } else {
+      accidentSicknessBenefit = round2(
+        accidentL4Ranges.reduce(
+          (total, range) =>
+            total
+              + calculateL4RangePayment(
+                  range,
+                  values.l4Base,
+                  values.employmentStartDate,
+                  values.employmentEndDate,
+                ).amount,
+          0,
+        ),
+      );
+    }
+  }
+
+  const sicknessBenefit = round2(
+    ordinarySicknessBenefit + accidentSicknessBenefit,
+  );
 
   const fullSalaryBrutto = round2(
     regularRemunerationBrutto + sicknessBenefit,
@@ -927,9 +1020,8 @@ export const calculateTaxesContractOfMandate = (
     employerSickPay: 0,
     employerSickPayDays: 0,
     sicknessBenefitDays:
-      sicknessBenefitEligible
-        ? l4DaysCount
-        : 0,
+      (ordinarySicknessBenefitEligible ? ordinaryL4DaysCount : 0)
+        + (accidentInsuranceActive ? accidentL4DaysCount : 0),
 
     socialInsuranceBase,
     pensionDisabilityBase:
@@ -1015,33 +1107,70 @@ export const calculateTaxesUoP = (
     values.previousEmployerSickPayDays ?? 0,
   );
 
-  const remainingEmployerSickPayDays = Math.max(
+  let remainingEmployerSickPayDays = Math.max(
     0,
     employerSickPayLimit
       - previousEmployerSickPayDays,
   );
 
-  const employerSickPayDays = Math.min(
-    l4DaysCount,
-    remainingEmployerSickPayDays,
+  let employerSickPayDays = 0;
+  let sicknessBenefitDays = 0;
+  let employerSickPayAmount = 0;
+  let sicknessBenefitAmount = 0;
+
+  // Process ranges chronologically because the 33/14-day Art. 92 limit applies
+  // only to ordinary sickness/full-100 sickness from sickness insurance.
+  // A work accident / occupational disease is paid from accident insurance
+  // from the first day and does not consume the employer sick-pay limit.
+  const orderedL4Ranges = [...values.l4].sort(
+    (left, right) => left.start.localeCompare(right.start),
   );
 
-  const sicknessBenefitDays = Math.max(
-    0,
-    l4DaysCount - employerSickPayDays,
-  );
+  orderedL4Ranges.forEach((range) => {
+    const paymentType = getL4PaymentType(range);
+    const { days, amount } = calculateL4RangePayment(
+      range,
+      values.l4Base,
+      values.employmentStartDate,
+      values.employmentEndDate,
+    );
 
-  const dailySickPayment = values.l4Base > 0
-    ? round2((values.l4Base / 30) * 0.8)
-    : 0;
+    if (days <= 0) return;
 
-  const employerSickPay = round2(
-    dailySickPayment * employerSickPayDays,
-  );
+    if (paymentType === 'accident100') {
+      sicknessBenefitDays += days;
+      sicknessBenefitAmount += amount;
+      return;
+    }
 
-  const sicknessBenefit = round2(
-    dailySickPayment * sicknessBenefitDays,
-  );
+    const employerDaysForRange = Math.min(
+      days,
+      remainingEmployerSickPayDays,
+    );
+    const benefitDaysForRange = Math.max(
+      0,
+      days - employerDaysForRange,
+    );
+
+    const dailyPayment = values.l4Base > 0
+      ? round2(
+          (values.l4Base / 30)
+            * getL4PaymentMultiplier(paymentType),
+        )
+      : 0;
+
+    employerSickPayDays += employerDaysForRange;
+    sicknessBenefitDays += benefitDaysForRange;
+    remainingEmployerSickPayDays -= employerDaysForRange;
+
+    employerSickPayAmount +=
+      dailyPayment * employerDaysForRange;
+    sicknessBenefitAmount +=
+      dailyPayment * benefitDaysForRange;
+  });
+
+  const employerSickPay = round2(employerSickPayAmount);
+  const sicknessBenefit = round2(sicknessBenefitAmount);
 
   const l4Payment = round2(
     employerSickPay + sicknessBenefit,

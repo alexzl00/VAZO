@@ -62,7 +62,8 @@ import type { SalaryCalculationResult } from '../../utils/workTypeSalaryCalc';
 import type { DateRange } from '../../components/DaysPicker';
 
 // types
-import type { SalaryCalculatorValues, WorkRate } from '../../types/salaryCalculator';
+import { normalizeL4Ranges } from '../../types/salaryCalculator';
+import type { L4PaymentType, SalaryCalculatorValues, WorkRate } from '../../types/salaryCalculator';
 import type { WorkRelation } from '../../types/workRelation';
 import type { DialogConfig } from '../../components/Modals/ConfirmActionDialog';
 
@@ -493,6 +494,7 @@ const normalizeSalaryValues = (
     {
       ...values,
       bonuses,
+      l4: normalizeL4Ranges(values.l4),
     },
     metadataDrivenFieldConfigs,
   );
@@ -536,15 +538,11 @@ const SalaryTabAvailabilityGuard = ({
   const { values } = useFormikContext<SalaryCalculatorValues>();
 
   useEffect(() => {
-    const mandateL4Enabled =
-      values.workRateType === 'mandate_hourly' &&
-      Boolean(values.mandateVoluntarySicknessInsurance);
-
     const disabledTabs =
       values.workRateType === 'uod_fixed'
         ? [3, 4, 5]
         : values.workRateType === 'mandate_hourly'
-          ? (mandateL4Enabled ? [3, 5] : [3, 4, 5])
+          ? [3, 5]
           : [];
 
     if (disabledTabs.includes(activeTab)) {
@@ -554,7 +552,6 @@ const SalaryTabAvailabilityGuard = ({
     activeTab,
     setActiveTab,
     values.workRateType,
-    values.mandateVoluntarySicknessInsurance,
   ]);
 
   return null;
@@ -612,6 +609,9 @@ const buildSalarySchema = (formatMessage: ValidationMessageFormatter) =>
       Yup.object().shape({
         start: Yup.string().required(formatMessage('validation-required')),
         end: Yup.string().required(formatMessage('validation-required')),
+        paymentType: Yup.mixed<L4PaymentType>()
+          .oneOf(['standard80', 'full100', 'accident100'])
+          .required(formatMessage('validation-required')),
       }),
     ).test(
       'l4-in-month',
@@ -806,15 +806,11 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
             }
           }
 
-          const mandateL4Enabled =
-            values.workRateType === 'mandate_hourly' &&
-            Boolean(values.mandateVoluntarySicknessInsurance);
-
           const disabledTabs =
             values.workRateType === 'uod_fixed'
               ? [3, 4, 5]
               : values.workRateType === 'mandate_hourly'
-                ? (mandateL4Enabled ? [3, 5] : [3, 4, 5])
+                ? [3, 5]
                 : [];
 
           return (
@@ -1000,14 +996,97 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                                 defaultValue={isoToDayjsRanges(values.l4)}
                                 disableMonthSwitching={true}
                                 onChange={(ranges: DateRange[]) => {
-                                  const isoRanges = ranges.map(r => ({
-                                    start: r.start.format("YYYY-MM-DD"),
-                                    end: r.end.format("YYYY-MM-DD"),
-                                  }));
-                                  setFieldValue("l4", isoRanges);
+                                  const nextL4 = ranges.map((range) => {
+                                    const start = range.start.format("YYYY-MM-DD");
+                                    const end = range.end.format("YYYY-MM-DD");
+
+                                    const existingRange = values.l4.find(
+                                      (existing) =>
+                                        existing.start === start &&
+                                        existing.end === end,
+                                    );
+
+                                    return {
+                                      start,
+                                      end,
+                                      paymentType:
+                                        existingRange?.paymentType ?? 'standard80',
+                                    };
+                                  });
+
+                                  setFieldValue("l4", nextL4);
                                 }}
                               />
-                              {errors.l4 && <FormHelperText error>{errors.l4 as string}</FormHelperText>}
+
+                              {values.l4.length > 0 && (
+                                <Stack spacing={1.5} sx={{ mt: 2 }}>
+                                  {values.l4.map((range, index) => (
+                                    <Box
+                                      key={`${range.start}-${range.end}`}
+                                      sx={{
+                                        p: 1.5,
+                                        border: 1,
+                                        borderColor: 'divider',
+                                        borderRadius: 1,
+                                      }}
+                                    >
+                                      <Typography
+                                        variant="body2"
+                                        fontWeight={600}
+                                        sx={{ mb: 1 }}
+                                      >
+                                        {dayjs(range.start).format('DD.MM.YYYY')}
+                                        {' – '}
+                                        {dayjs(range.end).format('DD.MM.YYYY')}
+                                      </Typography>
+
+                                      <TextField
+                                        select
+                                        fullWidth
+                                        size="small"
+                                        label={intl.formatMessage({
+                                          id: 'l4-payment-type-label',
+                                          defaultMessage: 'Rodzaj L4',
+                                        })}
+                                        value={range.paymentType ?? 'standard80'}
+                                        onChange={(event) =>
+                                          setFieldValue(
+                                            `l4.${index}.paymentType`,
+                                            event.target.value as L4PaymentType,
+                                          )
+                                        }
+                                      >
+                                        <MenuItem value="standard80">
+                                          {intl.formatMessage({
+                                            id: 'l4-payment-type-standard80',
+                                            defaultMessage: '80% – standardowe',
+                                          })}
+                                        </MenuItem>
+
+                                        <MenuItem value="full100">
+                                          {intl.formatMessage({
+                                            id: 'l4-payment-type-full100',
+                                            defaultMessage:
+                                              '100% – ciąża / wypadek w drodze / dawca',
+                                          })}
+                                        </MenuItem>
+
+                                        <MenuItem value="accident100">
+                                          {intl.formatMessage({
+                                            id: 'l4-payment-type-accident100',
+                                            defaultMessage:
+                                              '100% – wypadek przy pracy / choroba zawodowa',
+                                          })}
+                                        </MenuItem>
+                                      </TextField>
+                                    </Box>
+                                  ))}
+                                </Stack>
+                              )}
+
+                              {typeof errors.l4 === 'string' && (
+                                <FormHelperText error>{errors.l4}</FormHelperText>
+                              )}
                             </Box>
                           </Stack>
                         </FormWithInfo>

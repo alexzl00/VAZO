@@ -30,6 +30,7 @@ import {
 } from "../../api/overrideSalaryCalculations";
 
 // types
+import { normalizeL4Ranges } from "../../types/salaryCalculator";
 import type {
   SalaryCalculatorValues,
   WorkRate
@@ -227,7 +228,7 @@ export default function UpdateSalary() {
 
           // L4
           l4:
-            inputs.l4 ?? [],
+            normalizeL4Ranges(inputs.l4 ?? []),
 
           l4Base:
             inputs.l4_base ?? 0,
