@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // mui
 import {
@@ -154,18 +154,33 @@ const WorkRelationSelector = ({ formMode }: WorkRelationSelectorProps) => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { values, setFieldValue } = useFormikContext<SalaryCalculatorValues>();
+  const valuesRef = useRef(values);
+  valuesRef.current = values;
 
   const [relations, setRelations] = useState<WorkRelation[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
+  const removeDefinitionBasedBonuses = useCallback(() => {
+    const currentBonuses = valuesRef.current.bonuses ?? [];
+    const nextBonuses = currentBonuses.filter(
+      bonus => !bonus.bonusDefinitionId,
+    );
+
+    if (nextBonuses.length !== currentBonuses.length) {
+      setFieldValue('bonuses', nextBonuses, false);
+    }
+  }, [setFieldValue]);
+
   const clearRelationContext = useCallback(() => {
+    removeDefinitionBasedBonuses();
     setFieldValue('workRelationId', null, false);
     setFieldValue('employmentStartDate', null, false);
     setFieldValue('employmentEndDate', null, false);
-  }, [setFieldValue]);
+  }, [removeDefinitionBasedBonuses, setFieldValue]);
 
   const applyRelation = useCallback((relation: WorkRelation) => {
+    const currentValues = valuesRef.current;
     const workRateType = getWorkRateTypeFromRelation(relation);
 
     if (!workRateType) {
@@ -174,16 +189,24 @@ const WorkRelationSelector = ({ formMode }: WorkRelationSelectorProps) => {
       return;
     }
 
+    const relationChanged =
+      Boolean(currentValues.workRelationId) &&
+      currentValues.workRelationId !== relation.id;
+
+    if (relationChanged) {
+      removeDefinitionBasedBonuses();
+    }
+
     const period = getEffectiveEmploymentPeriod(
       relation,
-      values.year,
-      values.month,
+      currentValues.year,
+      currentValues.month,
     );
 
     setFieldValue('workRelationId', relation.id, false);
     setFieldValue('employmentStartDate', period.start, false);
     setFieldValue('employmentEndDate', period.end, false);
-    if (workRateType !== values.workRateType) {
+    if (workRateType !== currentValues.workRateType) {
       setFieldValue(
         'sicknessBenefitEligible',
         workRateType === 'uop_monthly' || workRateType === 'uop_hourly',
@@ -194,10 +217,8 @@ const WorkRelationSelector = ({ formMode }: WorkRelationSelectorProps) => {
     setFieldValue('workRateType', workRateType, false);
   }, [
     clearRelationContext,
+    removeDefinitionBasedBonuses,
     setFieldValue,
-    values.month,
-    values.workRateType,
-    values.year,
   ]);
 
   useEffect(() => {
@@ -517,9 +538,10 @@ const getDisabledSalaryTabs = (
   }
 
   if (values.workRateType === 'mandate_hourly') {
-    return values.mandateVoluntarySicknessInsurance
-      ? [3, 5]
-      : [3, 4, 5];
+    // L4 must remain available even without voluntary sickness insurance:
+    // accident-at-work / occupational-disease L4 (accident100) is paid from
+    // accident insurance and does not require voluntary sickness insurance.
+    return [3, 5];
   }
 
   return [];
@@ -544,7 +566,6 @@ const SalaryTabAvailabilityGuard = ({
     activeTab,
     setActiveTab,
     values.workRateType,
-    values.mandateVoluntarySicknessInsurance,
   ]);
 
   return null;
@@ -560,6 +581,9 @@ const buildSalarySchema = (formatMessage: ValidationMessageFormatter) =>
       .of(
         Yup.object().shape({
           id: Yup.string().required(formatMessage('validation-required')),
+          bonusDefinitionId: Yup.string().nullable().notRequired(),
+          rememberForFuture: Yup.boolean().notRequired(),
+          isNewBonus: Yup.boolean().notRequired(),
           name: Yup.string()
             .trim()
             .required(formatMessage('validation-bonus-name-required')),
@@ -844,6 +868,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
 
                             <SalaryBonusesEditor
                               bonuses={values.bonuses ?? []}
+                              workRelationId={values.workRelationId}
                               setFieldValue={setFieldValue}
                             />
 

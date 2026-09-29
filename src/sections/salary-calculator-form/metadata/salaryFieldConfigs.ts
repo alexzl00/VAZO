@@ -1,4 +1,7 @@
-import type { SalaryFieldConfig } from './salaryFieldMetadata';
+import type {
+  AdvancedSalaryFieldConfig,
+  SalaryFieldConfig,
+} from './salaryFieldMetadata';
 
 const UOP_CONTRACTS = ['uop_monthly', 'uop_hourly'] as const;
 const CIVIL_CONTRACTS = ['mandate_hourly', 'uod_fixed'] as const;
@@ -247,9 +250,10 @@ export const taxFieldConfigs: SalaryFieldConfig[] = [
   },
 ];
 
-export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
+export const advancedTaxFieldConfigs: AdvancedSalaryFieldConfig[] = [
   {
     name: 'hourlyRateCalculationMode',
+    advancedGroup: 'additional',
     type: 'select',
     labelId: 'advanced-settings-hourly-rate-calculation-mode',
     helperTextId: 'advanced-settings-hourly-rate-calculation-mode-help',
@@ -271,6 +275,7 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
   },
   {
     name: 'vacationBaseMonths',
+    advancedGroup: 'vacation',
     type: 'select',
     labelId: 'advanced-settings-vacation-base-months',
     helperTextId: 'advanced-settings-vacation-base-months-help',
@@ -286,6 +291,7 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
   },
   {
     name: 'functionalAllowanceRetainedDuringSickness',
+    advancedGroup: 'l4',
     type: 'checkbox',
     labelId: 'advanced-settings-functional-allowance-retained-during-sickness',
     helperTextId: 'advanced-settings-functional-allowance-retained-during-sickness-help',
@@ -297,6 +303,7 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
   },
   {
     name: 'doNotWithholdPitAdvance',
+    advancedGroup: 'taxes',
     type: 'checkbox',
     labelId: 'taxes-and-deductions-no-pit-advance',
     helperTextId: 'taxes-and-deductions-no-pit-advance-help',
@@ -307,6 +314,7 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
   },
   {
     name: 'hasMultipleEmploymentRelationships',
+    advancedGroup: 'taxes',
     type: 'checkbox',
     labelId: 'taxes-and-deductions-multiple-employments',
     helperTextId: 'taxes-and-deductions-multiple-employments-help',
@@ -318,6 +326,7 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
   },
   {
     name: 'uopEmployerSickPayLimit',
+    advancedGroup: 'l4',
     type: 'select',
     labelId: 'taxes-and-deductions-uop-sick-pay-limit',
     helperTextId: 'taxes-and-deductions-uop-sick-pay-limit-help',
@@ -333,6 +342,7 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
   },
   {
     name: 'previousEmployerSickPayDays',
+    advancedGroup: 'l4',
     type: 'number',
     labelId: 'taxes-and-deductions-previous-employer-sick-pay-days',
     helperTextId: 'taxes-and-deductions-previous-employer-sick-pay-days-help',
@@ -347,6 +357,7 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
   },
   {
     name: 'sicknessBenefitEligible',
+    advancedGroup: 'l4',
     type: 'checkbox',
     labelId: 'taxes-and-deductions-sickness-benefit-eligible',
     helperTextId: 'taxes-and-deductions-sickness-benefit-eligible-help',
@@ -363,6 +374,7 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
   },
   {
     name: 'mandateHasOtherUopAtLeastMinimumBase',
+    advancedGroup: 'taxes',
     type: 'checkbox',
     labelId: 'taxes-and-deductions-other-uop-minimum',
     helperTextId: 'taxes-and-deductions-other-uop-minimum-help',
@@ -374,6 +386,7 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
   },
   {
     name: 'mandateOtherSocialBaseBeforeThisContract',
+    advancedGroup: 'taxes',
     type: 'number',
     labelId: 'taxes-and-deductions-earlier-uz-social-base',
     contracts: ['mandate_hourly'],
@@ -383,6 +396,7 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
   },
   {
     name: 'isOwnEmployerContract',
+    advancedGroup: 'taxes',
     type: 'checkbox',
     labelId: 'taxes-and-deductions-own-employer-contract',
     contracts: [...CIVIL_CONTRACTS],
@@ -393,6 +407,7 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
   },
   {
     name: 'performedForOwnEmployer',
+    advancedGroup: 'taxes',
     type: 'checkbox',
     labelId: 'taxes-and-deductions-performed-for-own-employer',
     contracts: [...CIVIL_CONTRACTS],
@@ -403,6 +418,7 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
   },
   {
     name: 'smallContractLumpSumEligible',
+    advancedGroup: 'taxes',
     type: 'checkbox',
     labelId: 'taxes-and-deductions-small-contract-lump-sum',
     contracts: [...CIVIL_CONTRACTS],
@@ -413,6 +429,7 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
   },
   {
     name: 'previousTaxableIncome',
+    advancedGroup: 'taxes',
     type: 'number',
     labelId: 'taxes-and-deductions-ytd-taxable-income',
     unit: 'zł',
@@ -421,6 +438,7 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
   },
   {
     name: 'previousPit0Revenue',
+    advancedGroup: 'taxes',
     type: 'number',
     labelId: 'taxes-and-deductions-ytd-pit0-revenue',
     contracts: [...PPK_CONTRACTS],
@@ -430,6 +448,7 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
   },
   {
     name: 'previousPensionDisabilityBase',
+    advancedGroup: 'taxes',
     type: 'number',
     labelId: 'taxes-and-deductions-ytd-zus-base',
     unit: 'zł',
@@ -438,6 +457,7 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
   },
   {
     name: 'previous50KupUsed',
+    advancedGroup: 'taxes',
     type: 'number',
     labelId: 'taxes-and-deductions-ytd-50-kup',
     contracts: [...CIVIL_CONTRACTS],
@@ -448,6 +468,7 @@ export const advancedTaxFieldConfigs: SalaryFieldConfig[] = [
   },
   {
     name: 'previousUopKupUsed',
+    advancedGroup: 'taxes',
     type: 'number',
     labelId: 'taxes-and-deductions-ytd-uop-kup',
     contracts: [...UOP_CONTRACTS],

@@ -67,8 +67,42 @@ export type HourlyRateCalculationMode =
   | 'roundedTo2'
   | 'fullPrecision';
 
+export type SalaryBonusDefinition = {
+  id: string;
+  workRelationId: string;
+  name: string;
+  currentAmount: number;
+  frequency: BonusFrequency;
+  paymentType: BonusPaymentType;
+  amountType?: BonusAmountType;
+  sickLeaveTreatment?: SickLeaveTreatment;
+  vacationTreatment?: VacationTreatment;
+  isActive: boolean;
+};
+
 export type SalaryBonus = {
   id: string;
+
+  /**
+   * Stable identity of the reusable logical bonus.
+   * Null/undefined means this is an independent ad-hoc salary bonus.
+   */
+  bonusDefinitionId?: string | null;
+
+  /**
+   * Frontend/save instruction for a brand-new ad-hoc bonus.
+   * When true, the salary RPC should create a reusable definition and link
+   * the saved snapshot to it. This flag is not historical salary data.
+   */
+  rememberForFuture?: boolean;
+
+  /**
+   * Frontend-only marker used to show "Zapamiętaj premię" only for bonuses
+   * created in the current form. Existing historical ad-hoc snapshots do not
+   * expose an implicit promotion-to-definition flow in V1.
+   */
+  isNewBonus?: boolean;
+
   name: string;
   amount: number;
   frequency: BonusFrequency;

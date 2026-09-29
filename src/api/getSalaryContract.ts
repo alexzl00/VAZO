@@ -20,6 +20,9 @@ export interface SalaryContract {
 
 const mapBonus = (bonus: any): SalaryBonus => ({
   id: bonus.id,
+  bonusDefinitionId: bonus.bonus_definition_id ?? null,
+  rememberForFuture: false,
+  isNewBonus: false,
   name: bonus.name,
   amount: Number(bonus.amount),
   frequency: bonus.frequency,

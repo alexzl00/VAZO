@@ -15,6 +15,12 @@ export type SalaryFieldOption = {
 
 export type SalaryFormMode = 'create' | 'update';
 
+export type AdvancedSalaryFieldGroup =
+  | 'l4'
+  | 'vacation'
+  | 'taxes'
+  | 'additional';
+
 export type SalaryFieldRuntimeContext = {
   formMode: SalaryFormMode;
 };
@@ -68,6 +74,10 @@ export type SalaryFieldConfig = {
   ) => void;
 
   validation?: SalaryFieldValidation;
+};
+
+export type AdvancedSalaryFieldConfig = SalaryFieldConfig & {
+  advancedGroup: AdvancedSalaryFieldGroup;
 };
 
 export type SalaryValidationMessageFormatter = (
