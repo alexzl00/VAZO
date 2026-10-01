@@ -11,6 +11,7 @@ export async function createUoDSalary(values: any) {
     p_month: values.month,
     p_gross_salary: values.brutto,
     p_net_salary: values.netto,
+    p_monthly_facts: values.monthlyFacts ?? null,
     p_rate: values.rate,
 
     p_kup: values.kup ?? 20,
@@ -48,6 +49,7 @@ export async function updateUoDSalary(id: string, values: any) {
     p_month: values.month,
     p_gross_salary: values.brutto,
     p_net_salary: values.netto,
+    p_monthly_facts: values.monthlyFacts ?? null,
     p_rate: values.rate,
 
     p_kup: values.kup ?? 20,

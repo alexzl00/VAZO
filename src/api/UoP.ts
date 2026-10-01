@@ -16,6 +16,7 @@ export async function createUopSalary(values: any) {
     p_month: values.month,
     p_gross_salary: values.brutto,
     p_net_salary: values.netto,
+    p_monthly_facts: values.monthlyFacts ?? null,
     p_rate: values.rate,
     p_working_hours: values.workingHours,
 
@@ -86,6 +87,7 @@ export async function updateUopSalary(id: string, values: any) {
     p_month: values.month,
     p_gross_salary: values.brutto,
     p_net_salary: values.netto,
+    p_monthly_facts: values.monthlyFacts ?? null,
     p_rate: values.rate,
     p_working_hours: values.workingHours,
 

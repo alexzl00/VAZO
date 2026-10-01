@@ -30,6 +30,13 @@ export class SalaryCalculationError extends Error {
   }
 }
 
+export type SalaryMonthlyFacts = {
+  taxableIncome: number;
+  pit0Revenue: number;
+  pensionDisabilityBase: number;
+  uopKupUsed: number;
+};
+
 export type SalaryCalculationResult = {
   fullSalaryBrutto: number;
 
@@ -48,14 +55,13 @@ export type SalaryCalculationResult = {
   employerSickPayDays?: number;
   sicknessBenefitDays?: number;
   leavePayment?: number;
+  functionalAllowancePayment?: number;
+  functionalAllowanceEmploymentReduction?: number;
+  functionalAllowanceL4Reduction?: number;
   bonuses?: SalaryBonus[];
   bonusTotal?: number;
   cashBonusTotal?: number;
   nonCashBonusTotal?: number;
-  functionalAllowance?: number;
-  functionalAllowanceSicknessReduction?: number;
-  functionalAllowanceEmploymentReduction?: number;
-  functionalAllowanceContributionExempt?: number;
   overtimes?: number;
   perHour: number;
   rate?: number;
@@ -100,6 +106,8 @@ export type SalaryCalculationResult = {
   nightWorkAllowance?: number;
 
   warnings?: SalaryCalculationMessage[];
+
+  monthlyFacts: SalaryMonthlyFacts;
 
   yearToDate?: {
     taxableIncome: number;
@@ -157,6 +165,19 @@ export const taxes = {
 };
 
 const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+const buildMonthlyFacts = ({
+  taxableIncome,
+  pit0Revenue,
+  pensionDisabilityBase,
+  uopKupUsed,
+}: SalaryMonthlyFacts): SalaryMonthlyFacts => ({
+  taxableIncome: round2(Math.max(0, taxableIncome)),
+  pit0Revenue: round2(Math.max(0, pit0Revenue)),
+  pensionDisabilityBase: round2(
+    Math.max(0, pensionDisabilityBase),
+  ),
+  uopKupUsed: round2(Math.max(0, uopKupUsed)),
+});
 const roundPln = (value: number) => Math.round(value);
 const percent = (value: number, rate: number) => round2(value * rate / 100);
 
@@ -674,6 +695,13 @@ export const calculateTaxesUoD = (
     pitAt12,
     pitAt32,
 
+    monthlyFacts: buildMonthlyFacts({
+      taxableIncome: lumpSum ? 0 : pitBase,
+      pit0Revenue: 0,
+      pensionDisabilityBase,
+      uopKupUsed: 0,
+    }),
+
     yearToDate: buildYearToDate({
       values,
       pitBase,
@@ -1001,8 +1029,7 @@ export const calculateTaxesContractOfMandate = (
   const netto = round2(
     fullSalaryBrutto
       - nonCashBonusTotal
-      - social.zusTaxes
-      - healthInsurance
+      - social.zusTaxes- healthInsurance
       - pitTax
       - ppk.ppkEmployee
       - values.deductionAfterTax
@@ -1054,6 +1081,13 @@ export const calculateTaxesContractOfMandate = (
     rate: values.rate,
     isUnder26: values.isUnder26,
     isStudent: values.isStudent,
+
+    monthlyFacts: buildMonthlyFacts({
+      taxableIncome: scalePitBaseForYtd,
+      pit0Revenue: pitExemptRevenue,
+      pensionDisabilityBase: social.pensionDisabilityBase,
+      uopKupUsed: 0,
+    }),
 
     yearToDate: buildYearToDate({
       values,
@@ -1111,6 +1145,9 @@ export const calculateTaxesUoP = (
     values.previousEmployerSickPayDays ?? 0,
   );
 
+  const ordinarySicknessBenefitEligible =
+    values.sicknessBenefitEligible ?? true;
+
   let remainingEmployerSickPayDays = Math.max(
     0,
     employerSickPayLimit
@@ -1122,22 +1159,6 @@ export const calculateTaxesUoP = (
   let employerSickPayAmount = 0;
   let sicknessBenefitAmount = 0;
 
-  const ordinarySicknessBenefitEligible =
-    values.sicknessBenefitEligible ?? true;
-
-  const ordinaryL4DaysCountForEligibility = countDaysWithinPeriod(
-    values.l4.filter((range) => getL4PaymentType(range) !== 'accident100'),
-    values.employmentStartDate,
-    values.employmentEndDate,
-  );
-
-  if (ordinaryL4DaysCountForEligibility > 0 && !ordinarySicknessBenefitEligible) {
-    warnings.push({
-      id: 'salary-warning-sickness-benefit-not-eligible',
-      values: { waitingDays: 30 },
-    });
-  }
-
   // Process ranges chronologically because the 33/14-day Art. 92 limit applies
   // only to ordinary sickness/full-100 sickness from sickness insurance.
   // A work accident / occupational disease is paid from accident insurance
@@ -1145,6 +1166,16 @@ export const calculateTaxesUoP = (
   const orderedL4Ranges = [...values.l4].sort(
     (left, right) => left.start.localeCompare(right.start),
   );
+
+  const hasOrdinaryL4 = orderedL4Ranges.some(
+    (range) => getL4PaymentType(range) !== 'accident100',
+  );
+
+  if (hasOrdinaryL4 && !ordinarySicknessBenefitEligible) {
+    warnings.push({
+      id: 'salary-warning-uop-sickness-benefit-not-eligible',
+    });
+  }
 
   orderedL4Ranges.forEach((range) => {
     const paymentType = getL4PaymentType(range);
@@ -1163,9 +1194,6 @@ export const calculateTaxesUoP = (
       return;
     }
 
-    // Art. 92 §3 pkt 2: employer-funded sick pay is not due in cases where
-    // the employee has no right to sickness benefit. Accident-insurance L4 is
-    // handled above and is not subject to the ordinary waiting-period flag.
     if (!ordinarySicknessBenefitEligible) {
       return;
     }
@@ -1256,56 +1284,53 @@ export const calculateTaxesUoP = (
       values.employmentEndDate,
     );
 
-  const configuredFunctionalAllowance = round2(
-    Math.max(0, Number(values.functionalAllowance) || 0),
+  const functionalAllowance = Math.max(
+    0,
+    values.functionalAllowance ?? 0,
   );
 
-  const functionalAllowanceRetainedDuringSickness = Boolean(
-    values.functionalAllowanceRetainedDuringSickness,
-  );
-
-  // The functional allowance is modelled as a fixed monthly UoP component.
-  // Annual leave does not reduce it. Starting/ending employment does.
   const functionalAllowanceEmploymentReduction =
     nominalWorkingHours > 0
       ? round2(
-          (configuredFunctionalAllowance / nominalWorkingHours)
+          (functionalAllowance / nominalWorkingHours)
             * employmentExcludedWorkingHours,
         )
       : 0;
 
-  // A fixed monthly component that is not retained during sickness is reduced
-  // by 1/30 for every L4 calendar day. If it is retained, it remains payable.
-  const functionalAllowanceSicknessReduction =
-    functionalAllowanceRetainedDuringSickness
+  const functionalAllowanceAfterEmployment = round2(
+    Math.max(
+      0,
+      functionalAllowance
+        - functionalAllowanceEmploymentReduction,
+    ),
+  );
+
+  const functionalAllowanceL4Reduction =
+    values.functionalAllowanceRetainedDuringSickness
       ? 0
       : round2(
-          (configuredFunctionalAllowance / 30)
-            * l4DaysCount,
+          Math.min(
+            functionalAllowanceAfterEmployment,
+            (functionalAllowance / 30) * l4DaysCount,
+          ),
         );
 
   const functionalAllowancePayment = round2(
     Math.max(
       0,
-      configuredFunctionalAllowance
-        - functionalAllowanceEmploymentReduction
-        - functionalAllowanceSicknessReduction,
+      functionalAllowanceAfterEmployment
+        - functionalAllowanceL4Reduction,
     ),
   );
 
-  // When the allowance is retained during sickness, the part attributable to
-  // days for which employer sick pay / sickness benefit is due is paid but is
-  // excluded from social and health contribution bases. It remains PIT income.
-  const paidSicknessDays =
-    employerSickPayDays + sicknessBenefitDays;
-
-  const functionalAllowanceContributionExempt =
-    functionalAllowanceRetainedDuringSickness
+  // If the allowance is retained during sickness, the sickness-period share
+  // remains PIT income but is excluded from the ZUS/health contribution bases.
+  const retainedFunctionalAllowanceSicknessPart =
+    values.functionalAllowanceRetainedDuringSickness
       ? round2(
           Math.min(
             functionalAllowancePayment,
-            (configuredFunctionalAllowance / 30)
-              * paidSicknessDays,
+            (functionalAllowance / 30) * l4DaysCount,
           ),
         )
       : 0;
@@ -1418,13 +1443,15 @@ export const calculateTaxesUoP = (
   );
 
   // Neither employer-funded sick pay nor sickness benefit is a social-insurance base.
+  // A functional allowance retained for the sickness period also remains outside
+  // the social-insurance base for that retained sickness-period share.
   const socialInsuranceBase = round2(
     Math.max(
       0,
       fullSalaryBrutto
         - employerSickPay
         - sicknessBenefit
-        - functionalAllowanceContributionExempt,
+        - retainedFunctionalAllowanceSicknessPart,
     ),
   );
 
@@ -1437,13 +1464,12 @@ export const calculateTaxesUoP = (
     });
 
   // Employer-funded sick pay is included in the health base. Sickness benefit is not.
-  // The sickness-period part of a retained functional allowance is also excluded.
   const healthInsuranceBase = round2(
     Math.max(
       0,
       fullSalaryBrutto
         - sicknessBenefit
-        - functionalAllowanceContributionExempt
+        - retainedFunctionalAllowanceSicknessPart
         - social.zusTaxes,
     ),
   );
@@ -1550,16 +1576,14 @@ export const calculateTaxesUoP = (
     sicknessBenefitDays,
 
     leavePayment,
+    functionalAllowancePayment,
+    functionalAllowanceEmploymentReduction,
+    functionalAllowanceL4Reduction,
 
     bonuses: values.bonuses ?? [],
     bonusTotal,
     cashBonusTotal,
     nonCashBonusTotal,
-
-    functionalAllowance: functionalAllowancePayment,
-    functionalAllowanceSicknessReduction,
-    functionalAllowanceEmploymentReduction,
-    functionalAllowanceContributionExempt,
 
     overtimes,
     dailyOvertimes,
@@ -1614,6 +1638,13 @@ export const calculateTaxesUoP = (
     netto,
     brutto:
       fullSalaryBrutto,
+
+    monthlyFacts: buildMonthlyFacts({
+      taxableIncome: pitBase,
+      pit0Revenue: split.exemptRevenue,
+      pensionDisabilityBase: social.pensionDisabilityBase,
+      uopKupUsed: pitKup,
+    }),
 
     yearToDate: buildYearToDate({
       values,

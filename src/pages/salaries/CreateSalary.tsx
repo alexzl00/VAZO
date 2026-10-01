@@ -158,7 +158,8 @@ export default function CreateSalaryPage() {
         salaryId = await createMandateSalary({
           ...values,
           brutto: calculated.brutto,
-          netto: calculated.netto
+          netto: calculated.netto,
+          monthlyFacts: calculated.monthlyFacts
         });
       } else if (
         values.workRateType === "uop_monthly" ||
@@ -169,7 +170,8 @@ export default function CreateSalaryPage() {
         salaryId = await createUopSalary({
           ...values,
           brutto: calculated.brutto,
-          netto: calculated.netto
+          netto: calculated.netto,
+          monthlyFacts: calculated.monthlyFacts
         });
       } else if (values.workRateType === "uod_fixed") {
         const calculated = calculateTaxesUoD(values);
@@ -177,7 +179,8 @@ export default function CreateSalaryPage() {
         salaryId = await createUoDSalary({
           ...values,
           brutto: calculated.brutto,
-          netto: calculated.netto
+          netto: calculated.netto,
+          monthlyFacts: calculated.monthlyFacts
         });
       }
 
