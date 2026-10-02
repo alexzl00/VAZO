@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 // mui
 import {
@@ -52,6 +52,8 @@ import { useAuth } from '../../auth/AuthContext';
 
 // api
 import { getWorkRelationsForMonth } from '../../api/work_relations';
+import { getSalaryCarryForwardContext } from '../../api/getSalaryCarryForwardContext';
+import type { SalaryCarryForwardHistory } from '../../api/getSalaryCarryForwardContext';
 
 // utils
 import { MultiRangeMonthPicker } from '../../components/DaysPicker';
@@ -88,6 +90,12 @@ type BaseProps = {
 type SalaryFormProps =
   | (BaseProps & { type: "create" })
   | (BaseProps & { type: "update"; deleteOverride: () => void });
+
+type LegacySalaryBonusValues = {
+  attendanceBonus?: number;
+  discretionaryBonus?: number;
+  otherBonus?: number;
+};
 
 const getWorkRateTypeFromRelation = (
   relation: WorkRelation,
@@ -154,33 +162,18 @@ const WorkRelationSelector = ({ formMode }: WorkRelationSelectorProps) => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { values, setFieldValue } = useFormikContext<SalaryCalculatorValues>();
-  const valuesRef = useRef(values);
-  valuesRef.current = values;
 
   const [relations, setRelations] = useState<WorkRelation[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
-  const removeDefinitionBasedBonuses = useCallback(() => {
-    const currentBonuses = valuesRef.current.bonuses ?? [];
-    const nextBonuses = currentBonuses.filter(
-      bonus => !bonus.bonusDefinitionId,
-    );
-
-    if (nextBonuses.length !== currentBonuses.length) {
-      setFieldValue('bonuses', nextBonuses, false);
-    }
-  }, [setFieldValue]);
-
   const clearRelationContext = useCallback(() => {
-    removeDefinitionBasedBonuses();
     setFieldValue('workRelationId', null, false);
     setFieldValue('employmentStartDate', null, false);
     setFieldValue('employmentEndDate', null, false);
-  }, [removeDefinitionBasedBonuses, setFieldValue]);
+  }, [setFieldValue]);
 
   const applyRelation = useCallback((relation: WorkRelation) => {
-    const currentValues = valuesRef.current;
     const workRateType = getWorkRateTypeFromRelation(relation);
 
     if (!workRateType) {
@@ -189,36 +182,21 @@ const WorkRelationSelector = ({ formMode }: WorkRelationSelectorProps) => {
       return;
     }
 
-    const relationChanged =
-      Boolean(currentValues.workRelationId) &&
-      currentValues.workRelationId !== relation.id;
-
-    if (relationChanged) {
-      removeDefinitionBasedBonuses();
-    }
-
     const period = getEffectiveEmploymentPeriod(
       relation,
-      currentValues.year,
-      currentValues.month,
+      values.year,
+      values.month,
     );
 
     setFieldValue('workRelationId', relation.id, false);
     setFieldValue('employmentStartDate', period.start, false);
     setFieldValue('employmentEndDate', period.end, false);
-    if (workRateType !== currentValues.workRateType) {
-      setFieldValue(
-        'sicknessBenefitEligible',
-        workRateType === 'uop_monthly' || workRateType === 'uop_hourly',
-        false,
-      );
-    }
-
     setFieldValue('workRateType', workRateType, false);
   }, [
     clearRelationContext,
-    removeDefinitionBasedBonuses,
     setFieldValue,
+    values.month,
+    values.year,
   ]);
 
   useEffect(() => {
@@ -325,11 +303,6 @@ const WorkRelationSelector = ({ formMode }: WorkRelationSelectorProps) => {
         mx: 'auto',
       }}
     >
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
-          <CircularProgress size={24} />
-        </Box>
-      )}
 
       {!loading && loadError && (
         <Alert severity="error">
@@ -485,23 +458,245 @@ const WorkRelationSelector = ({ formMode }: WorkRelationSelectorProps) => {
   );
 };
 
+
+type CarryForwardContextLoaderProps = {
+  formMode: 'create' | 'update';
+};
+
+const CarryForwardContextLoader = ({
+  formMode,
+}: CarryForwardContextLoaderProps) => {
+  const intl = useIntl();
+  const { values, setFieldValue } = useFormikContext<SalaryCalculatorValues>();
+
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [history, setHistory] = useState<SalaryCarryForwardHistory | null>(null);
+
+  const resetCarryForwardFields = useCallback(() => {
+    setFieldValue('previousTaxableIncome', 0, false);
+    setFieldValue('previousPit0Revenue', 0, false);
+    setFieldValue('previousPensionDisabilityBase', 0, false);
+    setFieldValue('previousUopKupUsed', 0, false);
+  }, [setFieldValue]);
+
+  const employmentPeriodReady = (() => {
+    if (!values.workRelationId || !values.employmentStartDate) {
+      return false;
+    }
+
+    const effectiveStart = dayjs(values.employmentStartDate);
+
+    return (
+      effectiveStart.isValid()
+      && effectiveStart.year() === values.year
+      && effectiveStart.month() + 1 === values.month
+    );
+  })();
+
+  useEffect(() => {
+    if (formMode !== 'create') return;
+
+    let active = true;
+
+    // WorkRelationSelector updates the effective employment period after a
+    // month/relation change. Do not request carry-forward data until that
+    // context belongs to the currently selected month; otherwise a request
+    // for the previous relation can briefly populate stale history warnings.
+    if (!values.workRelationId || !employmentPeriodReady) {
+      resetCarryForwardFields();
+      setLoading(false);
+      setLoadError(false);
+      setHistory(null);
+
+      return () => {
+        active = false;
+      };
+    }
+
+    const loadContext = async () => {
+      // A changed work relation / year / month starts a new context.
+      // Clear old values immediately so a failed request cannot leave stale
+      // carry-forward values from the previously selected context.
+      resetCarryForwardFields();
+      setLoading(true);
+      setLoadError(false);
+      setHistory(null);
+
+      try {
+        const context = await getSalaryCarryForwardContext(
+          values.workRelationId!,
+          values.year,
+          values.month,
+        );
+
+        if (!active) return;
+
+        setFieldValue(
+          'previousTaxableIncome',
+          context.previousTaxableIncome,
+          false,
+        );
+        setFieldValue(
+          'previousPit0Revenue',
+          context.previousPit0Revenue,
+          false,
+        );
+        setFieldValue(
+          'previousPensionDisabilityBase',
+          context.previousPensionDisabilityBase,
+          false,
+        );
+        setFieldValue(
+          'previousUopKupUsed',
+          context.previousUopKupUsed,
+          false,
+        );
+
+        setHistory(context.history);
+      } catch (error) {
+        console.error(error);
+
+        if (!active) return;
+
+        setLoadError(true);
+        setHistory(null);
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadContext();
+
+    return () => {
+      active = false;
+    };
+  }, [
+    formMode,
+    resetCarryForwardFields,
+    setFieldValue,
+    values.employmentStartDate,
+    values.month,
+    values.workRelationId,
+    values.year,
+    employmentPeriodReady,
+  ]);
+
+  if (
+    formMode !== 'create'
+    || !values.workRelationId
+    || !employmentPeriodReady
+  ) {
+    return null;
+  }
+
+  if (loadError) {
+    return (
+      <Alert
+        severity="warning"
+        sx={{ mb: 2, width: '100%', maxWidth: '400px', mx: 'auto' }}
+      >
+        {intl.formatMessage({
+          id: 'salary-carry-forward-load-failed',
+          defaultMessage:
+            'Nie udało się pobrać danych z wcześniejszych wynagrodzeń. Wartości historyczne pozostają edytowalne i możesz uzupełnić je ręcznie.',
+        })}
+      </Alert>
+    );
+  }
+
+  if (!history || history.complete) {
+    return null;
+  }
+
+  return (
+    <Alert
+      severity="warning"
+      sx={{ mb: 2, width: '100%', maxWidth: '400px', mx: 'auto' }}
+    >
+      <Stack spacing={0.5}>
+        <Typography variant="body2">
+          {intl.formatMessage({
+            id: 'salary-carry-forward-incomplete',
+            defaultMessage:
+              'Nie udało się ustalić wszystkich wartości na podstawie zapisanej historii wynagrodzeń. Sprawdź je przed zapisaniem wynagrodzenia.',
+          })}
+        </Typography>
+
+        {history.missingPeriods.length > 0 && (
+          <Typography variant="body2">
+            {intl.formatMessage(
+              {
+                id: 'salary-carry-forward-missing-periods',
+                defaultMessage: 'Brak zapisanych wynagrodzeń za: {periods}.',
+              },
+              {
+                periods: history.missingPeriods.join(', '),
+              },
+            )}
+          </Typography>
+        )}
+
+        {history.unknownFactPeriods.length > 0 && (
+          <Typography variant="body2">
+            {intl.formatMessage(
+              {
+                id: 'salary-carry-forward-unknown-facts',
+                defaultMessage:
+                  'Niektóre wcześniejsze wynagrodzenia nie zawierają pełnych danych potrzebnych do automatycznego wyliczenia za: {periods}. Sprawdź wartości lub zapisz te miesiące ponownie.',
+              },
+              {
+                periods: history.unknownFactPeriods.join(', '),
+              },
+            )}
+          </Typography>
+        )}
+      </Stack>
+    </Alert>
+  );
+};
+
 const normalizeSalaryValues = (
   values: SalaryCalculatorValues,
-): SalaryCalculatorValues =>
-  applySalaryFieldDefaults(
+): SalaryCalculatorValues => {
+  const legacyValues = values as SalaryCalculatorValues & LegacySalaryBonusValues;
+
+  let bonuses = Array.isArray(legacyValues.bonuses)
+    ? legacyValues.bonuses
+    : [];
+
+  // Temporary read compatibility for salary records created before bonuses[]
+  // was introduced. New calculations and new UI never write these old fields.
+  if (bonuses.length === 0) {
+    const legacyBonusTotal =
+      (legacyValues.attendanceBonus ?? 0) +
+      (legacyValues.discretionaryBonus ?? 0) +
+      (legacyValues.otherBonus ?? 0);
+
+    if (legacyBonusTotal > 0) {
+      bonuses = [
+        {
+          id: 'legacy-bonus-total',
+          name: 'Legacy bonuses',
+          amount: legacyBonusTotal,
+          frequency: 'monthly',
+        },
+      ];
+    }
+  }
+
+  return applySalaryFieldDefaults(
     {
       ...values,
-      bonuses: Array.isArray(values.bonuses)
-        ? values.bonuses
-        : [],
-      sicknessBenefitEligible:
-        values.sicknessBenefitEligible
-        ?? (values.workRateType === 'uop_monthly'
-          || values.workRateType === 'uop_hourly'),
+      bonuses,
       l4: normalizeL4Ranges(values.l4),
     },
     metadataDrivenFieldConfigs,
   );
+};
+
 
 const relationAwareRateFieldConfigs = rateFieldConfigs.map((config) =>
   config.name === 'workRateType'
@@ -530,23 +725,6 @@ const positiveNumber = (formatMessage: ValidationMessageFormatter) =>
       (value) => typeof value === 'number' && !isNaN(value) && value >= 0,
     );
 
-const getDisabledSalaryTabs = (
-  values: SalaryCalculatorValues,
-): number[] => {
-  if (values.workRateType === 'uod_fixed') {
-    return [3, 4, 5];
-  }
-
-  if (values.workRateType === 'mandate_hourly') {
-    // L4 must remain available even without voluntary sickness insurance:
-    // accident-at-work / occupational-disease L4 (accident100) is paid from
-    // accident insurance and does not require voluntary sickness insurance.
-    return [3, 5];
-  }
-
-  return [];
-};
-
 const SalaryTabAvailabilityGuard = ({
   activeTab,
   setActiveTab,
@@ -557,7 +735,12 @@ const SalaryTabAvailabilityGuard = ({
   const { values } = useFormikContext<SalaryCalculatorValues>();
 
   useEffect(() => {
-    const disabledTabs = getDisabledSalaryTabs(values);
+    const disabledTabs =
+      values.workRateType === 'uod_fixed'
+        ? [3, 4, 5]
+        : values.workRateType === 'mandate_hourly'
+          ? [3, 5]
+          : [];
 
     if (disabledTabs.includes(activeTab)) {
       setActiveTab(1);
@@ -581,9 +764,6 @@ const buildSalarySchema = (formatMessage: ValidationMessageFormatter) =>
       .of(
         Yup.object().shape({
           id: Yup.string().required(formatMessage('validation-required')),
-          bonusDefinitionId: Yup.string().nullable().notRequired(),
-          rememberForFuture: Yup.boolean().notRequired(),
-          isNewBonus: Yup.boolean().notRequired(),
           name: Yup.string()
             .trim()
             .required(formatMessage('validation-bonus-name-required')),
@@ -601,11 +781,6 @@ const buildSalarySchema = (formatMessage: ValidationMessageFormatter) =>
             'paidInFull' | 'proportional' | 'nonProportional' | 'notPaid'
           >()
             .oneOf(['paidInFull', 'proportional', 'nonProportional', 'notPaid'])
-            .notRequired(),
-          vacationTreatment: Yup.mixed<
-            'paidInFull' | 'variableBase' | 'excluded'
-          >()
-            .oneOf(['paidInFull', 'variableBase', 'excluded'])
             .notRequired(),
         }),
       )
@@ -828,30 +1003,48 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
             }
           }
 
-          const disabledTabs = getDisabledSalaryTabs(values);
+          const disabledTabs =
+            values.workRateType === 'uod_fixed'
+              ? [3, 4, 5]
+              : values.workRateType === 'mandate_hourly'
+                ? [3, 5]
+                : [];
 
           return (
             <>
               <Form>
                 <SalaryTabAvailabilityGuard activeTab={value} setActiveTab={setValue} />
                 <WorkRelationSelector formMode={type} />
+                <CarryForwardContextLoader formMode={type} />
                 <CardTabs value={value} labels={labels} onChange={changeTab} disabledTabs={disabledTabs}/>
 
                 <Box
                   sx={{
-                    display:'flex',
-                    justifyContent: isMidScreen ? 'center' : 'flex-start',
-                    mt: 3
+                    display: 'flex',
+                    justifyContent: 'center',
+                    width: '100%',
+                    mt: 3,
                   }}
                 >
                   <Stack
                     direction={isMidScreen ? 'column' : 'row'}
                     spacing={isMidScreen ? 2 : 0}
                     justifyContent={isMidScreen ? 'center' : 'space-between'}
-
-                    sx={{ width: '100%' }}
+                    alignItems={isMidScreen ? 'center' : 'stretch'}
+                    sx={{
+                      width: '100%',
+                      maxWidth: isMidScreen ? '400px' : 'none',
+                      mx: 'auto',
+                    }}
                   >
-                    <Box sx={{ mt: 3, width: '320px' }}>
+                    <Box
+                      sx={{
+                        mt: 3,
+                        width: '320px',
+                        maxWidth: '100%',
+                        mx: isMidScreen ? 'auto' : 0,
+                      }}
+                    >
                       {/* TAB 0: Stawka i premie */}
                       {value === 0 && (
                         <FormWithInfo
@@ -1015,8 +1208,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                                 disableMonthSwitching={true}
                                 onChange={(ranges: DateRange[]) => {
                                   const nextL4 = ranges.map((range) => {
-                                    const start = range.start.format("YYYY-MM-DD");
-                                    const end = range.end.format("YYYY-MM-DD");
+                                    const start = range.start.format("YYYY-MM-DD");const end = range.end.format("YYYY-MM-DD");
 
                                     const existingRange = values.l4.find(
                                       (existing) =>
@@ -1141,11 +1333,26 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                         </FormWithInfo>
                       )}
                     </Box>
-                    <Box sx={{ mt: 7}}>
+                    <Box
+                      sx={{
+                        mt: isMidScreen ? 3 : 7,
+                        width: isMidScreen ? '100%' : 'auto',
+                        maxWidth: isMidScreen ? '400px' : 'none',
+                        mx: isMidScreen ? 'auto' : 0,
+                      }}
+                    >
                       {calculation ? (
                         <TaxChart calculation={calculation}/>
                       ) : (
-                        <Alert severity="warning" sx={{ maxWidth: 320, ml: isMidScreen ? 0 : 4, mt: isMidScreen ? 2 : 0 }}>
+                        <Alert
+                          severity="warning"
+                          sx={{
+                            maxWidth: isMidScreen ? '400px' : 320,
+                            mx: isMidScreen ? 'auto' : 0,
+                            ml: isMidScreen ? 0 : 4,
+                            mt: isMidScreen ? 2 : 0,
+                          }}
+                        >
                           {calculationError}
                         </Alert>
                       )}
