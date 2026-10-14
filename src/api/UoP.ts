@@ -54,6 +54,7 @@ export async function createUopSalary(values: any) {
 
     p_l4: values.l4 ?? [],
     p_l4_base: values.l4Base ?? 0,
+    p_l4_base_after_termination: values.l4BaseAfterTermination ?? null,
     p_sickness_benefit_eligible: values.sicknessBenefitEligible ?? true,
     p_uop_employer_sick_pay_limit:
       values.uopEmployerSickPayLimit ?? 33,
@@ -125,6 +126,7 @@ export async function updateUopSalary(id: string, values: any) {
 
     p_l4: values.l4 ?? [],
     p_l4_base: values.l4Base ?? 0,
+    p_l4_base_after_termination: values.l4BaseAfterTermination ?? null,
     p_sickness_benefit_eligible: values.sicknessBenefitEligible ?? true,
     p_uop_employer_sick_pay_limit:
       values.uopEmployerSickPayLimit ?? 33,

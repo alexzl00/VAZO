@@ -3,7 +3,7 @@ import { useIntl } from 'react-intl';
 
 import {
   FormikNumberField,
-  FomrikSelectField,
+  FormikSelectField,
 } from '../../components/FormikFields';
 
 import type { SalaryCalculatorValues } from '../../types/salaryCalculator';
@@ -96,6 +96,7 @@ export default function DynamicSalaryFields({
                 labelId={config.labelId}
                 unit={resolveSalaryFieldUnit(config, values)}
                 disabled={disabled}
+                nullable={config.nullable}
                 onChange={(nextValue) => {
                   runOnChange(config, nextValue);
                 }}
@@ -107,7 +108,7 @@ export default function DynamicSalaryFields({
 
         return (
           <Box key={String(config.name)}>
-            <FomrikSelectField
+            <FormikSelectField
               name={String(config.name)}
               inputLabel={config.labelId}
               disabled={disabled}

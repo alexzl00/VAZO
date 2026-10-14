@@ -250,6 +250,29 @@ export const taxFieldConfigs: SalaryFieldConfig[] = [
   },
 ];
 
+/** Optional second L4 base, shown only when the selected month includes
+ * days after a known work-relation termination date. */
+export const l4FieldConfigs: SalaryFieldConfig[] = [
+  {
+    name: 'l4BaseAfterTermination',
+    type: 'number',
+    labelId: 'l4-base-after-termination',
+    helperTextId: 'l4-base-after-termination-help',
+    contracts: [...UOP_CONTRACTS, 'mandate_hourly'],
+    visibleWhen: (values) => Boolean(
+      values.employmentEndDate
+      && values.l4.some((range) => range.end > values.employmentEndDate!),
+    ),
+    nullable: true,
+    defaultValue: null,
+    unit: 'zł',
+    validation: {
+      min: 0,
+      minMessageId: 'validation-number-min-zero',
+    },
+  },
+];
+
 export const advancedTaxFieldConfigs: AdvancedSalaryFieldConfig[] = [
   {
     name: 'hourlyRateCalculationMode',
@@ -539,5 +562,6 @@ export const metadataDrivenFieldConfigs = [
   ...rateFieldConfigs,
   ...taxFieldConfigs,
   ...advancedTaxFieldConfigs,
+  ...l4FieldConfigs,
   ...overtimeFieldConfigs,
 ];

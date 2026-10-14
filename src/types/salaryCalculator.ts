@@ -306,6 +306,9 @@ export type SalaryCalculatorValues = {
   l4: L4Range[];
   l4Base: number;
 
+  /** Separate base used for sickness-benefit days after the contract ends. NULL = not specified. */
+  l4BaseAfterTermination: number | null;
+
   // --- Annual leave ---
 
   /**

@@ -413,6 +413,15 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
           value: formatNumber(calculation.sicknessBenefit),
         });
       }
+      if ((calculation.postEmploymentSicknessBenefit ?? 0) > 0) {
+        absenceItems.push({
+          label: intl.formatMessage({
+            id: 'salary-post-employment-benefit-included',
+            defaultMessage: 'Including benefit after employment ended',
+          }),
+          value: formatNumber(calculation.postEmploymentSicknessBenefit),
+        });
+      }
       if ((calculation.employerSickPayDays ?? 0) > 0) {
         absenceItems.push({
           label: intl.formatMessage({
@@ -464,6 +473,12 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
           unit: '',
         },
       );
+    }
+    if (calculation.calculationType === 'mandate' && (calculation.postEmploymentSicknessBenefit ?? 0) > 0) {
+      absenceItems.push({
+        label: intl.formatMessage({ id: 'salary-post-employment-benefit-included' }),
+        value: formatNumber(calculation.postEmploymentSicknessBenefit),
+      });
     }
     const salaryGroups: BreakdownGroup[] = [
       {

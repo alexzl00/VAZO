@@ -152,3 +152,9 @@ export type CalculateUopSicknessBaseParams = {
   history: UopSicknessBaseHistory;
   target: UopSicknessBaseTarget;
 };
+
+
+export type UopSicknessBasesResult = {
+  duringEmployment: UopSicknessBaseResult | null;
+  afterEmployment: UopSicknessBaseResult | null;
+};

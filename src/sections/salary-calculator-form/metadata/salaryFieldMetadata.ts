@@ -54,6 +54,8 @@ export type SalaryFieldConfig = {
   type: SalaryFieldType;
   labelId: string;
   helperTextId?: string;
+  /** For number fields only: preserve null/empty instead of converting to 0. */
+  nullable?: boolean;
 
   contracts?: WorkRate[];
   options?: SalaryFieldOption[];
@@ -166,9 +168,14 @@ const buildFieldSchema = (
   }
 
   if (config.type === 'number') {
-    let schema = Yup.number().typeError(
+    // The metadata is dynamic: allow a nullable-number schema where configured.
+    let schema: Yup.NumberSchema<any> = Yup.number().typeError(
       formatMessage(validation.typeErrorId ?? 'validation-number-invalid'),
     );
+
+    if (config.nullable) {
+      schema = schema.nullable();
+    }
 
     if (validation.min !== undefined) {
       schema = schema.min(

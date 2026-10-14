@@ -52,6 +52,8 @@ export type SalaryCalculationResult = {
   l4Payment?: number;
   employerSickPay?: number;
   sicknessBenefit?: number;
+  postEmploymentSicknessBenefit?: number;
+  postEmploymentSicknessBenefitDays?: number;
   employerSickPayDays?: number;
   sicknessBenefitDays?: number;
   leavePayment?: number;
@@ -215,43 +217,11 @@ const getL4DailyPayment = (
       )
     : 0;
 
-const calculateL4RangePayment = (
-  range: L4Range,
-  l4Base: number,
-  employmentStartDate?: string | null,
-  employmentEndDate?: string | null,
-) => {
-  const days = countDaysWithinPeriod(
-    [range],
-    employmentStartDate,
-    employmentEndDate,
-  );
-
-  if (days <= 0 || l4Base <= 0) {
-    return { days, amount: 0 };
-  }
-
-  // Preserve the calculator's existing rounding approach: calculate and round
-  // the daily payment first, then multiply it by the number of L4 days.
-  const dailyPayment = getL4DailyPayment(range, l4Base);
-
-  return {
-    days,
-    amount: dailyPayment * days,
-  };
-};
-
 /**
- * Splits a UoP L4 range into the part that falls while the employment
- * relationship is active and the part that falls after it ends.
- *
- * The employment start still acts as the lower boundary, so days before the
- * relationship began are never treated as payable from this employment.
- * Post-employment days are intentionally not clipped by employmentEndDate:
- * when entitlement exists they are ZUS sickness-benefit days, not employer
- * sick-pay days.
+ * Divide L4 into insurance-period and post-termination calendar days.
+ * The second part is never counted as ordinary employer sick pay.
  */
-const getUopL4RangeDaySplit = (
+const getL4RangeDaySplit = (
   range: L4Range,
   employmentStartDate?: string | null,
   employmentEndDate?: string | null,
@@ -272,10 +242,49 @@ const getUopL4RangeDaySplit = (
     ? Math.max(0, totalEligibleDays - duringEmploymentDays)
     : 0;
 
+  return { duringEmploymentDays, postEmploymentDays };
+};
+
+const getSplitL4Payment = (
+  range: L4Range,
+  values: SalaryCalculatorValues,
+) => {
+  const split = getL4RangeDaySplit(
+    range,
+    values.employmentStartDate,
+    values.employmentEndDate,
+  );
+
   return {
-    duringEmploymentDays,
-    postEmploymentDays,
+    ...split,
+    duringEmploymentAmount:
+      getL4DailyPayment(range, values.l4Base) * split.duringEmploymentDays,
+    postEmploymentAmount:
+      getL4DailyPayment(
+        range,
+        values.l4BaseAfterTermination ?? values.l4Base,
+      ) * split.postEmploymentDays,
   };
+};
+
+/** Disclose a substituted base only when it affects the calculated amount. */
+const warnIfPostEmploymentL4BaseMissing = (
+  values: SalaryCalculatorValues,
+  warnings: SalaryCalculationMessage[],
+) => {
+  const includesPostEmployment = values.l4.some(
+    (range) => getL4RangeDaySplit(
+      range,
+      values.employmentStartDate,
+      values.employmentEndDate,
+    ).postEmploymentDays > 0,
+  );
+
+  if (!includesPostEmployment) return;
+
+  if (values.l4BaseAfterTermination == null) {
+    warnings.push({ id: 'salary-warning-post-termination-l4-base-fallback' });
+  }
 };
 
 const getBonusTotals = (values: SalaryCalculatorValues) => {
@@ -829,16 +838,19 @@ export const calculateTaxesContractOfMandate = (
     (range) => getL4PaymentType(range) === 'accident100',
   );
 
-  const ordinaryL4DaysCount = countDaysWithinPeriod(
-    ordinaryL4Ranges,
-    values.employmentStartDate,
-    values.employmentEndDate,
+  const ordinaryL4DaysCount = ordinaryL4Ranges.reduce(
+    (sum, range) => {
+      const split = getL4RangeDaySplit(range, values.employmentStartDate, values.employmentEndDate);
+      return sum + split.duringEmploymentDays + split.postEmploymentDays;
+    }, 0,
   );
-  const accidentL4DaysCount = countDaysWithinPeriod(
-    accidentL4Ranges,
-    values.employmentStartDate,
-    values.employmentEndDate,
+  const accidentL4DaysCount = accidentL4Ranges.reduce(
+    (sum, range) => {
+      const split = getL4RangeDaySplit(range, values.employmentStartDate, values.employmentEndDate);
+      return sum + split.duringEmploymentDays + split.postEmploymentDays;
+    }, 0,
   );
+  warnIfPostEmploymentL4BaseMissing(values, warnings);
 
   const ordinarySicknessBenefitEligible = Boolean(
     voluntarySicknessInsuranceActive
@@ -852,6 +864,8 @@ export const calculateTaxesContractOfMandate = (
 
   let ordinarySicknessBenefit = 0;
   let accidentSicknessBenefit = 0;
+  let postEmploymentSicknessBenefit = 0;
+  let postEmploymentSicknessBenefitDays = 0;
 
   if (ordinaryL4DaysCount > 0) {
     if (!values.mandateVoluntarySicknessInsurance) {
@@ -868,19 +882,12 @@ export const calculateTaxesContractOfMandate = (
         values: { waitingDays: 90 },
       });
     } else {
-      ordinarySicknessBenefit = round2(
-        ordinaryL4Ranges.reduce(
-          (total, range) =>
-            total
-              + calculateL4RangePayment(
-                  range,
-                  values.l4Base,
-                  values.employmentStartDate,
-                  values.employmentEndDate,
-                ).amount,
-          0,
-        ),
-      );
+      ordinarySicknessBenefit = round2(ordinaryL4Ranges.reduce((total, range) => {
+        const payment = getSplitL4Payment(range, values);
+        postEmploymentSicknessBenefit += payment.postEmploymentAmount;
+        postEmploymentSicknessBenefitDays += payment.postEmploymentDays;
+        return total + payment.duringEmploymentAmount + payment.postEmploymentAmount;
+      }, 0));
     }
   }
 
@@ -890,19 +897,12 @@ export const calculateTaxesContractOfMandate = (
         id: 'salary-warning-mandate-accident-insurance-unavailable',
       });
     } else {
-      accidentSicknessBenefit = round2(
-        accidentL4Ranges.reduce(
-          (total, range) =>
-            total
-              + calculateL4RangePayment(
-                  range,
-                  values.l4Base,
-                  values.employmentStartDate,
-                  values.employmentEndDate,
-                ).amount,
-          0,
-        ),
-      );
+      accidentSicknessBenefit = round2(accidentL4Ranges.reduce((total, range) => {
+        const payment = getSplitL4Payment(range, values);
+        postEmploymentSicknessBenefit += payment.postEmploymentAmount;
+        postEmploymentSicknessBenefitDays += payment.postEmploymentDays;
+        return total + payment.duringEmploymentAmount + payment.postEmploymentAmount;
+      }, 0));
     }
   }
 
@@ -1104,6 +1104,8 @@ export const calculateTaxesContractOfMandate = (
 
     l4Payment: sicknessBenefit,
     sicknessBenefit,
+    postEmploymentSicknessBenefit: round2(postEmploymentSicknessBenefit),
+    postEmploymentSicknessBenefitDays,
     employerSickPay: 0,
     employerSickPayDays: 0,
     sicknessBenefitDays:
@@ -1217,6 +1219,10 @@ export const calculateTaxesUoP = (
   let sicknessBenefitDays = 0;
   let employerSickPayAmount = 0;
   let sicknessBenefitAmount = 0;
+  let postEmploymentSicknessBenefitAmount = 0;
+  let postEmploymentSicknessBenefitDays = 0;
+
+  warnIfPostEmploymentL4BaseMissing(values, warnings);
 
   // Process ranges chronologically because the 33/14-day Art. 92 limit applies
   // only to ordinary sickness/full-100 sickness from sickness insurance.
@@ -1241,7 +1247,7 @@ export const calculateTaxesUoP = (
     const {
       duringEmploymentDays,
       postEmploymentDays,
-    } = getUopL4RangeDaySplit(
+    } = getL4RangeDaySplit(
       range,
       values.employmentStartDate,
       values.employmentEndDate,
@@ -1252,9 +1258,13 @@ export const calculateTaxesUoP = (
 
     if (totalPayableDays <= 0) return;
 
-    const dailyPayment = getL4DailyPayment(
+    const duringEmploymentDailyPayment = getL4DailyPayment(
       range,
       values.l4Base,
+    );
+    const postEmploymentDailyPayment = getL4DailyPayment(
+      range,
+      values.l4BaseAfterTermination ?? values.l4Base,
     );
 
     // Accident/occupational-disease benefit is ZUS-funded from the first
@@ -1263,7 +1273,11 @@ export const calculateTaxesUoP = (
     if (paymentType === 'accident100') {
       sicknessBenefitDays += totalPayableDays;
       sicknessBenefitAmount +=
-        dailyPayment * totalPayableDays;
+        duringEmploymentDailyPayment * duringEmploymentDays
+          + postEmploymentDailyPayment * postEmploymentDays;
+      postEmploymentSicknessBenefitAmount +=
+        postEmploymentDailyPayment * postEmploymentDays;
+      postEmploymentSicknessBenefitDays += postEmploymentDays;
       return;
     }
 
@@ -1292,9 +1306,13 @@ export const calculateTaxesUoP = (
     remainingEmployerSickPayDays -= employerDaysForRange;
 
     employerSickPayAmount +=
-      dailyPayment * employerDaysForRange;
+      duringEmploymentDailyPayment * employerDaysForRange;
     sicknessBenefitAmount +=
-      dailyPayment * benefitDaysForRange;
+      duringEmploymentDailyPayment * inEmploymentBenefitDays
+        + postEmploymentDailyPayment * postEmploymentDays;
+    postEmploymentSicknessBenefitAmount +=
+      postEmploymentDailyPayment * postEmploymentDays;
+    postEmploymentSicknessBenefitDays += postEmploymentDays;
   });
 
   const employerSickPay = round2(employerSickPayAmount);
@@ -1645,6 +1663,8 @@ export const calculateTaxesUoP = (
     l4Payment,
     employerSickPay,
     sicknessBenefit,
+    postEmploymentSicknessBenefit: round2(postEmploymentSicknessBenefitAmount),
+    postEmploymentSicknessBenefitDays,
     employerSickPayDays,
     sicknessBenefitDays,
 

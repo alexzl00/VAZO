@@ -8,6 +8,7 @@ import type {
   UopSicknessBaseMessage,
   UopSicknessBaseMonthDetail,
   UopSicknessBaseResult,
+  UopSicknessBasesResult,
   UopSicknessContext,
   UopSicknessHistoryBonus,
   UopSicknessHistoryMonth,
@@ -1028,12 +1029,6 @@ export const calculateUopSicknessBase = (
       : calculatedBaseBeforeMinimum,
   );
 
-  if (context === "afterInsurance") {
-    warnings.push({
-      id: "l4-base-warning-post-employment-maximum-not-applied",
-    });
-  }
-
   return {
     base,
     calculatedBaseBeforeMinimum,
@@ -1066,5 +1061,50 @@ export const calculateUopSicknessBase = (
     missingPeriods,
     monthDetails,
     warnings,
+  };
+};
+
+/**
+ * Calculate both L4 bases independently. Do not feed mixed-context L4 ranges
+ * into calculateUopSicknessBase(), which intentionally accepts one context.
+ * The original calculation and its rounding/bonus rules are preserved.
+ */
+export const calculateUopSicknessBases = (
+  params: CalculateUopSicknessBaseParams,
+): UopSicknessBasesResult => {
+  const endDate = params.history.relation.endDate;
+  const duringRanges: typeof params.target.l4 = [];
+  const afterRanges: typeof params.target.l4 = [];
+
+  params.target.l4.forEach((range) => {
+    if (!endDate || range.start <= endDate) {
+      duringRanges.push({
+        ...range,
+        end: endDate && range.end > endDate ? endDate : range.end,
+      });
+    }
+
+    if (endDate && range.end > endDate) {
+      const nextDay = dayjs(endDate).add(1, 'day').format('YYYY-MM-DD');
+      afterRanges.push({
+        ...range,
+        start: range.start > nextDay ? range.start : nextDay,
+      });
+    }
+  });
+
+  return {
+    duringEmployment: duringRanges.length > 0
+      ? calculateUopSicknessBase({
+          ...params,
+          target: { ...params.target, l4: duringRanges },
+        })
+      : null,
+    afterEmployment: afterRanges.length > 0
+      ? calculateUopSicknessBase({
+          ...params,
+          target: { ...params.target, l4: afterRanges },
+        })
+      : null,
   };
 };

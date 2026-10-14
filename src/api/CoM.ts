@@ -56,6 +56,7 @@ export async function createMandateSalary(values: any) {
     p_holidays: values.holidays ?? [],
     p_l4: values.l4 ?? [],
     p_l4_base: values.l4Base ?? 0,
+    p_l4_base_after_termination: values.l4BaseAfterTermination ?? null,
 
     p_addition_after_tax: values.additionAfterTax ?? 0,
     p_deduction_after_tax: values.deductionAfterTax ?? 0,
@@ -121,6 +122,7 @@ export async function updateMandateSalary(id: string, values: any) {
     p_holidays: values.holidays ?? [],
     p_l4: values.l4 ?? [],
     p_l4_base: values.l4Base ?? 0,
+    p_l4_base_after_termination: values.l4BaseAfterTermination ?? null,
 
     p_addition_after_tax: values.additionAfterTax ?? 0,
     p_deduction_after_tax: values.deductionAfterTax ?? 0,

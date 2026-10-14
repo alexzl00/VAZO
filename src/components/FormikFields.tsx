@@ -8,13 +8,15 @@ interface NumberFieldProps {
   labelId: string;
   unit?: string;
   disabled?: boolean;
+  /** Keeps empty input as null instead of coercing it to zero. */
+  nullable?: boolean;
   onChange?: (value: number, form: any) => void; // add this
 }
 
-export const FormikNumberField = ({ name, labelId, unit, disabled, onChange }: NumberFieldProps) => {
+export const FormikNumberField = ({ name, labelId, unit, disabled, nullable = false, onChange }: NumberFieldProps) => {
   return (
     <Field name={name}>
-      {({ field, form }: FieldProps<number>) => {
+      {({ field, form }: FieldProps<number | null>) => {
         const errorText =
           form.touched[name] && form.errors[name] ? String(form.errors[name]) : '';
         const hasError = Boolean(errorText);
@@ -31,17 +33,17 @@ export const FormikNumberField = ({ name, labelId, unit, disabled, onChange }: N
             <TextField
               {...field}
               type="number"
-              value={field.value === 0 ? '' : field.value}
+              value={field.value == null || (!nullable && field.value === 0) ? '' : field.value}
               disabled={disabled}
               error={hasError}
               onFocus={() => {
-                if (field.value === 0) {
+                if (!nullable && field.value === 0) {
                   form.setFieldValue(name, 0);
                 }
               }}
               onBlur={(e) => {
                 if (e.target.value === '') {
-                  form.setFieldValue(name, 0);
+                  form.setFieldValue(name, nullable ? null : 0);
                 }
               }}
               onChange={(e) => {
@@ -49,7 +51,7 @@ export const FormikNumberField = ({ name, labelId, unit, disabled, onChange }: N
                 
                 if (!/^\d*\.?\d*$/.test(val)) return;
 
-                form.setFieldValue(name, val === '' ? 0 : Number(val));
+                form.setFieldValue(name, val === '' ? (nullable ? null : 0) : Number(val));
 
                 if (onChange && val !== '') {
                   onChange(Number(val), form);
@@ -77,7 +79,7 @@ type SelectFieldProps = {
   disabled?: boolean;
 }
 
-export const FomrikSelectField = ({ name, inputLabel, menuItems, onChange, disabled }: SelectFieldProps) => {
+export const FormikSelectField = ({ name, inputLabel, menuItems, onChange, disabled }: SelectFieldProps) => {
   const MenuItems = menuItems.map((item) => (
     <MenuItem value={item.value}>{item.text}</MenuItem>    
   ))
@@ -92,7 +94,7 @@ export const FomrikSelectField = ({ name, inputLabel, menuItems, onChange, disab
         <FormattedMessage id={inputLabel}/>
       </InputLabel>
       <Field name={name}>
-        {({ field, form }: FieldProps<number>) => {
+        {({ field, form }: FieldProps<number | null>) => {
           const errorText =
             form.touched[name] && form.errors[name] ? String(form.errors[name]) : '';
           const hasError = Boolean(errorText);

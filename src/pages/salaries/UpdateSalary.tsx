@@ -241,6 +241,11 @@ export default function UpdateSalary() {
           l4Base:
             inputs.l4_base ?? 0,
 
+          l4BaseAfterTermination:
+            inputs.l4_base_after_termination == null
+              ? null
+              : Number(inputs.l4_base_after_termination),
+
           // Leave
           vacationBaseMonths:
             inputs.vacation_base_months === 12 ? 12 : 3,

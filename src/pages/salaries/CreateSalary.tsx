@@ -103,6 +103,7 @@ export const initialSalaryFormValues: SalaryCalculatorValues = {
   // L4
   l4: [],
   l4Base: 0,
+  l4BaseAfterTermination: null,
 
   // Leave
   vacationBaseMonths: 3,

@@ -66,10 +66,11 @@ import { getNominalWorkingHoursInMonth } from '../../utils/workingTimeHelper';
 import { calculateTaxesUoP, calculateTaxesContractOfMandate, calculateTaxesUoD, SalaryCalculationError } from '../../utils/workTypeSalaryCalc';
 import type { SalaryCalculationResult } from '../../utils/workTypeSalaryCalc';
 
-import { calculateUopSicknessBase, UopSicknessBaseError } from '../../utils/calculateUopSicknessBase';
+import { calculateUopSicknessBases, UopSicknessBaseError } from '../../utils/calculateUopSicknessBase';
 import type {
   UopSicknessBaseMessage,
   UopSicknessBaseResult,
+  UopSicknessBasesResult,
 } from '../../types/uopSicknessBase';
 import type { DateRange } from '../../components/DaysPicker';
 
@@ -83,6 +84,7 @@ import type { DialogConfig } from '../../components/Modals/ConfirmActionDialog';
 import DynamicSalaryFields from './DynamicSalaryFields';
 import {
   metadataDrivenFieldConfigs,
+  l4FieldConfigs,
   overtimeFieldConfigs,
   rateFieldConfigs,
   taxFieldConfigs,
@@ -972,17 +974,15 @@ const getL4BaseMessageDefault = (id: string) => {
     case 'l4-base-warning-current-bonus-treatment-missing':
       return 'Premia „{bonus}” nie ma ustawionego sposobu rozliczania podczas L4. Sprawdź ją w ustawieniach zaawansowanych.';
     case 'l4-base-warning-unsupported-historical-minimum-wage':
-      return 'Nie skonfigurowano minimalnego wynagrodzenia potrzebnego do historycznego dodatku nocnego za {period}. Sprawdź wynik.';
+      return 'Nie udało się ustalić minimalnego wynagrodzenia dla {period}. Dodatek nocny w podstawie L4 wymaga weryfikacji.';
     case 'l4-base-warning-unsupported-historical-zus-cap':
-      return 'Nie skonfigurowano rocznego limitu składek emerytalno-rentowych za {period}. Dla tego miesiąca zastosowano standardowe pomniejszenie 13,71%.';
+      return 'Dla {period} przyjęto standardowe pomniejszenie o składki pracownika (13,71%). Zweryfikuj wynik, jeśli osiągnięto roczny limit składek emerytalno-rentowych.';
     case 'l4-base-warning-minimum-base-not-applied':
-      return 'Nie można automatycznie zastosować minimalnej podstawy L4 dla {period}. Sprawdź wynik ręcznie.';
+      return 'Nie udało się ustalić minimalnej podstawy L4 dla {period}. Sprawdź wynik.';
     case 'l4-base-warning-history-social-base-mismatch':
-      return 'Dane składkowe zapisane dla {period} różnią się od podstawy odtworzonej z aktualnie obsługiwanych składników. Ten miesiąc może zawierać wyjątek płacowy i wymaga ręcznej weryfikacji.';
+      return 'Dane składkowe zapisane dla {period} różnią się od podstawy odtworzonej z zapisanych składników wynagrodzenia. Sprawdź ten miesiąc.';
     case 'l4-base-warning-long-period-bonus-without-definition':
       return 'Składnik „{bonus}” za {period} jest kwartalny lub roczny, ale nie ma stabilnego powiązania z definicją premii. Wynik został obliczony ze snapshotu miesiąca, lecz warto go zweryfikować.';
-    case 'l4-base-warning-post-employment-maximum-not-applied':
-      return 'To L4 przypada po ustaniu zatrudnienia. Składniki zachowywane podczas L4 zostały uwzględnione, ale szczególny ustawowy maksymalny limit podstawy po ustaniu ubezpieczenia nie jest jeszcze automatycznie stosowany.';
     default:
       return id;
   }
@@ -994,7 +994,7 @@ const UopL4BaseCalculator = () => {
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [result, setResult] = useState<UopSicknessBaseResult | null>(null);
+  const [result, setResult] = useState<UopSicknessBasesResult | null>(null);
   const [calculatedForSignature, setCalculatedForSignature] = useState<string | null>(null);
 
   const isUop =
@@ -1075,7 +1075,7 @@ const UopL4BaseCalculator = () => {
         values.month,
       );
 
-      const nextResult = calculateUopSicknessBase({
+      const nextResult = calculateUopSicknessBases({
         history,
         target: {
           year: values.year,
@@ -1112,7 +1112,12 @@ const UopL4BaseCalculator = () => {
         },
       });
 
-      setFieldValue('l4Base', nextResult.base, true);
+      if (nextResult.duringEmployment) {
+        await setFieldValue('l4Base', nextResult.duringEmployment.base, false);
+      }
+      if (nextResult.afterEmployment) {
+        await setFieldValue('l4BaseAfterTermination', nextResult.afterEmployment.base, false);
+      }
       setResult(nextResult);
       setCalculatedForSignature(calculationSignature);
     } catch (error) {
@@ -1124,11 +1129,9 @@ const UopL4BaseCalculator = () => {
             {
               id: error.id,
               defaultMessage:
-                error.id === 'l4-base-error-mixed-insurance-context'
-                  ? 'Wybrane L4 obejmuje jednocześnie okres przed i po ustaniu zatrudnienia ({endDate}). Obecny model ma jedno pole podstawy L4, więc nie można bezpiecznie wyliczyć dwóch różnych kontekstów automatycznie.'
-                  : error.id === 'l4-base-error-no-usable-history'
-                    ? 'Brak wystarczającej zapisanej historii do automatycznego wyliczenia podstawy L4.'
-                    : 'Nie udało się automatycznie wyliczyć podstawy L4.',
+                error.id === 'l4-base-error-no-usable-history'
+                  ? 'Brak wystarczającej zapisanej historii do automatycznego wyliczenia podstawy L4.'
+                  : 'Nie udało się automatycznie wyliczyć podstawy L4.',
             },
             error.values,
           ),
@@ -1166,102 +1169,90 @@ const UopL4BaseCalculator = () => {
         </Alert>
       )}
 
-      {result && (
-        <Alert severity={result.warnings.length > 0 ? 'warning' : 'success'}>
-          <Stack spacing={0.75}>
-            <Typography variant="body2" fontWeight={700}>
-              {intl.formatMessage(
-                {
-                  id: 'l4-base-result',
-                  defaultMessage: 'Wyliczona podstawa L4: {amount} zł',
-                },
-                { amount: result.base.toFixed(2) },
+      {result && (['duringEmployment', 'afterEmployment'] as const).map((context) => {
+        const baseResult: UopSicknessBaseResult | null = result[context];
+        if (!baseResult) return null;
+
+        return (
+          <Alert key={context} severity={baseResult.warnings.length > 0 ? 'warning' : 'success'}>
+            <Stack spacing={0.75}>
+              <Typography variant="body2" fontWeight={700}>
+                {intl.formatMessage(
+                  {
+                    id: context === 'duringEmployment'
+                      ? 'l4-base-result-during'
+                      : 'l4-base-result-after',
+                    defaultMessage: context === 'duringEmployment'
+                      ? 'Podstawa L4 podczas zatrudnienia: {amount} zł'
+                      : 'Podstawa L4 po ustaniu zatrudnienia: {amount} zł',
+                  },
+                  { amount: baseResult.base.toFixed(2) },
+                )}
+              </Typography>
+
+              {baseResult.source === 'reusedPreviousBase' && (
+                <Typography variant="body2">
+                  {intl.formatMessage(
+                    { id: 'l4-base-reused-previous' },
+                    { period: baseResult.reusedFromPeriod ?? '—' },
+                  )}
+                </Typography>
               )}
-            </Typography>
 
-            {result.source === 'reusedPreviousBase' && (
-              <Typography variant="body2">
-                {intl.formatMessage(
-                  {
-                    id: 'l4-base-reused-previous',
-                    defaultMessage: 'Użyto poprzednio ustalonej podstawy z {period}, ponieważ między okresami świadczeń nie było pełnego miesiąca kalendarzowego przerwy.',
-                  },
-                  { period: result.reusedFromPeriod ?? '—' },
-                )}
-              </Typography>
-            )}
+              {baseResult.source === 'history' && (
+                <Typography variant="body2">
+                  {intl.formatMessage(
+                    { id: 'l4-base-reference-period' },
+                    {
+                      start: baseResult.referencePeriod.monthlyStart ?? '—',
+                      end: baseResult.referencePeriod.monthlyEnd ?? '—',
+                      used: baseResult.usedPeriods.length > 0
+                        ? baseResult.usedPeriods.join(', ')
+                        : '—',
+                    },
+                  )}
+                </Typography>
+              )}
 
-            {result.source === 'history' && (
-              <Typography variant="body2">
-                {intl.formatMessage(
-                  {
-                    id: 'l4-base-reference-period',
-                    defaultMessage: 'Okres miesięczny: {start} – {end}. Użyte miesiące: {used}.',
-                  },
-                  {
-                    start: result.referencePeriod.monthlyStart ?? '—',
-                    end: result.referencePeriod.monthlyEnd ?? '—',
-                    used: result.usedPeriods.length > 0
-                      ? result.usedPeriods.join(', ')
-                      : '—',
-                  },
-                )}
-              </Typography>
-            )}
+              {baseResult.source === 'currentMonthFallback' && (
+                <Typography variant="body2">
+                  {intl.formatMessage({ id: 'l4-base-current-month-fallback' })}
+                </Typography>
+              )}
 
-            {result.source === 'currentMonthFallback' && (
-              <Typography variant="body2">
-                {intl.formatMessage({
-                  id: 'l4-base-current-month-fallback',
-                  defaultMessage: 'Brak pełnego wcześniejszego miesiąca ubezpieczenia. Podstawę ustalono z wynagrodzenia należnego za bieżący miesiąc.',
-                })}
-              </Typography>
-            )}
+              {baseResult.excludedPeriods.length > 0 && (
+                <Typography variant="body2">
+                  {intl.formatMessage(
+                    { id: 'l4-base-excluded-periods' },
+                    { periods: baseResult.excludedPeriods.join(', ') },
+                  )}
+                </Typography>
+              )}
 
-            {result.excludedPeriods.length > 0 && (
-              <Typography variant="body2">
-                {intl.formatMessage(
-                  {
-                    id: 'l4-base-excluded-periods',
-                    defaultMessage: 'Pominięte miesiące z przepracowaniem poniżej połowy obowiązującego czasu: {periods}.',
-                  },
-                  { periods: result.excludedPeriods.join(', ') },
-                )}
-              </Typography>
-            )}
+              {baseResult.minimumApplied && baseResult.minimumBase != null && (
+                <Typography variant="body2">
+                  {intl.formatMessage(
+                    { id: 'l4-base-minimum-applied' },
+                    { amount: baseResult.minimumBase.toFixed(2) },
+                  )}
+                </Typography>
+              )}
 
-            {result.minimumApplied && result.minimumBase != null && (
-              <Typography variant="body2">
-                {intl.formatMessage(
-                  {
-                    id: 'l4-base-minimum-applied',
-                    defaultMessage: 'Zastosowano minimalną podstawę: {amount} zł.',
-                  },
-                  { amount: result.minimumBase.toFixed(2) },
-                )}
-              </Typography>
-            )}
+              {baseResult.warnings.map((warning, index) => (
+                <Typography key={`${warning.id}-${index}`} variant="body2">
+                  {formatMessage(warning)}
+                </Typography>
+              ))}
 
-            {result.warnings.map((warning, index) => (
-              <Typography
-                key={`${warning.id}-${index}`}
-                variant="body2"
-              >
-                {formatMessage(warning)}
-              </Typography>
-            ))}
-
-            {stale && (
-              <Typography variant="body2" fontWeight={600}>
-                {intl.formatMessage({
-                  id: 'l4-base-result-stale',
-                  defaultMessage: 'Dane wpływające na podstawę zostały zmienione po obliczeniu. Kliknij „Oblicz podstawę L4” ponownie, jeśli chcesz odświeżyć wartość.',
-                })}
-              </Typography>
-            )}
-          </Stack>
-        </Alert>
-      )}
+              {stale && (
+                <Typography variant="body2" fontWeight={600}>
+                  {intl.formatMessage({ id: 'l4-base-result-stale' })}
+                </Typography>
+              )}
+            </Stack>
+          </Alert>
+        );
+      })}
     </Stack>
   );
 };
@@ -1831,6 +1822,12 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                           <Stack spacing={2}>
                             <Stack spacing={1.5} width={'320px'} maxWidth={'100%'}>
                               <FormikNumberField name="l4Base" labelId="l4-base"/>
+                              <DynamicSalaryFields
+                                fields={l4FieldConfigs}
+                                values={values}
+                                formMode={type}
+                                setFieldValue={setFieldValue}
+                              />
                               <UopL4BaseCalculator />
                             </Stack>
                             <Box>
