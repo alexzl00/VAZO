@@ -1,6 +1,7 @@
 {
   "error": "Coś poszło nie tak :(",
   "yes": "Tak",
+  "Yes": "Tak",
   "no": "Nie",
   "of": "z",
   "save": "Zapisz",
@@ -10,6 +11,7 @@
   "calculate": "Oblicz",
   "year": "Rok",
   "month": "Miesiąc",
+
   "month-picker-label": "Wybierz miesiąc",
   "month-picker-placeholder": "Wybierz miesiąc",
   "month-picker-name-1": "Styczeń",
@@ -24,12 +26,14 @@
   "month-picker-name-10": "Październik",
   "month-picker-name-11": "Listopad",
   "month-picker-name-12": "Grudzień",
+
   "tabs-rate-and-bonuses": "Stawka i premie",
   "tabs-calendar-and-working-time": "Kalendarz i norma czasu",
   "tabs-overtime-and-night-hours": "Nadgodziny i godziny nocne",
   "tabs-sick-leave": "Zwolnienie lekarskie (L4)",
   "tabs-vacation": "Urlop",
   "tabs-taxes-and-deductions": "Podatki i potrącenia",
+
   "rate-and-bonuses-work-rate-type": "Typ stawki",
   "rate-monthly": "Miesięczna BRUTTO (Umowa o pracę)",
   "rate-hourly": "Godzinowa BRUTTO (Umowa o pracę)",
@@ -44,6 +48,7 @@
   "rate-and-bonuses-bonus-payment-type": "Forma premii",
   "rate-and-bonuses-remove-bonus": "Usuń premię",
   "rate-and-bonuses-add-bonus": "Dodaj premię",
+
   "saved-bonuses-title": "Zapisane premie",
   "saved-bonuses-add-title": "Dodaj premię",
   "saved-bonuses-manage-title": "Zarządzaj premiami",
@@ -61,13 +66,16 @@
   "saved-bonuses-inactive-empty": "Brak nieaktywnych zapisanych premii.",
   "saved-bonuses-remember": "Zapamiętaj premię",
   "saved-bonuses-remember-helper": "Będzie dostępna przy kolejnych wynagrodzeniach.",
+
   "bonus-frequency-monthly": "Miesięczna",
   "bonus-frequency-quarterly": "Kwartalna",
   "bonus-frequency-annual": "Roczna",
   "bonus-frequency-one-off": "Jednorazowa",
   "rate-and-bonuses-info": "Stawka i premie – składniki wynagrodzenia\nW tym bloku wybierasz typ umowy, wpisujesz stawkę wynikającą z umowy oraz dodajesz premie otrzymane w danym okresie.\n\n• Wybierz właściwy typ stawki i wpisz kwotę brutto.\n• Jeśli otrzymujesz premię, wybierz „Dodaj premię”, podaj jej nazwę, kwotę, częstotliwość oraz formę: pieniężną albo niepieniężną.\n• Premie pieniężne są uwzględniane w kwocie wypłacanej razem z wynagrodzeniem.\n• Świadczenia niepieniężne są uwzględniane w wynagrodzeniu brutto i odpowiednich obliczeniach składkowo-podatkowych, ale ich wartość nie jest wypłacana przelewem razem z wynagrodzeniem. Takie świadczenie jest przekazywane w innej formie, np. jako benefit lub środki na platformie pracowniczej.\n• Możesz dodać dowolną liczbę premii i usunąć te, które nie dotyczą danego wynagrodzenia.\n• Szczegółowe zasady naliczania każdej premii możesz ustawić w Ustawieniach zaawansowanych.\n\nWybrany typ umowy oraz składniki wynagrodzenia wpływają na dalsze obliczenia kalkulatora.",
+
   "calendar-and-working-time-working-hours": "Wymiar czasu pracy w miesiącu",
   "calendar-and-working-time-info": "Kalendarz – czas pracy w miesiącu\nTen blok przedstawia kalendarz danego miesiąca i służy do ustalenia wymiaru czasu pracy.\n\n• Kalkulator automatycznie uwzględnia: dni robocze, weekendy oraz święta ustawowe.\n• Na tej podstawie wyliczany jest wymiar czasu pracy dla miesiąca.\n• Możesz ręcznie zmienić tę wartość, jeśli w Twoim zakładzie pracy lub dla Twojego stanowiska obowiązuje inny wymiar czasu pracy.\n\nZmiana wymiaru czasu pracy nie zmienia stałej miesięcznej stawki brutto, ale wpływa na stawkę godzinową używaną m.in. do obliczania nadgodzin i dodatków godzinowych.",
+
   "header-title": "Salary & Productivity",
   "header-subtitle": "Zarządzaj wynagrodzeniem i swoimi danymi",
   "header-account": "Konto",
@@ -75,6 +83,7 @@
   "header-login": "Zaloguj się",
   "header-sign-up": "Załóż konto",
   "header-logout": "Wyloguj się",
+
   "navbar-calculator": "Kalkulator",
   "navbar-work-relations": "Zatrudnienie",
   "navbar-salaries": "Wynagrodzenia",
@@ -82,6 +91,7 @@
   "navbar-auth-required-title": "Zaloguj się, aby kontynuować",
   "navbar-auth-required-description": "Ta funkcja korzysta z Twoich zapisanych danych. Zaloguj się lub utwórz konto, aby uzyskać do niej dostęp.",
   "navbar-auth-required-cancel": "Anuluj",
+
   "overtime-and-night-hours-daily-overtime": "Nadgodziny dzienne",
   "overtime-and-night-hours-weekend-holiday-overtime": "Nadgodziny weekendowe i świąteczne",
   "overtime-and-night-hours-night-overtime": "Nadgodziny nocne",
@@ -89,13 +99,42 @@
   "overtime-and-night-hours-turn-of-day-hours": "Godziny zmianowe",
   "overtime-and-night-hours-overtime-limit": "Limit nadgodzin",
   "overtime-and-night-hours-info": "Nadgodziny – praca poza normą czasu pracy\nW tym bloku wpisujesz nadgodziny przepracowane w danym miesiącu.\n\n• Nadgodziny to praca wykonywana poza obowiązującą normą czasu pracy.\n• Mogą obejmować również godziny z przełomu doby pracowniczej.\nCzym jest przełom doby: Przełom doby występuje wtedy, gdy kolejna zmiana rozpoczyna się przed upływem 24 godzin od rozpoczęcia poprzedniej.\nPrzykład: Jeśli pracujesz w piątek od 14:00 do 22:00, a w sobotę zaczynasz pracę o 9:00, to część godzin w sobotę stanowi godziny z przełomu doby, które zgodnie z Kodeksem pracy traktowane są jak nadgodziny.\nWpisuj wyłącznie faktycznie przepracowane i rozliczane nadgodziny.",
+
   "sick-leave-l4": "Tu dodasz zakresy L4",
   "l4-base": "Podstawa L4",
+  "l4-payment-type-label": "Rodzaj L4",
+  "l4-payment-type-standard80": "80% – standardowe",
+  "l4-payment-type-full100": "100% – ciąża / wypadek w drodze / dawca",
+  "l4-payment-type-accident100": "100% – wypadek przy pracy / choroba zawodowa",
+  "l4-base-error-work-relation-required": "Wybierz stosunek pracy przed obliczeniem podstawy L4.",
+  "l4-base-error-no-l4": "Najpierw zaznacz okres L4, aby ustalić właściwy kontekst podstawy.",
+  "l4-base-error-mixed-insurance-context": "Wybrane L4 obejmuje jednocześnie okres przed i po ustaniu zatrudnienia ({endDate}). Obecny model ma jedno pole podstawy L4, więc nie można bezpiecznie wyliczyć dwóch różnych kontekstów automatycznie.",
+  "l4-base-error-no-usable-history": "Brak wystarczającej zapisanej historii do automatycznego wyliczenia podstawy L4.",
+  "l4-base-calculation-failed": "Nie udało się obliczyć podstawy L4 na podstawie historii wynagrodzeń.",
+  "l4-base-calculate-button": "Oblicz podstawę L4",
+  "l4-base-result": "Wyliczona podstawa L4: {amount} zł",
+  "l4-base-reused-previous": "Użyto poprzednio ustalonej podstawy z {period}, ponieważ między okresami świadczeń nie było pełnego miesiąca kalendarzowego przerwy.",
+  "l4-base-reference-period": "Okres miesięczny: {start} – {end}. Użyte miesiące: {used}.",
+  "l4-base-current-month-fallback": "Brak pełnego wcześniejszego miesiąca ubezpieczenia. Podstawę ustalono z wynagrodzenia należnego za bieżący miesiąc.",
+  "l4-base-excluded-periods": "Pominięte miesiące z przepracowaniem poniżej połowy obowiązującego czasu: {periods}.",
+  "l4-base-minimum-applied": "Zastosowano minimalną podstawę: {amount} zł.",
+  "l4-base-result-stale": "Dane wpływające na podstawę zostały zmienione po obliczeniu. Kliknij „Oblicz podstawę L4” ponownie, jeśli chcesz odświeżyć wartość.",
+  "l4-base-warning-missing-history": "Brakuje zapisanych wynagrodzeń w części okresu potrzebnego do wyliczenia podstawy L4: {periods}. Wynik sprawdź przed zapisaniem.",
+  "l4-base-warning-bonus-treatment-missing": "Premia „{bonus}” za {period} nie ma ustawionego sposobu rozliczania podczas L4. Została uwzględniona, ale wynik może wymagać ręcznej weryfikacji.",
+  "l4-base-warning-current-bonus-treatment-missing": "Premia „{bonus}” nie ma ustawionego sposobu rozliczania podczas L4. Sprawdź ją w ustawieniach zaawansowanych.",
+  "l4-base-warning-unsupported-historical-minimum-wage": "Nie skonfigurowano minimalnego wynagrodzenia potrzebnego do historycznego dodatku nocnego za {period}. Sprawdź wynik.",
+  "l4-base-warning-unsupported-historical-zus-cap": "Nie skonfigurowano rocznego limitu składek emerytalno-rentowych za {period}. Dla tego miesiąca zastosowano standardowe pomniejszenie 13,71%.",
+  "l4-base-warning-minimum-base-not-applied": "Nie można automatycznie zastosować minimalnej podstawy L4 dla {period}. Sprawdź wynik ręcznie.",
+  "l4-base-warning-history-social-base-mismatch": "Dane składkowe zapisane dla {period} różnią się od podstawy odtworzonej z aktualnie obsługiwanych składników. Ten miesiąc może zawierać wyjątek płacowy i wymaga ręcznej weryfikacji.",
+  "l4-base-warning-long-period-bonus-without-definition": "Składnik „{bonus}” za {period} jest kwartalny lub roczny, ale nie ma stabilnego powiązania z definicją premii. Wynik został obliczony ze snapshotu miesiąca, lecz warto go zweryfikować.",
+  "l4-base-warning-post-employment-maximum-not-applied": "To L4 przypada po ustaniu zatrudnienia. Składniki zachowywane podczas L4 zostały uwzględnione, ale szczególny ustawowy maksymalny limit podstawy po ustaniu ubezpieczenia nie jest jeszcze automatycznie stosowany.",
   "sick-leave-info": "Zwolnienie lekarskie (L4) – jak uzupełnić\nW tym bloku wpisujesz okresy zwolnienia lekarskiego przypadające w danym miesiącu.\n\n• Podaj datę początku i datę końca zwolnienia.\n• Liczba dni L4 jest liczona jako dni kalendarzowe.\n• Kalkulator wykorzystuje limit 33 albo 14 dni wynagrodzenia chorobowego finansowanego przez pracodawcę i po jego wykorzystaniu rozdziela dalsze dni jako zasiłek chorobowy.\n• Wykorzystane wcześniej dni oraz właściwy limit ustawisz w Ustawieniach zaawansowanych.",
   "sick-leave-info-mandate": "L4 przy umowie zlecenia\nTa sekcja jest dostępna po włączeniu dobrowolnego ubezpieczenia chorobowego. Samo zgłoszenie do ubezpieczenia nie zawsze oznacza natychmiastowe prawo do zasiłku. Co do zasady przy dobrowolnym ubezpieczeniu obowiązuje 90-dniowy okres wyczekiwania, z uwzględnieniem ustawowych wyjątków i niektórych wcześniejszych okresów ubezpieczenia. Prawo do zasiłku potwierdzisz w Ustawieniach zaawansowanych. W polu Podstawa L4 podaj ustaloną podstawę zasiłku; dla zleceniobiorcy co do zasady opiera się ona na przychodzie stanowiącym podstawę składki chorobowej, po pomniejszeniu o 13,71%.",
+
   "vacation-leave": "Tu dodasz zakresy urlopu",
   "vacation-leave-base": "Podstawa urlopu",
   "vacation-leave-info": "Urlop – jak uzupełnić\nW tym bloku wpisujesz okresy urlopu wypoczynkowego.\n\n• Podaj datę początku i datę końca urlopu.\n• Jeśli urlop był w kilku częściach, użyj opcji Dodaj okres.\n• Liczba dni urlopu wyliczana jest automatycznie jako dni robocze.\nJak liczony jest Urlop: Wynagrodzenie urlopowe obliczane jest na podstawie średniej z ostatnich miesięcy zapisanych w Historii, zgodnie z zasadą „jakby pracownik normalnie pracował”.",
+
   "taxes-and-deductions-tax-regime": "Reżim podatkowy",
   "taxes-and-deductions-young-relief": "Ulga dla młodych",
   "taxes-and-deductions-pit-2": "PIT-2",
@@ -105,13 +144,16 @@
   "taxes-and-deductions-deduction-after-tax": "Odliczenie po podatku",
   "taxes-and-deductions-addition-after-tax": "Dodatki po podatku",
   "taxes-and-deductions-info": "Podatki – jak uzupełnić\n\nW tym bloku określasz swój status podatkowy, który wpływa na wysokość zaliczki PIT.\n\n• Ulga dla młodych (PIT-0) – wybierz, jeśli nie ukończyłeś 26 lat. W takim przypadku nie jest pobierany podatek PIT (do limitu ustawowego).\n• Kwota zmniejszająca podatek (PIT-2) – zaznacz tylko wtedy, jeśli złożyłeś u pracodawcy formularz PIT-2. Jeśli nie składałeś PIT-2 – pozostaw tę opcję wyłączoną.\n• Inne ustawienia podatkowe – dotyczą indywidualnych sytuacji i wpływają na sposób naliczania zaliczki PIT.\n\n⚠️ Kalkulator zakłada, że dane są zgodne z dokumentami złożonymi u pracodawcy.",
+
   "advanced-settings-open": "Ustawienia zaawansowane",
   "advanced-settings-title": "Zaawansowane ustawienia wynagrodzenia",
   "advanced-settings-description": "Tutaj znajdują się rzadziej używane ustawienia sposobu obliczania wynagrodzenia oraz ustawienia podatkowe i ubezpieczeniowe.",
+
   "advanced-settings-hourly-rate-calculation-mode": "Sposób liczenia stawki godzinowej",
   "advanced-settings-hourly-rate-calculation-mode-help": "Dotyczy stawki godzinowej wyliczanej z miesięcznej stawki brutto. Wybierz, czy przed obliczeniem nadgodzin i dodatków godzinowych kalkulator ma zaokrąglić stawkę do 2 miejsc, czy używać pełnej wartości wynikającej z dzielenia. Różne systemy kadrowo-płacowe mogą stosować inny moment zaokrąglenia.",
   "advanced-settings-hourly-rate-rounded-to-2": "Zaokrąglaj do 2 miejsc przed dalszymi obliczeniami",
   "advanced-settings-hourly-rate-full-precision": "Używaj pełnej precyzji",
+
   "advanced-settings-bonuses-title": "Ustawienia premii",
   "advanced-settings-bonuses-description": "Określ, jak każda premia jest naliczana w Twojej firmie. Te informacje będą potrzebne do dokładnego wyliczania podstawy L4 i wynagrodzenia urlopowego na podstawie historii wynagrodzeń.",
   "advanced-settings-bonuses-empty": "Nie dodano żadnych premii. Najpierw dodaj premię w zakładce „Stawka i premie”.",
@@ -129,12 +171,15 @@
   "bonus-vacation-variable-base": "Uwzględniana w zmiennej podstawie urlopowej",
   "bonus-vacation-excluded": "Wyłączona z wynagrodzenia urlopowego",
   "bonus-unnamed": "Premia bez nazwy",
+
   "advanced-settings-vacation-base-months": "Okres podstawy urlopowej",
   "advanced-settings-vacation-base-months-help": "Okres używany dla zmiennych składników wynagrodzenia przy przyszłym automatycznym wyliczaniu podstawy urlopowej. Standardowo stosuje się 3 miesiące; przy znacznych wahaniach wysokości składników okres może zostać wydłużony do 12 miesięcy.",
   "advanced-settings-vacation-base-months-3": "3 miesiące",
   "advanced-settings-vacation-base-months-12": "12 miesięcy",
+
   "advanced-settings-functional-allowance-retained-during-sickness": "Dodatek funkcyjny zachowywany podczas L4",
   "advanced-settings-functional-allowance-retained-during-sickness-help": "Zaznacz, jeżeli pracownik zachowuje prawo do dodatku funkcyjnego za okres choroby. Część dodatku przypadająca na dni, za które przysługuje wynagrodzenie chorobowe lub zasiłek, pozostaje wypłacona, ale nie wchodzi do podstawy składek ZUS. Przy przyszłym automatycznym wyliczaniu podstawy L4 taki składnik nie powinien być uwzględniany za okres trwania zatrudnienia.",
+
   "advanced-settings-payroll-title": "Ustawienia płacowe i podatkowe",
   "taxes-and-deductions-no-pit-advance-help": "Wybierz tylko wtedy, gdy złożyłeś płatnikowi wniosek o niepobieranie zaliczek i przewidujesz dochód opodatkowany skalą do 30 000 zł w roku. Po przekroczeniu progu zaliczki są ponownie naliczane bez pomniejszenia PIT-2.",
   "taxes-and-deductions-multiple-employments-help": "Wpływa na roczny limit kosztów uzyskania przychodu (KUP) przy kilku stosunkach pracy.",
@@ -147,6 +192,7 @@
   "taxes-and-deductions-sickness-benefit-eligible": "Masz prawo do świadczeń chorobowych",
   "taxes-and-deductions-sickness-benefit-eligible-help": "Zaznacz, jeśli nabyłeś prawo do świadczeń chorobowych. Przy umowie o pracę co do zasady prawo powstaje po 30 dniach nieprzerwanego obowiązkowego ubezpieczenia chorobowego, a przy umowie zlecenia po 90 dniach dobrowolnego ubezpieczenia chorobowego, z uwzględnieniem ustawowych wyjątków i kwalifikujących wcześniejszych okresów ubezpieczenia.",
   "taxes-and-deductions-other-uop-minimum-help": "Jeżeli inna umowa o pracę zapewnia co najmniej wymaganą podstawę, składki społeczne z tej umowy zlecenia mogą nie być obowiązkowe; wpływa to także na możliwość dobrowolnego ubezpieczenia chorobowego.",
+
   "taxes-and-deductions-uop-kup": "Koszty uzyskania przychodu (UoP)",
   "taxes-and-deductions-pit0-relief": "Zwolnienie PIT-0",
   "taxes-and-deductions-pit0-none": "Brak ulgi PIT-0",
@@ -171,6 +217,7 @@
   "taxes-and-deductions-ytd-zus-base": "Podstawa składek emerytalno-rentowych od początku roku przed tym miesiącem",
   "taxes-and-deductions-ytd-50-kup": "Wykorzystane 50% KUP od początku roku przed tym miesiącem",
   "taxes-and-deductions-ytd-uop-kup": "Wykorzystane KUP z UoP od początku roku przed tym miesiącem",
+
   "salary-title": "Wynagrodzenie",
   "salary-monthly-brutto": "Stawka miesięczna BRUTTO",
   "salary-hourly-rate": "Stawka godzinowa",
@@ -189,6 +236,7 @@
   "salary-sickness-benefit-days": "Dni zasiłku chorobowego",
   "salary-vacation": "Urlop",
   "salary-brutto-total": "BRUTTO razem",
+
   "salaries-is-overridden": "Nadpisane",
   "salaries-no-results": "Brak wyników",
   "salaries-no-results-description": "Spróbuj dostosować wyszukiwanie lub filtry.",
@@ -211,6 +259,7 @@
   "salaries-payment-mode-monthly": "Miesięczny",
   "salaries-payment-mode-hourly": "Godzinowy",
   "salaries-payment-mode-fixed": "Ustalona kwota",
+
   "sign-up-header": "Witaj w VAZO!",
   "sign-up-subheader": "Wprowadź e-mail i hasło, aby utworzyć konto",
   "sign-up-confirm": "Zarejestruj się",
@@ -218,6 +267,7 @@
   "sign-up-login": "Zaloguj się",
   "sign-up-success": "Konto zostało utworzone pomyślnie! Sprawdź swoją skrzynkę e-mail, aby potwierdzić konto.",
   "sign-up-failed": "Nie udało się utworzyć konta",
+
   "login-header": "Witaj ponownie!",
   "login-subheader": "Zaloguj się, aby kontynuować",
   "login-email": "Adres e-mail",
@@ -227,6 +277,7 @@
   "login-forgot-password": "Nie pamiętasz hasła?",
   "login-sign-up": "Zarejestruj się",
   "login-failed": "Logowanie nie powiodło się",
+
   "profile-title": "Profil",
   "profile-subtitle": "Zarządzaj swoimi danymi i subskrypcją",
   "profile-personal-data": "Dane osobowe",
@@ -257,6 +308,7 @@
   "profile-payments-title": "Płatności",
   "profile-payments-description": "Zobacz historię swoich płatności i subskrypcji.",
   "profile-payments-open": "Historia płatności",
+
   "reset-password-header": "Zresetuj hasło",
   "reset-password-subheader": "Wprowadź swój adres e-mail, aby otrzymać link do zresetowania hasła",
   "reset-password-email": "Adres e-mail",
@@ -267,6 +319,7 @@
   "reset-password-remember-password": "Pamiętasz hasło?",
   "reset-password-success": "Link do resetowania hasła został wysłany na Twój adres e-mail. Sprawdź swoją skrzynkę pocztową.",
   "reset-password-failed": "Nie udało się wysłać linku do resetowania hasła",
+
   "update-password-header": "Zaktualizuj hasło",
   "update-password-subheader": "Wprowadź swoje nowe hasło poniżej.",
   "update-password-new-password": "Nowe hasło",
@@ -276,6 +329,7 @@
   "update-password-success": "Hasło zostało zaktualizowane pomyślnie.",
   "update-password-failed": "Nie udało się zaktualizować hasła.",
   "update-password-not-match": "Hasła nie są zgodne.",
+
   "taxes-title": "Podatki i potrącenia",
   "taxes-zus-pension": "Składka emerytalna ZUS",
   "taxes-zus-disability": "Składka rentowa ZUS",
@@ -306,10 +360,25 @@
   "taxes-ytd-50-kup": "Wykorzystane 50% KUP od początku roku",
   "taxes-ytd-uop-kup": "Wykorzystane KUP z UoP od początku roku",
   "taxes-ytd-sick-pay-days": "Wykorzystane dni wynagrodzenia chorobowego od początku roku",
+
   "tax-chart-no-data": "Brak danych",
   "tax-chart-netto": "netto",
   "tax-chart-brutto-short": "BR.",
+  "tax-chart-details-title": "Szczegóły wyliczenia",
+  "tax-chart-details-description": "Zobacz, jak wynagrodzenie brutto dzieli się na składki, podatek i końcową kwotę netto.",
   "details": "Szczegóły",
+
+  "salary-details-base": "Podstawa i okres zatrudnienia",
+  "salary-details-reductions": "Pomniejszenia",
+  "salary-details-additional-pay": "Nadgodziny i dodatki",
+  "salary-details-bonuses": "Premie i świadczenia",
+  "salary-details-absence": "Chorobowe i urlop",
+  "salary-details-gross-summary": "Podsumowanie brutto",
+
+  "taxes-pit-title": "PIT",
+  "taxes-social-title": "Ubezpieczenia społeczne (ZUS)",
+  "taxes-health-title": "Ubezpieczenie zdrowotne (NFZ)",
+
   "validation-required": "Pole jest wymagane.",
   "validation-number-invalid": "Wprowadź poprawną liczbę.",
   "validation-number-min-zero": "Wartość nie może być mniejsza niż 0.",
@@ -327,6 +396,7 @@
   "validation-leave-in-month": "Okres urlopu musi mieścić się w wybranym miesiącu.",
   "validation-holidays-in-month": "Wybrane dni wolne muszą mieścić się w wybranym miesiącu.",
   "validation-total-overtime-limit": "Łączna liczba nadgodzin nie może przekraczać ustawionego limitu.",
+
   "salary-calculation-failed": "Nie udało się obliczyć wynagrodzenia.",
   "salary-calculation-unsupported-tax-year": "Reguły podatkowe dla roku {year} nie są skonfigurowane. Kalkulator obecnie obsługuje zweryfikowane zasady dla roku {supportedYear}.",
   "salary-warning-ppk-employee-rate-range": "Wpłata pracownika do PPK powinna mieścić się w zakresie od 0,5% do 4%.",
@@ -335,10 +405,12 @@
   "salary-warning-small-contract-lump-sum-over-limit": "Włączono ryczałtowy PIT dla umowy do {limit} zł, ale wynagrodzenie brutto przekracza ten limit.",
   "salary-warning-mandate-l4-no-sickness-insurance": "Dodano L4 dla umowy zlecenia bez dobrowolnego ubezpieczenia chorobowego. Zasiłek chorobowy nie został doliczony.",
   "salary-warning-mandate-voluntary-sickness-unavailable": "Dobrowolne ubezpieczenie chorobowe nie może zostać zastosowane do tej umowy zlecenia, ponieważ z tego tytułu nie występują obowiązkowe składki emerytalna i rentowa.",
+  "salary-warning-mandate-accident-insurance-unavailable": "Dodano L4 100% z tytułu wypadku przy pracy lub choroby zawodowej, ale dla tej umowy zlecenia nie jest aktywne ubezpieczenie wypadkowe. Świadczenie nie zostało doliczone.",
   "salary-warning-uop-sickness-benefit-not-eligible": "Dodano L4 dla umowy o pracę, ale nie potwierdzono prawa do świadczeń chorobowych. Co do zasady przy obowiązkowym ubezpieczeniu chorobowym obowiązuje 30-dniowy okres wyczekiwania, z uwzględnieniem ustawowych wyjątków i kwalifikujących wcześniejszych okresów ubezpieczenia.",
   "salary-warning-mandate-sickness-benefit-not-eligible": "Dodano L4 dla umowy zlecenia, ale nie potwierdzono prawa do zasiłku chorobowego. Co do zasady przy dobrowolnym ubezpieczeniu obowiązuje {waitingDays}-dniowy okres wyczekiwania, z uwzględnieniem ustawowych wyjątków i kwalifikujących wcześniejszych okresów ubezpieczenia.",
   "salary-warning-mandate-ppk-unavailable": "PPK nie jest naliczane z tej umowy zlecenia, ponieważ z tego tytułu nie występują obowiązkowe składki emerytalna i rentowa.",
   "salary-warning-mandate-minimum-hourly-rate": "Wprowadzona stawka godzinowa umowy zlecenia ({rate} zł) jest niższa niż minimalna stawka godzinowa {minimumRate} zł obowiązująca w {year} roku. Sprawdź, czy do tej umowy mają zastosowanie przepisy o minimalnej stawce godzinowej.",
+
   "dialog-delete-salary-title": "Usuń wynagrodzenie",
   "dialog-delete-salary-message": "Czy na pewno chcesz usunąć to wynagrodzenie?",
   "dialog-delete-salary-confirm": "Usuń",
@@ -349,9 +421,11 @@
   "dialog-save-salary-update-message": "Czy na pewno chcesz zapisać zmiany w wynagrodzeniu?",
   "dialog-reset-salary-update-title": "Zresetuj aktualizację wynagrodzenia",
   "dialog-reset-salary-update-message": "Czy na pewno chcesz zresetować zmiany w wynagrodzeniu?",
+
   "salary-saved": "Wypłata została zapisana!",
   "salary-deleted": "Wypłata została usunięta!",
   "salary-override-deleted": "Nadpisanie zostało usunięte",
+
   "calculation-edit": "Edytuj",
   "calculation-edit-title": "Edytuj obliczenia",
   "calculation-edit-net-salary-override": "Netto",
@@ -359,23 +433,37 @@
   "calculation-edit-reason": "Powód zmiany",
   "calculation-edit-delete-override": "Usuń wcześniejsze nadpisanie",
   "calculation-edit-reset-override": "Resetuj nadpisanie teraźniejszej edycji",
+
   "bonus-payment-cash": "Pieniężna",
   "bonus-payment-non-cash": "Niepieniężna",
   "salary-non-cash-bonuses": "w tym świadczenia niepieniężne (nie do wypłaty przelewem)",
   "tax-chart-non-cash-info": "Świadczenia niepieniężne o wartości {amount} zł są uwzględniane w wynagrodzeniu brutto oraz odpowiednich obliczeniach składkowo-podatkowych, ale ich wartość nie jest wypłacana przelewem na konto razem z wynagrodzeniem. Świadczenie jest przekazywane oddzielnie w innej formie, np. jako benefit lub środki na platformie pracowniczej.",
+
   "salary-work-relation-label": "Stosunek pracy",
   "salary-work-relation-placeholder": "Wybierz stosunek pracy",
   "salary-work-relation-create": "Dodaj stosunek pracy",
   "salary-work-relation-missing-title": "Brak stosunku pracy dla wybranego miesiąca",
   "salary-work-relation-missing-description": "Możesz korzystać z kalkulatora, ale nie zapiszesz wynagrodzenia, dopóki nie dodasz stosunku pracy obejmującego wybrany miesiąc.",
+  "salary-work-relation-warning-open": "Pokaż ostrzeżenie dotyczące stosunku pracy",
+  "salary-work-relation-info-open": "Pokaż informację dotyczącą stosunku pracy",
+  "salary-work-relation-select-info-title": "Wybierz stosunek pracy",
   "salary-work-relation-select-to-save": "Wybierz stosunek pracy, aby móc zapisać to wynagrodzenie. Do tego czasu możesz nadal korzystać z kalkulatora.",
+  "salary-work-relation-partial-month-info-title": "Stosunek pracy obejmuje część miesiąca",
   "salary-work-relation-partial-month": "Wybrany stosunek pracy nie obejmuje całego miesiąca. Kalkulator uwzględni okres od {start} do {end}.",
   "salary-work-relation-load-failed": "Nie udało się pobrać stosunków pracy dla wybranego miesiąca.",
+  "salary-carry-forward-warning-open": "Pokaż ostrzeżenie dotyczące danych historycznych",
+  "salary-carry-forward-warning-title": "Dane historyczne wymagają uwagi",
+  "salary-carry-forward-load-failed": "Nie udało się pobrać danych z wcześniejszych wynagrodzeń. Wartości historyczne pozostają edytowalne i możesz uzupełnić je ręcznie.",
+  "salary-carry-forward-incomplete": "Nie udało się ustalić wszystkich wartości na podstawie zapisanej historii wynagrodzeń. Sprawdź je przed zapisaniem wynagrodzenia.",
+  "salary-carry-forward-missing-periods": "Brak zapisanych wynagrodzeń za: {periods}.",
+  "salary-carry-forward-unknown-facts": "Niektóre wcześniejsze wynagrodzenia nie zawierają pełnych danych potrzebnych do automatycznego wyliczenia za: {periods}. Sprawdź wartości lub zapisz te miesiące ponownie.",
+
   "salary-employment-period": "Okres zatrudnienia w miesiącu",
   "salary-employment-reduction": "Pomniejszenie za okres poza zatrudnieniem",
   "salary-employment-excluded-hours": "Godziny poza okresem zatrudnienia",
   "salary-l4-reduction": "Pomniejszenie wynagrodzenia za L4",
   "salary-leave-reduction": "Pomniejszenie wynagrodzenia za urlop",
+
   "work-relations-create-title": "Dodaj stosunek pracy",
   "work-relations-create-description": "Uzupełnij podstawowe informacje dotyczące zatrudnienia lub zawartej umowy.",
   "work-relations-basic-info": "Podstawowe informacje",
@@ -426,12 +514,14 @@
   "work-relations-no-results": "Brak stosunków pracy",
   "work-relations-no-results-description": "Nie masz jeszcze żadnego zapisanego stosunku pracy.",
   "work-relations-load-all-failed": "Nie udało się pobrać stosunków pracy.",
+
   "dialog-create-work-relation-title": "Dodać stosunek pracy?",
   "dialog-create-work-relation-message": "Czy na pewno chcesz dodać ten stosunek pracy?",
   "dialog-update-work-relation-title": "Zapisać zmiany?",
   "dialog-update-work-relation-message": "Czy na pewno chcesz zapisać zmiany w tym stosunku pracy?",
   "dialog-delete-work-relation-title": "Usunąć stosunek pracy?",
   "dialog-delete-work-relation-message": "Czy na pewno chcesz usunąć ten stosunek pracy? Tej operacji nie można cofnąć.",
+
   "advanced-settings-section-l4": "L4",
   "advanced-settings-section-vacation": "Urlop",
   "advanced-settings-section-taxes": "Podatki i składki",

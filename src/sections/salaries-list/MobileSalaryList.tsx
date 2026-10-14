@@ -527,7 +527,15 @@ export default function MobileSalaryList({
                     background:
                       "linear-gradient(135deg, #F7F6FF 0%, #FFFFFF 100%)",
                     boxShadow:
-                      "0 6px 16px rgba(0,0,0,0.1)"
+                      "0 6px 16px rgba(47, 42, 74, 0.10)",
+                    transition:
+                      "transform 0.2s ease, box-shadow 0.2s ease",
+                    "&:hover": {
+                      transform:
+                        "translateY(-2px)",
+                      boxShadow:
+                        "0 10px 24px rgba(47, 42, 74, 0.14)"
+                    }
                   }}
                 >
                   {/* HEADER */}

@@ -122,7 +122,7 @@ export type SalaryCalculationResult = {
 };
 
 export const taxes = {
-  year: 2026,
+  year: 2024,
 
   // PIT
   pitFirstRate: 12,
@@ -164,6 +164,17 @@ export const taxes = {
   turnOfDayHours: 50,
 };
 
+/**
+ * Employee-financed social-insurance percentage used when the full
+ * pension/disability/sickness contribution set applies.
+ *
+ * Keep the component rates in `taxes` as the single source of truth.
+ */
+export const employeeSocialInsuranceRate =
+  taxes.zusPensionInsurance +
+  taxes.zusDisability +
+  taxes.zusSicknessInsurance;
+
 const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 const buildMonthlyFacts = ({
   taxableIncome,
@@ -193,6 +204,17 @@ const getL4PaymentType = (range: L4Range): L4PaymentType => {
 const getL4PaymentMultiplier = (paymentType: L4PaymentType) =>
   paymentType === 'standard80' ? 0.8 : 1;
 
+const getL4DailyPayment = (
+  range: L4Range,
+  l4Base: number,
+) =>
+  l4Base > 0
+    ? round2(
+        (l4Base / 30)
+          * getL4PaymentMultiplier(getL4PaymentType(range)),
+      )
+    : 0;
+
 const calculateL4RangePayment = (
   range: L4Range,
   l4Base: number,
@@ -211,14 +233,48 @@ const calculateL4RangePayment = (
 
   // Preserve the calculator's existing rounding approach: calculate and round
   // the daily payment first, then multiply it by the number of L4 days.
-  const dailyPayment = round2(
-    (l4Base / 30)
-      * getL4PaymentMultiplier(getL4PaymentType(range)),
-  );
+  const dailyPayment = getL4DailyPayment(range, l4Base);
 
   return {
     days,
     amount: dailyPayment * days,
+  };
+};
+
+/**
+ * Splits a UoP L4 range into the part that falls while the employment
+ * relationship is active and the part that falls after it ends.
+ *
+ * The employment start still acts as the lower boundary, so days before the
+ * relationship began are never treated as payable from this employment.
+ * Post-employment days are intentionally not clipped by employmentEndDate:
+ * when entitlement exists they are ZUS sickness-benefit days, not employer
+ * sick-pay days.
+ */
+const getUopL4RangeDaySplit = (
+  range: L4Range,
+  employmentStartDate?: string | null,
+  employmentEndDate?: string | null,
+) => {
+  const totalEligibleDays = countDaysWithinPeriod(
+    [range],
+    employmentStartDate,
+    null,
+  );
+
+  const duringEmploymentDays = countDaysWithinPeriod(
+    [range],
+    employmentStartDate,
+    employmentEndDate,
+  );
+
+  const postEmploymentDays = employmentEndDate
+    ? Math.max(0, totalEligibleDays - duringEmploymentDays)
+    : 0;
+
+  return {
+    duringEmploymentDays,
+    postEmploymentDays,
   };
 };
 
@@ -1131,7 +1187,10 @@ export const calculateTaxesUoP = (
     values.employmentEndDate,
   );
 
-  const l4DaysCount = countDaysWithinPeriod(
+  // L4 days that overlap the active employment period. These days are used
+  // for salary/allowance reductions. Post-employment L4 must not reduce
+  // remuneration that is already excluded by employmentEndDate.
+  const employmentL4DaysCount = countDaysWithinPeriod(
     values.l4,
     values.employmentStartDate,
     values.employmentEndDate,
@@ -1179,18 +1238,32 @@ export const calculateTaxesUoP = (
 
   orderedL4Ranges.forEach((range) => {
     const paymentType = getL4PaymentType(range);
-    const { days, amount } = calculateL4RangePayment(
+    const {
+      duringEmploymentDays,
+      postEmploymentDays,
+    } = getUopL4RangeDaySplit(
       range,
-      values.l4Base,
       values.employmentStartDate,
       values.employmentEndDate,
     );
 
-    if (days <= 0) return;
+    const totalPayableDays =
+      duringEmploymentDays + postEmploymentDays;
 
+    if (totalPayableDays <= 0) return;
+
+    const dailyPayment = getL4DailyPayment(
+      range,
+      values.l4Base,
+    );
+
+    // Accident/occupational-disease benefit is ZUS-funded from the first
+    // payable day in the currently supported model. Post-employment days are
+    // therefore naturally included and never consume the employer limit.
     if (paymentType === 'accident100') {
-      sicknessBenefitDays += days;
-      sicknessBenefitAmount += amount;
+      sicknessBenefitDays += totalPayableDays;
+      sicknessBenefitAmount +=
+        dailyPayment * totalPayableDays;
       return;
     }
 
@@ -1198,21 +1271,21 @@ export const calculateTaxesUoP = (
       return;
     }
 
+    // The employer's 33/14-day limit applies only while employment is active.
+    // Any qualifying L4 days after employment ends are paid as ZUS sickness
+    // benefit and must not consume the remaining employer sick-pay limit.
     const employerDaysForRange = Math.min(
-      days,
+      duringEmploymentDays,
       remainingEmployerSickPayDays,
     );
-    const benefitDaysForRange = Math.max(
+
+    const inEmploymentBenefitDays = Math.max(
       0,
-      days - employerDaysForRange,
+      duringEmploymentDays - employerDaysForRange,
     );
 
-    const dailyPayment = values.l4Base > 0
-      ? round2(
-          (values.l4Base / 30)
-            * getL4PaymentMultiplier(paymentType),
-        )
-      : 0;
+    const benefitDaysForRange =
+      inEmploymentBenefitDays + postEmploymentDays;
 
     employerSickPayDays += employerDaysForRange;
     sicknessBenefitDays += benefitDaysForRange;
@@ -1311,7 +1384,7 @@ export const calculateTaxesUoP = (
       : round2(
           Math.min(
             functionalAllowanceAfterEmployment,
-            (functionalAllowance / 30) * l4DaysCount,
+            (functionalAllowance / 30) * employmentL4DaysCount,
           ),
         );
 
@@ -1330,7 +1403,7 @@ export const calculateTaxesUoP = (
       ? round2(
           Math.min(
             functionalAllowancePayment,
-            (functionalAllowance / 30) * l4DaysCount,
+            (functionalAllowance / 30) * employmentL4DaysCount,
           ),
         )
       : 0;
@@ -1350,7 +1423,7 @@ export const calculateTaxesUoP = (
         : 0;
 
     l4Reduction = round2(
-      (values.rate / 30) * l4DaysCount,
+      (values.rate / 30) * employmentL4DaysCount,
     );
 
     // For starting/ending employment during the month, payroll reduces the

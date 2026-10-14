@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 
 // mui
 import {
@@ -6,7 +6,7 @@ import {
   Button,
   Stack,
   Alert,
-  CircularProgress,
+  IconButton,
   MenuItem,
   TextField,
   Typography
@@ -15,6 +15,7 @@ import {
 import FormHelperText from '@mui/material/FormHelperText';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
+import { InfoOutlined, WarningAmberRounded } from '@mui/icons-material';
 
 // third party
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -44,6 +45,8 @@ import TaxChart from '../../components/Calculator/TaxChart';
 import EditSalaryCalculation from '../../components/Modals/EditSalaryCalculation';
 import ConfirmActionDialog from '../../components/Modals/ConfirmActionDialog';
 import AuthRequiredDialog from '../../components/Modals/AuthRequiredDialog';
+import WarningDialog from '../../components/Modals/WarningDialog';
+import InfoDialog from '../../components/Modals/InfoDialog';
 import AdvancedSalarySettingsDialog from './AdvancedSalarySettingsDialog';
 import SalaryBonusesEditor from './SalaryBonusesEditor';
 
@@ -54,6 +57,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { getWorkRelationsForMonth } from '../../api/work_relations';
 import { getSalaryCarryForwardContext } from '../../api/getSalaryCarryForwardContext';
 import type { SalaryCarryForwardHistory } from '../../api/getSalaryCarryForwardContext';
+import { getUopSicknessBaseHistory } from '../../api/getUopSicknessBase';
 
 // utils
 import { MultiRangeMonthPicker } from '../../components/DaysPicker';
@@ -61,6 +65,12 @@ import { isInMonth, isoToDayjsRanges } from '../../utils/monthHelperFunc';
 import { getNominalWorkingHoursInMonth } from '../../utils/workingTimeHelper';
 import { calculateTaxesUoP, calculateTaxesContractOfMandate, calculateTaxesUoD, SalaryCalculationError } from '../../utils/workTypeSalaryCalc';
 import type { SalaryCalculationResult } from '../../utils/workTypeSalaryCalc';
+
+import { calculateUopSicknessBase, UopSicknessBaseError } from '../../utils/calculateUopSicknessBase';
+import type {
+  UopSicknessBaseMessage,
+  UopSicknessBaseResult,
+} from '../../types/uopSicknessBase';
 import type { DateRange } from '../../components/DaysPicker';
 
 // types
@@ -160,47 +170,102 @@ type WorkRelationSelectorProps = {
 const WorkRelationSelector = ({ formMode }: WorkRelationSelectorProps) => {
   const intl = useIntl();
   const navigate = useNavigate();
+
   const { user, loading: authLoading } = useAuth();
-  const { values, setFieldValue } = useFormikContext<SalaryCalculatorValues>();
+
+  const { values, setFieldValue } =
+    useFormikContext<SalaryCalculatorValues>();
 
   const [relations, setRelations] = useState<WorkRelation[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
+  const [warningOpen, setWarningOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+
+  /*
+   * We need access to the currently selected relation while loading
+   * relations, but changing the selected relation must NOT trigger
+   * another fetch.
+   */
+  const selectedRelationIdRef = useRef<string | null>(
+    values.workRelationId ?? null,
+  );
+
+  useEffect(() => {
+    selectedRelationIdRef.current =
+      values.workRelationId ?? null;
+  }, [values.workRelationId]);
+
   const clearRelationContext = useCallback(() => {
+    selectedRelationIdRef.current = null;
+
     setFieldValue('workRelationId', null, false);
     setFieldValue('employmentStartDate', null, false);
     setFieldValue('employmentEndDate', null, false);
   }, [setFieldValue]);
 
-  const applyRelation = useCallback((relation: WorkRelation) => {
-    const workRateType = getWorkRateTypeFromRelation(relation);
+  const applyRelation = useCallback(
+    (relation: WorkRelation) => {
+      const workRateType =
+        getWorkRateTypeFromRelation(relation);
 
-    if (!workRateType) {
-      setLoadError(true);
-      clearRelationContext();
+      if (!workRateType) {
+        setLoadError(true);
+        clearRelationContext();
+        return;
+      }
+
+      const period = getEffectiveEmploymentPeriod(
+        relation,
+        values.year,
+        values.month,
+      );
+
+      selectedRelationIdRef.current = relation.id;
+
+      setFieldValue(
+        'workRelationId',
+        relation.id,
+        false,
+      );
+
+      setFieldValue(
+        'employmentStartDate',
+        period.start,
+        false,
+      );
+
+      setFieldValue(
+        'employmentEndDate',
+        period.end,
+        false,
+      );
+
+      setFieldValue(
+        'workRateType',
+        workRateType,
+        false,
+      );
+    },
+    [
+      clearRelationContext,
+      setFieldValue,
+      values.month,
+      values.year,
+    ],
+  );
+
+  /*
+   * Load relations only when the context that determines
+   * available relations changes.
+   *
+   * Selecting a work relation does NOT cause another request.
+   */
+  useEffect(() => {
+    if (formMode !== 'create' || authLoading) {
       return;
     }
-
-    const period = getEffectiveEmploymentPeriod(
-      relation,
-      values.year,
-      values.month,
-    );
-
-    setFieldValue('workRelationId', relation.id, false);
-    setFieldValue('employmentStartDate', period.start, false);
-    setFieldValue('employmentEndDate', period.end, false);
-    setFieldValue('workRateType', workRateType, false);
-  }, [
-    clearRelationContext,
-    setFieldValue,
-    values.month,
-    values.year,
-  ]);
-
-  useEffect(() => {
-    if (formMode !== 'create' || authLoading) return;
 
     if (!user) {
       setRelations([]);
@@ -221,17 +286,28 @@ const WorkRelationSelector = ({ formMode }: WorkRelationSelectorProps) => {
           values.month,
         );
 
-        if (!active) return;
+        if (!active) {
+          return;
+        }
 
         setRelations(data);
 
+        /*
+         * No available relation.
+         */
         if (data.length === 0) {
           clearRelationContext();
           return;
         }
 
+        /*
+         * Preserve the currently selected relation if it is still
+         * available for the newly loaded month.
+         */
         const currentRelation = data.find(
-          relation => relation.id === values.workRelationId,
+          relation =>
+            relation.id ===
+            selectedRelationIdRef.current,
         );
 
         if (currentRelation) {
@@ -239,16 +315,24 @@ const WorkRelationSelector = ({ formMode }: WorkRelationSelectorProps) => {
           return;
         }
 
+        /*
+         * If there is exactly one relation, select it automatically.
+         */
         if (data.length === 1) {
           applyRelation(data[0]);
           return;
         }
 
+        /*
+         * Multiple relations exist and none is selected.
+         */
         clearRelationContext();
       } catch (error) {
         console.error(error);
 
-        if (!active) return;
+        if (!active) {
+          return;
+        }
 
         setRelations([]);
         setLoadError(true);
@@ -272,16 +356,12 @@ const WorkRelationSelector = ({ formMode }: WorkRelationSelectorProps) => {
     formMode,
     user,
     values.month,
-    values.workRelationId,
     values.year,
   ]);
 
-  if (formMode !== 'create' || authLoading || !user) {
-    return null;
-  }
-
   const selectedRelation = relations.find(
-    relation => relation.id === values.workRelationId,
+    relation =>
+      relation.id === values.workRelationId,
   );
 
   const selectedPeriod = selectedRelation
@@ -292,172 +372,363 @@ const WorkRelationSelector = ({ formMode }: WorkRelationSelectorProps) => {
       )
     : null;
 
+  /*
+   * WARNING
+   */
+  const hasWarning = Boolean(
+    !loading &&
+      !loadError &&
+      relations.length === 0,
+  );
+
+  /*
+   * INFO
+   */
+  const infoType =
+    !loading &&
+    !loadError &&
+    relations.length > 1 &&
+    !selectedRelation
+      ? 'selectionRequired'
+      : !loading &&
+          !loadError &&
+          selectedRelation &&
+          selectedPeriod?.isPartialMonth
+        ? 'partialMonth'
+        : null;
+
+  const hasInfo = Boolean(infoType);
+
+  /*
+   * Close dialogs automatically when their condition disappears.
+   */
+  useEffect(() => {
+    if (!hasWarning) {
+      setWarningOpen(false);
+    }
+  }, [hasWarning]);
+
+  useEffect(() => {
+    if (!hasInfo) {
+      setInfoOpen(false);
+    }
+  }, [hasInfo]);
+
+  if (
+    formMode !== 'create' ||
+    authLoading ||
+    !user
+  ) {
+    return null;
+  }
+
+  const warning = (
+    <Stack spacing={1.5}>
+      <Typography variant="body2">
+        {intl.formatMessage({
+          id: 'salary-work-relation-missing-description',
+          defaultMessage:
+            'Możesz korzystać z kalkulatora, ale nie zapiszesz wynagrodzenia, dopóki nie dodasz stosunku pracy obejmującego wybrany miesiąc.',
+        })}
+      </Typography>
+
+      <Button
+        variant="outlined"
+        color="inherit"
+        size="small"
+        sx={{
+          alignSelf: 'flex-start',
+          maxWidth: '100%',
+          whiteSpace: 'normal',
+        }}
+        onClick={() =>
+          navigate('/create-work-relation')
+        }
+      >
+        {intl.formatMessage({
+          id: 'salary-work-relation-create',
+          defaultMessage: 'Dodaj stosunek pracy',
+        })}
+      </Button>
+    </Stack>
+  );
+
+  const info =
+    infoType === 'selectionRequired' ? (
+      <Typography variant="body2">
+        {intl.formatMessage({
+          id: 'salary-work-relation-select-to-save',
+          defaultMessage:
+            'Wybierz stosunek pracy, aby móc zapisać to wynagrodzenie. Do tego czasu możesz nadal korzystać z kalkulatora.',
+        })}
+      </Typography>
+    ) : infoType === 'partialMonth' &&
+      selectedPeriod ? (
+      <Typography variant="body2">
+        {intl.formatMessage(
+          {
+            id: 'salary-work-relation-partial-month',
+            defaultMessage:
+              'Wybrany stosunek pracy nie obejmuje całego miesiąca. Kalkulator uwzględni okres od {start} do {end}.',
+          },
+          {
+            start: dayjs(
+              selectedPeriod.start,
+            ).format('DD.MM.YYYY'),
+
+            end: dayjs(
+              selectedPeriod.end,
+            ).format('DD.MM.YYYY'),
+          },
+        )}
+      </Typography>
+    ) : null;
+
+  const infoTitle =
+    infoType === 'selectionRequired'
+      ? intl.formatMessage({
+          id: 'salary-work-relation-select-info-title',
+          defaultMessage: 'Wybierz stosunek pracy',
+        })
+      : intl.formatMessage({
+          id: 'salary-work-relation-partial-month-info-title',
+          defaultMessage:
+            'Stosunek pracy obejmuje część miesiąca',
+        });
+
   return (
     <Stack
       spacing={1.5}
       sx={{
-        mb: 3,
         width: '320px',
         maxWidth: '100%',
         minWidth: 0,
         mx: 'auto',
       }}
     >
-
+      {/* Real loading error remains directly visible */}
       {!loading && loadError && (
         <Alert severity="error">
           {intl.formatMessage({
             id: 'salary-work-relation-load-failed',
-            defaultMessage: 'Nie udało się pobrać stosunków pracy dla wybranego miesiąca.',
+            defaultMessage:
+              'Nie udało się pobrać stosunków pracy dla wybranego miesiąca.',
           })}
         </Alert>
       )}
 
-      {!loading && !loadError && relations.length === 0 && (
-        <Alert
-          severity="warning"
+      {!loadError && (
+        <Box
           sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1,
             width: '100%',
             minWidth: 0,
-            '& .MuiAlert-message': {
-              width: '100%',
-              minWidth: 0,
-              overflowWrap: 'anywhere',
-            },
           }}
         >
-          <Stack spacing={1.5} sx={{ width: '100%', minWidth: 0 }}>
-            <Box>
-              <Typography component="div" fontWeight={600} mb={0.5}>
-                <FormattedMessage
-                  id="salary-work-relation-missing-title"
-                  defaultMessage="Brak stosunku pracy dla wybranego miesiąca"
-                />
-              </Typography>
-              <FormattedMessage
-                id="salary-work-relation-missing-description"
-                defaultMessage="Możesz korzystać z kalkulatora, ale nie zapiszesz wynagrodzenia, dopóki nie dodasz stosunku pracy obejmującego wybrany miesiąc."
-              />
-            </Box>
-
-            <Button
-              variant="outlined"
-              color="inherit"
+          {/* LOADING */}
+          {loading ? (
+            <TextField
+              select
+              fullWidth
+              disabled
               size="small"
+              value="__loading__"
+              label={intl.formatMessage({
+                id: 'salary-work-relation-label',
+                defaultMessage: 'Stosunek pracy',
+              })}
               sx={{
-                alignSelf: 'flex-start',
-                maxWidth: '100%',
-                whiteSpace: 'normal',
+                minWidth: 0,
+                flex: 1,
               }}
-              onClick={() => navigate('/create-work-relation')}
             >
-              <FormattedMessage
-                id="salary-work-relation-create"
-                defaultMessage="Dodaj stosunek pracy"
-              />
-            </Button>
-          </Stack>
-        </Alert>
-      )}
-
-      {!loading && !loadError && relations.length > 0 && (
-        <>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            sx={{
-              minWidth: 0,
-              '& .MuiSelect-select': {
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              },
-            }}
-            label={intl.formatMessage({
-              id: 'salary-work-relation-label',
-              defaultMessage: 'Stosunek pracy',
-            })}
-            value={values.workRelationId ?? ''}
-            onChange={(event) => {
-              const relation = relations.find(
-                item => item.id === event.target.value,
-              );
-
-              if (relation) {
-                applyRelation(relation);
-              } else {
-                clearRelationContext();
-              }
-            }}
-          >
-            {relations.length > 1 && (
-              <MenuItem value="">
-                <FormattedMessage
-                  id="salary-work-relation-placeholder"
-                  defaultMessage="Wybierz stosunek pracy"
-                />
-              </MenuItem>
-            )}
-
-            {relations.map(relation => (
               <MenuItem
-                key={relation.id}
-                value={relation.id}
-                sx={{ maxWidth: 320, minWidth: 0 }}
+                value="__loading__"
+                disabled
               >
-                <Box sx={{ minWidth: 0, maxWidth: '100%' }}>
-                  <Typography
-                    fontSize={14}
-                    fontWeight={600}
-                    noWrap
+              </MenuItem>
+            </TextField>
+          ) : (
+            /*
+             * Keep the selector mounted even when there are
+             * no available relations.
+             */
+            <TextField
+              select
+              fullWidth
+              size="small"
+              disabled={relations.length === 0}
+              sx={{
+                minWidth: 0,
+                flex: 1,
+
+                '& .MuiSelect-select': {
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                },
+              }}
+              label={intl.formatMessage({
+                id: 'salary-work-relation-label',
+                defaultMessage: 'Stosunek pracy',
+              })}
+              value={
+                relations.length > 0
+                  ? values.workRelationId ?? ''
+                  : ''
+              }
+              onChange={(event) => {
+                const relation = relations.find(
+                  item =>
+                    item.id === event.target.value,
+                );
+
+                if (relation) {
+                  applyRelation(relation);
+                } else {
+                  clearRelationContext();
+                }
+              }}
+            >
+              {relations.length > 1 && (
+                <MenuItem value="">
+                  {intl.formatMessage({
+                    id: 'salary-work-relation-placeholder',
+                    defaultMessage:
+                      'Wybierz stosunek pracy',
+                  })}
+                </MenuItem>
+              )}
+
+              {relations.map(relation => (
+                <MenuItem
+                  key={relation.id}
+                  value={relation.id}
+                  sx={{
+                    maxWidth: 320,
+                    minWidth: 0,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      minWidth: 0,
+                      maxWidth: '100%',
+                    }}
                   >
-                    {relation.name}
-                  </Typography>
-                  {relation.employer_name && (
                     <Typography
-                      fontSize={12}
-                      color="text.secondary"
+                      fontSize={14}
+                      fontWeight={600}
                       noWrap
                     >
-                      {relation.employer_name}
+                      {relation.name}
                     </Typography>
-                  )}
-                </Box>
-              </MenuItem>
-            ))}
-          </TextField>
 
-          {relations.length > 1 && !selectedRelation && (
-            <Alert severity="info">
-              <FormattedMessage
-                id="salary-work-relation-select-to-save"
-                defaultMessage="Wybierz stosunek pracy, aby móc zapisać to wynagrodzenie. Do tego czasu możesz nadal korzystać z kalkulatora."
-              />
-            </Alert>
+                    {relation.employer_name && (
+                      <Typography
+                        fontSize={12}
+                        color="text.secondary"
+                        noWrap
+                      >
+                        {relation.employer_name}
+                      </Typography>
+                    )}
+                  </Box>
+                </MenuItem>
+              ))}
+            </TextField>
           )}
 
-          {selectedRelation && selectedPeriod?.isPartialMonth && (
-            <Alert severity="info">
-              {intl.formatMessage(
-                {
-                  id: 'salary-work-relation-partial-month',
-                  defaultMessage:
-                    'Wybrany stosunek pracy nie obejmuje całego miesiąca. Kalkulator uwzględni okres od {start} do {end}.',
+          {/* WARNING */}
+          {hasWarning && (
+            <IconButton
+              type="button"
+              aria-label={intl.formatMessage({
+                id: 'salary-work-relation-warning-open',
+                defaultMessage:
+                  'Pokaż ostrzeżenie dotyczące stosunku pracy',
+              })}
+              onClick={() =>
+                setWarningOpen(true)
+              }
+              sx={{
+                width: 40,
+                height: 40,
+                flexShrink: 0,
+                borderRadius: 2,
+                bgcolor: 'warning.main',
+                color: 'warning.contrastText',
+                boxShadow: 1,
+
+                '&:hover': {
+                  bgcolor: 'warning.dark',
                 },
-                {
-                  start: dayjs(selectedPeriod.start).format('DD.MM.YYYY'),
-                  end: dayjs(selectedPeriod.end).format('DD.MM.YYYY'),
-                },
-              )}
-            </Alert>
+              }}
+            >
+              <WarningAmberRounded />
+            </IconButton>
           )}
-        </>
+
+          {/* INFO */}
+          {hasInfo && (
+            <IconButton
+              type="button"
+              aria-label={intl.formatMessage({
+                id: 'salary-work-relation-info-open',
+                defaultMessage:
+                  'Pokaż informację dotyczącą stosunku pracy',
+              })}
+              onClick={() =>
+                setInfoOpen(true)
+              }
+              sx={{
+                width: 40,
+                height: 40,
+                flexShrink: 0,
+                borderRadius: 2,
+                bgcolor: 'info.main',
+                color: 'info.contrastText',
+                boxShadow: 1,
+
+                '&:hover': {
+                  bgcolor: 'info.dark',
+                },
+              }}
+            >
+              <InfoOutlined />
+            </IconButton>
+          )}
+        </Box>
+      )}
+
+      <WarningDialog
+        open={warningOpen}
+        warning={warning}
+        title={intl.formatMessage({
+          id: 'salary-work-relation-missing-title',
+          defaultMessage:
+            'Brak stosunku pracy dla wybranego miesiąca',
+        })}
+        onClose={() =>
+          setWarningOpen(false)
+        }
+      />
+
+      {info && (
+        <InfoDialog
+          open={infoOpen}
+          info={info}
+          title={infoTitle}
+          onClose={() =>
+            setInfoOpen(false)
+          }
+        />
       )}
     </Stack>
   );
 };
-
 
 type CarryForwardContextLoaderProps = {
   formMode: 'create' | 'update';
@@ -472,6 +743,7 @@ const CarryForwardContextLoader = ({
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [history, setHistory] = useState<SalaryCarryForwardHistory | null>(null);
+  const [warningOpen, setWarningOpen] = useState(false);
 
   const resetCarryForwardFields = useCallback(() => {
     setFieldValue('previousTaxableIncome', 0, false);
@@ -584,77 +856,413 @@ const CarryForwardContextLoader = ({
     employmentPeriodReady,
   ]);
 
+  const hasWarning = Boolean(
+    !loading
+    && (loadError || (history && !history.complete)),
+  );
+
+  useEffect(() => {
+    if (!hasWarning) {
+      setWarningOpen(false);
+    }
+  }, [hasWarning]);
+
   if (
     formMode !== 'create'
     || !values.workRelationId
     || !employmentPeriodReady
+    || !hasWarning
   ) {
     return null;
   }
 
-  if (loadError) {
-    return (
-      <Alert
-        severity="warning"
-        sx={{ mb: 2, width: '100%', maxWidth: '400px', mx: 'auto' }}
-      >
+  const warning = loadError ? (
+    <Typography variant="body2">
+      {intl.formatMessage({
+        id: 'salary-carry-forward-load-failed',
+        defaultMessage:
+          'Nie udało się pobrać danych z wcześniejszych wynagrodzeń. Wartości historyczne pozostają edytowalne i możesz uzupełnić je ręcznie.',
+      })}
+    </Typography>
+  ) : (
+    <Stack spacing={1}>
+      <Typography variant="body2">
         {intl.formatMessage({
-          id: 'salary-carry-forward-load-failed',
+          id: 'salary-carry-forward-incomplete',
           defaultMessage:
-            'Nie udało się pobrać danych z wcześniejszych wynagrodzeń. Wartości historyczne pozostają edytowalne i możesz uzupełnić je ręcznie.',
+            'Nie udało się ustalić wszystkich wartości na podstawie zapisanej historii wynagrodzeń. Sprawdź je przed zapisaniem wynagrodzenia.',
         })}
-      </Alert>
-    );
-  }
+      </Typography>
 
-  if (!history || history.complete) {
-    return null;
-  }
+      {history && history.missingPeriods.length > 0 && (
+        <Typography variant="body2">
+          {intl.formatMessage(
+            {
+              id: 'salary-carry-forward-missing-periods',
+              defaultMessage: 'Brak zapisanych wynagrodzeń za: {periods}.',
+            },
+            {
+              periods: history.missingPeriods.join(', '),
+            },
+          )}
+        </Typography>
+      )}
+
+      {history && history.unknownFactPeriods.length > 0 && (
+        <Typography variant="body2">
+          {intl.formatMessage(
+            {
+              id: 'salary-carry-forward-unknown-facts',
+              defaultMessage:
+                'Niektóre wcześniejsze wynagrodzenia nie zawierają pełnych danych potrzebnych do automatycznego wyliczenia za: {periods}. Sprawdź wartości lub zapisz te miesiące ponownie.',
+            },
+            {
+              periods: history.unknownFactPeriods.join(', '),
+            },
+          )}
+        </Typography>
+      )}
+    </Stack>
+  );
 
   return (
-    <Alert
-      severity="warning"
-      sx={{ mb: 2, width: '100%', maxWidth: '400px', mx: 'auto' }}
-    >
-      <Stack spacing={0.5}>
-        <Typography variant="body2">
-          {intl.formatMessage({
-            id: 'salary-carry-forward-incomplete',
-            defaultMessage:
-              'Nie udało się ustalić wszystkich wartości na podstawie zapisanej historii wynagrodzeń. Sprawdź je przed zapisaniem wynagrodzenia.',
-          })}
-        </Typography>
+    <>
+      <IconButton
+        type="button"
+        aria-label={intl.formatMessage({
+          id: 'salary-carry-forward-warning-open',
+          defaultMessage: 'Pokaż ostrzeżenie dotyczące danych historycznych',
+        })}
+        onClick={() => setWarningOpen(true)}
+        sx={{
+          width: 40,
+          height: 40,
+          flexShrink: 0,
+          borderRadius: 2,
+          bgcolor: 'warning.main',
+          color: 'warning.contrastText',
+          boxShadow: 1,
+          '&:hover': {
+            bgcolor: 'warning.dark',
+          },
+        }}
+      >
+        <WarningAmberRounded />
+      </IconButton>
 
-        {history.missingPeriods.length > 0 && (
-          <Typography variant="body2">
-            {intl.formatMessage(
-              {
-                id: 'salary-carry-forward-missing-periods',
-                defaultMessage: 'Brak zapisanych wynagrodzeń za: {periods}.',
-              },
-              {
-                periods: history.missingPeriods.join(', '),
-              },
-            )}
-          </Typography>
-        )}
+      <WarningDialog
+        open={warningOpen}
+        warning={warning}
+        title={intl.formatMessage({
+          id: 'salary-carry-forward-warning-title',
+          defaultMessage: 'Dane historyczne wymagają uwagi',
+        })}
+        onClose={() => setWarningOpen(false)}
+      />
+    </>
+  );
+};
 
-        {history.unknownFactPeriods.length > 0 && (
-          <Typography variant="body2">
-            {intl.formatMessage(
-              {
-                id: 'salary-carry-forward-unknown-facts',
-                defaultMessage:
-                  'Niektóre wcześniejsze wynagrodzenia nie zawierają pełnych danych potrzebnych do automatycznego wyliczenia za: {periods}. Sprawdź wartości lub zapisz te miesiące ponownie.',
-              },
-              {
-                periods: history.unknownFactPeriods.join(', '),
-              },
+const getL4BaseMessageDefault = (id: string) => {
+  switch (id) {
+    case 'l4-base-warning-missing-history':
+      return 'Brakuje zapisanych wynagrodzeń w części okresu potrzebnego do wyliczenia podstawy L4: {periods}. Wynik sprawdź przed zapisaniem.';
+    case 'l4-base-warning-bonus-treatment-missing':
+      return 'Premia „{bonus}” za {period} nie ma ustawionego sposobu rozliczania podczas L4. Została uwzględniona, ale wynik może wymagać ręcznej weryfikacji.';
+    case 'l4-base-warning-current-bonus-treatment-missing':
+      return 'Premia „{bonus}” nie ma ustawionego sposobu rozliczania podczas L4. Sprawdź ją w ustawieniach zaawansowanych.';
+    case 'l4-base-warning-unsupported-historical-minimum-wage':
+      return 'Nie skonfigurowano minimalnego wynagrodzenia potrzebnego do historycznego dodatku nocnego za {period}. Sprawdź wynik.';
+    case 'l4-base-warning-unsupported-historical-zus-cap':
+      return 'Nie skonfigurowano rocznego limitu składek emerytalno-rentowych za {period}. Dla tego miesiąca zastosowano standardowe pomniejszenie 13,71%.';
+    case 'l4-base-warning-minimum-base-not-applied':
+      return 'Nie można automatycznie zastosować minimalnej podstawy L4 dla {period}. Sprawdź wynik ręcznie.';
+    case 'l4-base-warning-history-social-base-mismatch':
+      return 'Dane składkowe zapisane dla {period} różnią się od podstawy odtworzonej z aktualnie obsługiwanych składników. Ten miesiąc może zawierać wyjątek płacowy i wymaga ręcznej weryfikacji.';
+    case 'l4-base-warning-long-period-bonus-without-definition':
+      return 'Składnik „{bonus}” za {period} jest kwartalny lub roczny, ale nie ma stabilnego powiązania z definicją premii. Wynik został obliczony ze snapshotu miesiąca, lecz warto go zweryfikować.';
+    case 'l4-base-warning-post-employment-maximum-not-applied':
+      return 'To L4 przypada po ustaniu zatrudnienia. Składniki zachowywane podczas L4 zostały uwzględnione, ale szczególny ustawowy maksymalny limit podstawy po ustaniu ubezpieczenia nie jest jeszcze automatycznie stosowany.';
+    default:
+      return id;
+  }
+};
+
+const UopL4BaseCalculator = () => {
+  const intl = useIntl();
+  const { values, setFieldValue } = useFormikContext<SalaryCalculatorValues>();
+
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [result, setResult] = useState<UopSicknessBaseResult | null>(null);
+  const [calculatedForSignature, setCalculatedForSignature] = useState<string | null>(null);
+
+  const isUop =
+    values.workRateType === 'uop_monthly'
+    || values.workRateType === 'uop_hourly';
+
+  const calculationSignature = JSON.stringify({
+    workRelationId: values.workRelationId ?? null,
+    year: values.year,
+    month: values.month,
+    workRateType: values.workRateType,
+    rate: values.rate,
+    workingHours: values.workingHours,
+    employmentStartDate: values.employmentStartDate ?? null,
+    employmentEndDate: values.employmentEndDate ?? null,
+    l4: values.l4,
+    holidays: values.holidays ?? [],
+    leave: values.leave ?? [],
+    leaveBase: values.leaveBase ?? 0,
+    dailyOvertime: values.dailyOvertime ?? 0,
+    weekendHolidayOvertime: values.weekendHolidayOvertime ?? 0,
+    nightOvertime: values.nightOvertime ?? 0,
+    nightHours: values.nightHours ?? 0,
+    turnOfDayHours: values.turnOfDayHours ?? 0,
+    hourlyRateCalculationMode:
+      values.hourlyRateCalculationMode ?? 'roundedTo2',
+    functionalAllowance: values.functionalAllowance ?? 0,
+    functionalAllowanceRetainedDuringSickness:
+      values.functionalAllowanceRetainedDuringSickness ?? false,
+    bonuses: values.bonuses ?? [],
+  });
+
+  const stale = Boolean(
+    result
+    && calculatedForSignature
+    && calculatedForSignature !== calculationSignature,
+  );
+
+  if (!isUop) return null;
+
+  const formatMessage = (message: UopSicknessBaseMessage) =>
+    intl.formatMessage(
+      {
+        id: message.id,
+        defaultMessage: getL4BaseMessageDefault(message.id),
+      },
+      message.values,
+    );
+
+  const calculateBase = async () => {
+    if (!values.workRelationId) {
+      setErrorMessage(
+        intl.formatMessage({
+          id: 'l4-base-error-work-relation-required',
+          defaultMessage: 'Wybierz stosunek pracy przed obliczeniem podstawy L4.',
+        }),
+      );
+      return;
+    }
+
+    if (!values.l4 || values.l4.length === 0) {
+      setErrorMessage(
+        intl.formatMessage({
+          id: 'l4-base-error-no-l4',
+          defaultMessage: 'Najpierw zaznacz okres L4, aby ustalić właściwy kontekst podstawy.',
+        }),
+      );
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setErrorMessage(null);
+
+      const history = await getUopSicknessBaseHistory(
+        values.workRelationId,
+        values.year,
+        values.month,
+      );
+
+      const nextResult = calculateUopSicknessBase({
+        history,
+        target: {
+          year: values.year,
+          month: values.month,
+          paymentMode:
+            values.workRateType === 'uop_hourly'
+              ? 'hourly'
+              : 'monthly',
+          rate: values.rate,
+          workingHours: values.workingHours,
+          employmentStartDate: values.employmentStartDate,
+          employmentEndDate: values.employmentEndDate,
+          l4: values.l4,
+          holidays: values.holidays ?? [],
+          leave: values.leave ?? [],
+          leaveBase: values.leaveBase ?? 0,
+          dailyOvertime: values.dailyOvertime ?? 0,
+          weekendHolidayOvertime: values.weekendHolidayOvertime ?? 0,
+          nightOvertime: values.nightOvertime ?? 0,
+          nightHours: values.nightHours ?? 0,
+          turnOfDayHours: values.turnOfDayHours ?? 0,
+          hourlyRateCalculationMode:
+            values.hourlyRateCalculationMode ?? 'roundedTo2',
+          functionalAllowance: values.functionalAllowance ?? 0,
+          functionalAllowanceRetainedDuringSickness:
+            values.functionalAllowanceRetainedDuringSickness ?? false,
+          bonuses: (values.bonuses ?? []).map((bonus) => ({
+            id: bonus.id,
+            name: bonus.name,
+            amount: bonus.amount,
+            frequency: bonus.frequency,
+            sickLeaveTreatment: bonus.sickLeaveTreatment,
+          })),
+        },
+      });
+
+      setFieldValue('l4Base', nextResult.base, true);
+      setResult(nextResult);
+      setCalculatedForSignature(calculationSignature);
+    } catch (error) {
+      console.error(error);
+
+      if (error instanceof UopSicknessBaseError) {
+        setErrorMessage(
+          intl.formatMessage(
+            {
+              id: error.id,
+              defaultMessage:
+                error.id === 'l4-base-error-mixed-insurance-context'
+                  ? 'Wybrane L4 obejmuje jednocześnie okres przed i po ustaniu zatrudnienia ({endDate}). Obecny model ma jedno pole podstawy L4, więc nie można bezpiecznie wyliczyć dwóch różnych kontekstów automatycznie.'
+                  : error.id === 'l4-base-error-no-usable-history'
+                    ? 'Brak wystarczającej zapisanej historii do automatycznego wyliczenia podstawy L4.'
+                    : 'Nie udało się automatycznie wyliczyć podstawy L4.',
+            },
+            error.values,
+          ),
+        );
+      } else {
+        setErrorMessage(
+          intl.formatMessage({
+            id: 'l4-base-calculation-failed',
+            defaultMessage: 'Nie udało się obliczyć podstawy L4 na podstawie historii wynagrodzeń.',
+          }),
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Stack spacing={1.5}>
+      <Button
+        type="button"
+        variant="outlined"
+        disabled={loading || !values.workRelationId}
+        onClick={calculateBase}
+      >
+        {intl.formatMessage({
+          id: 'l4-base-calculate-button',
+          defaultMessage: 'Oblicz podstawę L4',
+        })}
+      </Button>
+
+      {errorMessage && (
+        <Alert severity="warning">
+          {errorMessage}
+        </Alert>
+      )}
+
+      {result && (
+        <Alert severity={result.warnings.length > 0 ? 'warning' : 'success'}>
+          <Stack spacing={0.75}>
+            <Typography variant="body2" fontWeight={700}>
+              {intl.formatMessage(
+                {
+                  id: 'l4-base-result',
+                  defaultMessage: 'Wyliczona podstawa L4: {amount} zł',
+                },
+                { amount: result.base.toFixed(2) },
+              )}
+            </Typography>
+
+            {result.source === 'reusedPreviousBase' && (
+              <Typography variant="body2">
+                {intl.formatMessage(
+                  {
+                    id: 'l4-base-reused-previous',
+                    defaultMessage: 'Użyto poprzednio ustalonej podstawy z {period}, ponieważ między okresami świadczeń nie było pełnego miesiąca kalendarzowego przerwy.',
+                  },
+                  { period: result.reusedFromPeriod ?? '—' },
+                )}
+              </Typography>
             )}
-          </Typography>
-        )}
-      </Stack>
-    </Alert>
+
+            {result.source === 'history' && (
+              <Typography variant="body2">
+                {intl.formatMessage(
+                  {
+                    id: 'l4-base-reference-period',
+                    defaultMessage: 'Okres miesięczny: {start} – {end}. Użyte miesiące: {used}.',
+                  },
+                  {
+                    start: result.referencePeriod.monthlyStart ?? '—',
+                    end: result.referencePeriod.monthlyEnd ?? '—',
+                    used: result.usedPeriods.length > 0
+                      ? result.usedPeriods.join(', ')
+                      : '—',
+                  },
+                )}
+              </Typography>
+            )}
+
+            {result.source === 'currentMonthFallback' && (
+              <Typography variant="body2">
+                {intl.formatMessage({
+                  id: 'l4-base-current-month-fallback',
+                  defaultMessage: 'Brak pełnego wcześniejszego miesiąca ubezpieczenia. Podstawę ustalono z wynagrodzenia należnego za bieżący miesiąc.',
+                })}
+              </Typography>
+            )}
+
+            {result.excludedPeriods.length > 0 && (
+              <Typography variant="body2">
+                {intl.formatMessage(
+                  {
+                    id: 'l4-base-excluded-periods',
+                    defaultMessage: 'Pominięte miesiące z przepracowaniem poniżej połowy obowiązującego czasu: {periods}.',
+                  },
+                  { periods: result.excludedPeriods.join(', ') },
+                )}
+              </Typography>
+            )}
+
+            {result.minimumApplied && result.minimumBase != null && (
+              <Typography variant="body2">
+                {intl.formatMessage(
+                  {
+                    id: 'l4-base-minimum-applied',
+                    defaultMessage: 'Zastosowano minimalną podstawę: {amount} zł.',
+                  },
+                  { amount: result.minimumBase.toFixed(2) },
+                )}
+              </Typography>
+            )}
+
+            {result.warnings.map((warning, index) => (
+              <Typography
+                key={`${warning.id}-${index}`}
+                variant="body2"
+              >
+                {formatMessage(warning)}
+              </Typography>
+            ))}
+
+            {stale && (
+              <Typography variant="body2" fontWeight={600}>
+                {intl.formatMessage({
+                  id: 'l4-base-result-stale',
+                  defaultMessage: 'Dane wpływające na podstawę zostały zmienione po obliczeniu. Kliknij „Oblicz podstawę L4” ponownie, jeśli chcesz odświeżyć wartość.',
+                })}
+              </Typography>
+            )}
+          </Stack>
+        </Alert>
+      )}
+    </Stack>
   );
 };
 
@@ -1014,8 +1622,33 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
             <>
               <Form>
                 <SalaryTabAvailabilityGuard activeTab={value} setActiveTab={setValue} />
-                <WorkRelationSelector formMode={type} />
-                <CarryForwardContextLoader formMode={type} />
+
+                {type === 'create' && !authLoading && user && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 1,
+                      width: '100%',
+                      mb: 3,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: '320px',
+                        maxWidth: '100%',
+                        minWidth: 0,
+                        flexShrink: 1,
+                      }}
+                    >
+                      <WorkRelationSelector formMode={type} />
+                    </Box>
+
+                    <CarryForwardContextLoader formMode={type} />
+                  </Box>
+                )}
+
                 <CardTabs value={value} labels={labels} onChange={changeTab} disabledTabs={disabledTabs}/>
 
                 <Box
@@ -1196,8 +1829,9 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                           })}
                         >
                           <Stack spacing={2}>
-                            <Stack spacing={0} width={'320px'}>
+                            <Stack spacing={1.5} width={'320px'} maxWidth={'100%'}>
                               <FormikNumberField name="l4Base" labelId="l4-base"/>
+                              <UopL4BaseCalculator />
                             </Stack>
                             <Box>
                               <MultiRangeMonthPicker

@@ -63,7 +63,7 @@ export default function MainLayout() {
             ? `${MOBILE_NAVBAR_HEIGHT + 16}px`
             : `${HEADER_HEIGHT + 16}px`,
 
-          pb: '30px',
+          pb: isMobile ? `${HEADER_HEIGHT}px` : '30px',
 
           display: 'flex',
           justifyContent: 'center',

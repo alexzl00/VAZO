@@ -190,22 +190,17 @@ const Navbar = ({
   };
 
   const getCurrentMobileSection = () => {
-    if (
-      location.pathname.startsWith(
-        "/salaries-statistics"
-      )
-    ) {
-      return "/salaries-statistics";
-    }
-
-    if (
-      location.pathname.startsWith("/salaries") ||
-      location.pathname.startsWith("/update-salary")
-    ) {
+    if (location.pathname.startsWith("/update-salary")) {
       return "/salaries";
     }
 
-    return "/salary-calculator";
+    const currentItem = [...navbarItems]
+      .sort((a, b) => b.path.length - a.path.length)
+      .find((item) =>
+        location.pathname.startsWith(item.path)
+      );
+
+    return currentItem?.path ?? "/salary-calculator";
   };
 
   return (
@@ -774,7 +769,7 @@ const Navbar = ({
                       "& svg": {
                         color: isLocked
                           ? undefined
-                          : palette.accent,
+                          : palette.textDark,
                       },
                     },
                   }}

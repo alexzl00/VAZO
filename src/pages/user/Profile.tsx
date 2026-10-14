@@ -895,10 +895,6 @@ const Profile = () => {
               <Typography
                 sx={{
                   mt: 0.5,
-
-                  fontFamily:
-                    "Montserrat",
-
                   fontSize: 13,
 
                   color: alpha(

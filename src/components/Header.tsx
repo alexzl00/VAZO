@@ -33,7 +33,7 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../auth/AuthContext";
 
 const palette = {
-  accent: "#5ddfcc",
+  accent: "#ac7ee0",
   textDark: "#1e2a47",
   pageBackground: "#DFDCFD",
   headerBackground: "#D5D1F2",
