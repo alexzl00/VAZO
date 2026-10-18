@@ -1,3 +1,7 @@
+import {
+  calculateUopPensionDisabilityBase,
+  calculateUopSocialInsuranceBase,
+} from './uopSocialContributionBase';
 import { countDaysWithinPeriod } from '../utils/monthHelperFunc';
 import {
   getWorkedDaysInMonthWithPolishHolidays,
@@ -135,7 +139,6 @@ export const taxes = {
   copyrightKupAnnualLimit: 120_000,
   uopKupStandard: 250,
   uopKupCommuter: 300,
-  PIT2_relief: 300, // legacy fallback
 
   // employee ZUS
   zusPensionInsurance: 9.76,
@@ -492,14 +495,11 @@ const calculateEmployeeSocialContributions = ({
   previousPensionDisabilityBase: number;
   sicknessBase: number;
 }) => {
-  const remainingAnnualLimit = Math.max(
-    0,
-    taxes.zusAnnualPensionDisabilityLimit - previousPensionDisabilityBase,
-  );
-
-  const pensionDisabilityBase = round2(
-    Math.min(socialBase, remainingAnnualLimit),
-  );
+  const pensionDisabilityBase = calculateUopPensionDisabilityBase({
+    socialInsuranceBase: socialBase,
+    previousPensionDisabilityBase,
+    annualLimit: taxes.zusAnnualPensionDisabilityLimit,
+  });
 
   const zusPension = percent(pensionDisabilityBase, taxes.zusPensionInsurance);
   const zusDisability = percent(pensionDisabilityBase, taxes.zusDisability);
@@ -1536,15 +1536,14 @@ export const calculateTaxesUoP = (
   // Neither employer-funded sick pay nor sickness benefit is a social-insurance base.
   // A functional allowance retained for the sickness period also remains outside
   // the social-insurance base for that retained sickness-period share.
-  const socialInsuranceBase = round2(
-    Math.max(
-      0,
-      fullSalaryBrutto
-        - employerSickPay
-        - sicknessBenefit
-        - retainedFunctionalAllowanceSicknessPart,
-    ),
-  );
+  const socialInsuranceBase = calculateUopSocialInsuranceBase({
+    grossComponents: [fullSalaryBrutto],
+    nonContributoryComponents: [
+      employerSickPay,
+      sicknessBenefit,
+      retainedFunctionalAllowanceSicknessPart,
+    ],
+  });
 
   const social =
     calculateEmployeeSocialContributions({

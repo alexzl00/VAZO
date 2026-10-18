@@ -2,6 +2,10 @@ import dayjs from "dayjs";
 
 import { getWorkedDaysInMonthWithPolishHolidays } from "./workingTimeHelper";
 import { employeeSocialInsuranceRate, taxes } from "./workTypeSalaryCalc";
+import {
+  calculateUopPensionDisabilityBase,
+  calculateUopSocialInsuranceBase,
+} from "./uopSocialContributionBase";
 import type {
   CalculateUopSicknessBaseParams,
   UopSicknessBaseHistory,
@@ -341,9 +345,9 @@ const getActualSocialGross = (
     0,
   );
 
-  return round2(
-    regular + overtime + functionalAllowance + bonuses,
-  );
+  return calculateUopSocialInsuranceBase({
+    grossComponents: [regular, overtime, functionalAllowance, bonuses],
+  });
 };
 
 const getEffectiveEmployeeContributionRate = (
@@ -364,15 +368,11 @@ const getEffectiveEmployeeContributionRate = (
     return employeeSocialInsuranceRate;
   }
 
-  const remainingPensionDisabilityBase = Math.max(
-    0,
-    annualLimit - month.previousPensionDisabilityBase,
-  );
-
-  const pensionDisabilityBase = Math.min(
-    actualSocialGross,
-    remainingPensionDisabilityBase,
-  );
+  const pensionDisabilityBase = calculateUopPensionDisabilityBase({
+    socialInsuranceBase: actualSocialGross,
+    previousPensionDisabilityBase: month.previousPensionDisabilityBase,
+    annualLimit,
+  });
 
   if (
     month.pensionDisabilityBaseCalculated != null
