@@ -58,6 +58,7 @@ import { getWorkRelationsForMonth } from '../../api/work_relations';
 import { getSalaryCarryForwardContext } from '../../api/getSalaryCarryForwardContext';
 import type { SalaryCarryForwardHistory } from '../../api/getSalaryCarryForwardContext';
 import { getUopSicknessBaseHistory } from '../../api/getUopSicknessBase';
+import { getMandateSicknessBaseHistory } from '../../api/getMandateSicknessBase';
 
 // utils
 import { MultiRangeMonthPicker } from '../../components/DaysPicker';
@@ -67,12 +68,14 @@ import { calculateTaxesUoP, calculateTaxesContractOfMandate, calculateTaxesUoD, 
 import type { SalaryCalculationResult } from '../../utils/workTypeSalaryCalc';
 
 import { calculateUopSicknessBases, UopSicknessBaseError } from '../../utils/calculateUopSicknessBase';
+import { calculateMandateSicknessBases, MandateSicknessBaseError } from '../../utils/calculateMandateSicknessBase';
 import type {
   UopSicknessBaseMessage,
   UopSicknessBaseResult,
   UopSicknessBasesResult,
 } from '../../types/uopSicknessBase';
 import type { DateRange } from '../../components/DaysPicker';
+import type { MandateSicknessBasesResult } from '../../types/mandateSicknessBase';
 
 // types
 import { normalizeL4Ranges } from '../../types/salaryCalculator';
@@ -1257,6 +1260,145 @@ const UopL4BaseCalculator = () => {
   );
 };
 
+/** Shares the existing L4 Formik fields and MUI presentation conventions. */
+const MandateL4BaseCalculator = () => {
+  const intl = useIntl();
+  const { values, setFieldValue } = useFormikContext<SalaryCalculatorValues>();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<MandateSicknessBasesResult | null>(null);
+  const [lastSignature, setLastSignature] = useState<string | null>(null);
+
+  const signature = JSON.stringify({
+    workRelationId: values.workRelationId,
+    year: values.year, month: values.month,
+    rate: values.rate, workingHours: values.workingHours,
+    employmentStartDate: values.employmentStartDate,
+    employmentEndDate: values.employmentEndDate,
+    l4: values.l4,
+    bonuses: values.bonuses,
+    isStudent: values.isStudent, isUnder26: values.isUnder26,
+    mandateVoluntarySicknessInsurance: values.mandateVoluntarySicknessInsurance,
+    sicknessBenefitEligible: values.sicknessBenefitEligible,
+    mandateHasOtherUopAtLeastMinimumBase: values.mandateHasOtherUopAtLeastMinimumBase,
+    mandateOtherSocialBaseBeforeThisContract: values.mandateOtherSocialBaseBeforeThisContract,
+    isOwnEmployerContract: values.isOwnEmployerContract,
+    performedForOwnEmployer: values.performedForOwnEmployer,
+  });
+
+  if (values.workRateType !== 'mandate_hourly') return null;
+
+  const calculateBase = async () => {
+    if (!values.workRelationId) {
+      setError(intl.formatMessage({ id: 'l4-base-error-work-relation-required' }));
+      return;
+    }
+    if (values.l4.length === 0) {
+      setError(intl.formatMessage({ id: 'l4-base-error-no-l4' }));
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const history = await getMandateSicknessBaseHistory(
+        values.workRelationId, values.year, values.month,
+      );
+      const next = calculateMandateSicknessBases({
+        history,
+        target: {
+          year: values.year,
+          month: values.month,
+          rate: values.rate,
+          workingHours: values.workingHours,
+          l4: values.l4,
+          holidays: values.holidays ?? [],
+          employmentStartDate: values.employmentStartDate,
+          employmentEndDate: values.employmentEndDate,
+          isStudent: values.isStudent,
+          isUnder26: values.isUnder26,
+          mandateVoluntarySicknessInsurance: values.mandateVoluntarySicknessInsurance,
+          sicknessBenefitEligible: values.sicknessBenefitEligible,
+          mandateHasOtherUopAtLeastMinimumBase: values.mandateHasOtherUopAtLeastMinimumBase,
+          mandateOtherSocialBaseBeforeThisContract: values.mandateOtherSocialBaseBeforeThisContract,
+          isOwnEmployerContract: values.isOwnEmployerContract,
+          performedForOwnEmployer: values.performedForOwnEmployer,
+          previousPensionDisabilityBase: values.previousPensionDisabilityBase,
+          bonuses: values.bonuses ?? [],
+        },
+      });
+      if (next.duringEmployment) {
+        await setFieldValue('l4Base', next.duringEmployment.base, false);
+      }
+      if (next.afterEmployment) {
+        await setFieldValue('l4BaseAfterTermination', next.afterEmployment.base, false);
+      }
+      setLastSignature(signature);
+      setResult(next);
+    } catch (cause) {
+      if (cause instanceof MandateSicknessBaseError) {
+        setError(intl.formatMessage({ id: cause.id }, cause.values));
+      } else {
+        console.error(cause);
+        setError(intl.formatMessage({ id: 'l4-base-calculation-failed' }));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Stack spacing={1.5}>
+      <Button
+        variant="outlined" type="button"
+        disabled={loading || !values.workRelationId}
+        onClick={calculateBase}
+      >
+        {intl.formatMessage({ id: 'l4-base-calculate-button' })}
+      </Button>
+      {error && <Alert severity="warning">{error}</Alert>}
+      {result && (['duringEmployment', 'afterEmployment'] as const).map(context => {
+        const item = result[context];
+        if (!item) return null;
+        return (
+          <Alert key={context} severity="success">
+            <Stack spacing={0.75}>
+              <Typography variant="body2" fontWeight={700}>
+                {intl.formatMessage(
+                  { id: context === 'duringEmployment' ? 'l4-base-result-during' : 'l4-base-result-after' },
+                  { amount: item.base.toFixed(2) },
+                )}
+              </Typography>
+              {item.source === 'reusedPreviousBase' && (
+                <Typography variant="body2">
+                  {intl.formatMessage(
+                    { id: 'l4-base-reused-previous' },
+                    { period: item.reusedFromPeriod ?? '—' },
+                  )}
+                </Typography>
+              )}
+              {item.source === 'history' && (
+                <Typography variant="body2">
+                  {intl.formatMessage({ id: 'l4-base-reference-period' }, {
+                    start: item.referencePeriod.start,
+                    end: item.referencePeriod.end,
+                    used: item.usedPeriods.join(', '),
+                  })}
+                </Typography>
+              )}
+              {lastSignature !== signature && (
+                <Typography variant="body2" fontWeight={600}>
+                  {intl.formatMessage({ id: 'l4-base-result-stale' })}
+                </Typography>
+              )}
+            </Stack>
+          </Alert>
+        );
+      })}
+    </Stack>
+  );
+};
+
 const normalizeSalaryValues = (
   values: SalaryCalculatorValues,
 ): SalaryCalculatorValues => {
@@ -1829,6 +1971,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                                 setFieldValue={setFieldValue}
                               />
                               <UopL4BaseCalculator />
+                              <MandateL4BaseCalculator />
                             </Stack>
                             <Box>
                               <MultiRangeMonthPicker

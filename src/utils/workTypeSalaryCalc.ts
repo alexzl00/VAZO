@@ -2,6 +2,8 @@ import {
   calculateUopPensionDisabilityBase,
   calculateUopSocialInsuranceBase,
 } from './uopSocialContributionBase';
+import { getBonusTotals } from './salaryBonusTotals';
+import { getMandateContributionContext } from './mandateContributionBase';
 import { countDaysWithinPeriod } from '../utils/monthHelperFunc';
 import {
   getWorkedDaysInMonthWithPolishHolidays,
@@ -128,7 +130,7 @@ export type SalaryCalculationResult = {
 };
 
 export const taxes = {
-  year: 2024,
+  year: 2026,
 
   // PIT
   pitFirstRate: 12,
@@ -290,30 +292,6 @@ const warnIfPostEmploymentL4BaseMissing = (
   }
 };
 
-const getBonusTotals = (values: SalaryCalculatorValues) => {
-  let cashBonusTotal = 0;
-  let nonCashBonusTotal = 0;
-
-  (values.bonuses ?? []).forEach((bonus) => {
-    const amount = Math.max(0, Number(bonus.amount) || 0);
-
-    if (bonus.paymentType === 'nonCash') {
-      nonCashBonusTotal += amount;
-    } else {
-      // Undefined is treated as cash for backwards compatibility.
-      cashBonusTotal += amount;
-    }
-  });
-
-  cashBonusTotal = round2(cashBonusTotal);
-  nonCashBonusTotal = round2(nonCashBonusTotal);
-
-  return {
-    cashBonusTotal,
-    nonCashBonusTotal,
-    bonusTotal: round2(cashBonusTotal + nonCashBonusTotal),
-  };
-};
 
 const assertSupportedTaxYear = (values: SalaryCalculatorValues) => {
   if (values.year !== taxes.year && values.year >= 1000) {
@@ -800,36 +778,24 @@ export const calculateTaxesContractOfMandate = (
       + bonusTotal,
   );
 
-  const treatedAsEmployee = Boolean(
-    values.isOwnEmployerContract || values.performedForOwnEmployer,
-  );
-
-  const studentExemption = Boolean(
-    values.isStudent
-      && values.isUnder26
-      && !treatedAsEmployee,
-  );
-
-  const otherTitleRemovesCompulsorySocial = Boolean(
-    !treatedAsEmployee
-      && !studentExemption
-      && (
-        values.mandateHasOtherUopAtLeastMinimumBase
-        || (values.mandateOtherSocialBaseBeforeThisContract ?? 0)
-          >= taxes.minimumWage
-      ),
-  );
-
-  const compulsorySocial =
-    !studentExemption && !otherTitleRemovesCompulsorySocial;
-
-  const healthCompulsory = !studentExemption;
-
-  const voluntarySicknessInsuranceActive = Boolean(
-    values.mandateVoluntarySicknessInsurance
-      && compulsorySocial
-      && !treatedAsEmployee,
-  );
+  const mandateContribution = getMandateContributionContext({
+    regularRemunerationBrutto,
+    isStudent: values.isStudent,
+    isUnder26: values.isUnder26,
+    mandateVoluntarySicknessInsurance: values.mandateVoluntarySicknessInsurance,
+    mandateHasOtherUopAtLeastMinimumBase: values.mandateHasOtherUopAtLeastMinimumBase,
+    mandateOtherSocialBaseBeforeThisContract: values.mandateOtherSocialBaseBeforeThisContract,
+    isOwnEmployerContract: values.isOwnEmployerContract,
+    performedForOwnEmployer: values.performedForOwnEmployer,
+    minimumWage: taxes.minimumWage,
+    voluntarySicknessMonthlyBaseLimit: taxes.voluntarySicknessMonthlyBaseLimit,
+  });
+  const {
+    treatedAsEmployee,
+    compulsorySocial,
+    healthCompulsory,
+    voluntarySicknessInsuranceActive,
+  } = mandateContribution;
 
   const ordinaryL4Ranges = values.l4.filter(
     (range) => getL4PaymentType(range) !== 'accident100',
@@ -914,19 +880,12 @@ export const calculateTaxesContractOfMandate = (
     regularRemunerationBrutto + sicknessBenefit,
   );
 
-  // Sickness benefit itself is not a social/health contribution base.
-  const socialInsuranceBase = compulsorySocial
-    ? regularRemunerationBrutto
-    : 0;
-
-  const sicknessBase = treatedAsEmployee
-    ? socialInsuranceBase
-    : voluntarySicknessInsuranceActive
-      ? Math.min(
-          socialInsuranceBase,
-          taxes.voluntarySicknessMonthlyBaseLimit,
-        )
-      : 0;
+  // Shared with historical UZ L4 reconstruction: never use pension/disability
+  // annual-cap base as a substitute for the sickness-contribution base.
+  const {
+    socialInsuranceBase,
+    sicknessContributionBase: sicknessBase,
+  } = mandateContribution;
 
   const social = calculateEmployeeSocialContributions({
     socialBase: socialInsuranceBase,
