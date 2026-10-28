@@ -3,6 +3,7 @@ import type {
   UopVacationBaseResult, UopVacationBaseTarget,
 } from '../types/uopVacationBase';
 import { getHistoricalUopOvertimeGross } from './uopHistoricalOvertime';
+import { resolveBonusTreatments } from './bonusTreatmentDefaults';
 import {
   getVacationScheduledHours, getHistoricalActuallyWorkedHours,
 } from './vacationWorkingTime';
@@ -84,6 +85,8 @@ export const calculateUopVacationBase = ({
   const details: UopVacationBaseMonthDetail[] = [];
   let grossTotal = 0;
   let hoursTotal = 0;
+  // Keep the result readable even when 12 months contain repeated auto bonuses.
+  const automaticBonusPeriods = new Map<string, { name: string; included: boolean; periods: string[] }>();
   for (const period of periods) {
     const month = saved.get(period)!;
     if (month.paymentMode !== history.relation.paymentMode) {
@@ -103,10 +106,15 @@ export const calculateUopVacationBase = ({
     }
     let eligibleBonuses = 0;
     for (const bonus of month.bonuses) {
-      if (!bonus.vacationTreatment) {
-        throw new UopVacationBaseError('vacation-base-error-bonus-policy', { bonus: bonus.name, period });
+      const resolved = resolveBonusTreatments(bonus).vacationTreatment;
+      if (resolved.source === 'default') {
+        const included = resolved.value === 'variableBase';
+        const noteKey = `${bonus.bonusDefinitionId ?? bonus.name}:${included}`;
+        const existing = automaticBonusPeriods.get(noteKey);
+        if (existing) existing.periods.push(period);
+        else automaticBonusPeriods.set(noteKey, { name: bonus.name, included, periods: [period] });
       }
-      if (bonus.vacationTreatment !== 'variableBase') continue;
+      if (resolved.value !== 'variableBase') continue;
       if (bonus.frequency !== 'monthly' || bonus.paymentType === 'nonCash') {
         throw new UopVacationBaseError('vacation-base-error-bonus-frequency', { bonus: bonus.name, period });
       }
@@ -136,6 +144,15 @@ export const calculateUopVacationBase = ({
     monthDetails: details,
     variableGrossTotal: round2(grossTotal),
     actualHoursTotal: hoursTotal,
-    notes: grossTotal > 0 ? [{ id: 'vacation-base-note-payment-month' }, { id: 'vacation-base-note-standard-schedule' }] : [{ id: 'vacation-base-note-standard-schedule' }],
+    notes: [
+      ...(grossTotal > 0 ? [{ id: 'vacation-base-note-payment-month' }] : []),
+      { id: 'vacation-base-note-standard-schedule' },
+      ...Array.from(automaticBonusPeriods.values(), item => ({
+        id: item.included
+          ? 'vacation-base-note-bonus-auto-included'
+          : 'vacation-base-note-bonus-auto-excluded',
+        values: { bonus: item.name, periods: item.periods.join(', ') },
+      })),
+    ],
   };
 };

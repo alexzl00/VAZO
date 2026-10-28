@@ -975,6 +975,10 @@ const getL4BaseMessageDefault = (id: string) => {
   switch (id) {
     case 'l4-base-warning-missing-history':
       return 'Brakuje zapisanych wynagrodzeń w części okresu potrzebnego do wyliczenia podstawy L4: {periods}. Wynik sprawdź przed zapisaniem.';
+    case 'l4-base-note-bonus-treatment-auto':
+      return 'Automatycznie: „{bonus}” ({period}) — zastosowano zasadę „Niewypłacana za okres L4”. Zweryfikuj warunki pracodawcy.';
+    case 'l4-base-note-current-bonus-treatment-auto':
+      return 'Automatycznie: „{bonus}” — zastosowano zasadę „Niewypłacana za okres L4”. Zweryfikuj warunki pracodawcy.';
     case 'l4-base-warning-bonus-treatment-missing':
       return 'Premia „{bonus}” za {period} nie ma ustawionego sposobu rozliczania podczas L4. Została uwzględniona, ale wynik może wymagać ręcznej weryfikacji.';
     case 'l4-base-warning-current-bonus-treatment-missing':
@@ -1372,8 +1376,8 @@ const UopVacationBaseCalculator = () => {
                 hours: result.actualHoursTotal,
               })}
             </Typography>
-            {result.notes.map(note => (
-              <Typography key={note.id} variant="body2">
+            {result.notes.map((note, index) => (
+              <Typography key={`${note.id}-${index}`} variant="body2">
                 {intl.formatMessage({ id: note.id }, note.values)}
               </Typography>
             ))}

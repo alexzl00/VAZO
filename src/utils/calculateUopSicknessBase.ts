@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { resolveBonusTreatments } from "./bonusTreatmentDefaults";
 
 import { getWorkedDaysInMonthWithPolishHolidays } from "./workingTimeHelper";
 import { getHistoricalMinimumWage, getHistoricalUopOvertimeGross } from "./uopHistoricalOvertime";
@@ -349,20 +350,15 @@ const isBonusIncludedForContext = (
   warnings: UopSicknessBaseMessage[],
   period: string,
 ) => {
-  if (!bonus.sickLeaveTreatment) {
+  const resolved = resolveBonusTreatments(bonus).sickLeaveTreatment;
+  if (resolved.source === 'default') {
     addWarningOnce(warnings, {
-      id: "l4-base-warning-bonus-treatment-missing",
-      values: {
-        bonus: bonus.name || "—",
-        period,
-      },
+      id: "l4-base-note-bonus-treatment-auto",
+      values: { bonus: bonus.name || "—", period },
     });
   }
 
-  return !(
-    context === "duringInsurance"
-    && bonus.sickLeaveTreatment === "paidInFull"
-  );
+  return !(context === "duringInsurance" && resolved.value === "paidInFull");
 };
 
 const supplementBonusGross = (
@@ -559,7 +555,7 @@ const getLongPeriodShare = (
 
         const gross = supplementBonusGross(
           Math.max(0, bonus.amount),
-          bonus.sickLeaveTreatment,
+          resolveBonusTreatments(bonus).sickLeaveTreatment.value,
           periodStats.requiredWorkDays,
           periodStats.workedEquivalentDays,
         );
@@ -632,24 +628,21 @@ const getCurrentMonthFallback = (
   gross += getOvertimeGross(syntheticMonth, warnings);
 
   (target.bonuses ?? []).forEach((bonus) => {
-    if (
-      context === "duringInsurance"
-      && bonus.sickLeaveTreatment === "paidInFull"
-    ) {
-      return;
-    }
-
-    if (!bonus.sickLeaveTreatment) {
+    const resolved = resolveBonusTreatments(bonus).sickLeaveTreatment;
+    if (resolved.source === 'default') {
       addWarningOnce(warnings, {
-        id: "l4-base-warning-current-bonus-treatment-missing",
+        id: "l4-base-note-current-bonus-treatment-auto",
         values: { bonus: bonus.name || "—" },
       });
+    }
+    if (context === "duringInsurance" && resolved.value === "paidInFull") {
+      return;
     }
 
     if (bonus.frequency === "monthly" || bonus.frequency === "oneOff") {
       gross += supplementBonusGross(
         Math.max(0, bonus.amount),
-        bonus.sickLeaveTreatment ?? null,
+        resolved.value,
         stats.requiredWorkDays,
         stats.workedEquivalentDays,
       );
@@ -670,7 +663,7 @@ const getRetainedCurrentComponentsNet = (
     : 0;
 
   (params.target.bonuses ?? []).forEach((bonus) => {
-    if (bonus.sickLeaveTreatment === "paidInFull") {
+    if (resolveBonusTreatments(bonus).sickLeaveTreatment.value === "paidInFull") {
       gross += Math.max(0, bonus.amount);
     }
   });
@@ -874,7 +867,7 @@ export const calculateUopSicknessBase = (
 
             grossIncluded += supplementBonusGross(
               Math.max(0, bonus.amount),
-              bonus.sickLeaveTreatment,
+              resolveBonusTreatments(bonus).sickLeaveTreatment.value,
               item.requiredWorkDays,
               item.workedEquivalentDays,
             );

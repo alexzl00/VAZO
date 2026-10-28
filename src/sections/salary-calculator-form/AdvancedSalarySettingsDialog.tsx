@@ -23,6 +23,7 @@ import type {
   VacationTreatment,
 } from '../../types/salaryCalculator';
 import DynamicSalaryFields from './DynamicSalaryFields';
+import { resolveBonusTreatments } from '../../utils/bonusTreatmentDefaults';
 import { advancedTaxFieldConfigs } from './metadata/salaryFieldConfigs';
 import {
   isSalaryFieldVisible,
@@ -185,6 +186,30 @@ export default function AdvancedSalarySettingsDialog({
     );
 
     setFieldValue('bonuses', nextBonuses);
+  };
+
+  const formatSickLeaveTreatment = (value: SickLeaveTreatment) => {
+    switch (value) {
+      case 'paidInFull':
+        return intl.formatMessage({ id: 'bonus-sick-leave-paid-in-full' });
+      case 'proportional':
+        return intl.formatMessage({ id: 'bonus-sick-leave-proportional' });
+      case 'nonProportional':
+        return intl.formatMessage({ id: 'bonus-sick-leave-non-proportional' });
+      case 'notPaid':
+        return intl.formatMessage({ id: 'bonus-sick-leave-not-paid' });
+    }
+  };
+
+  const formatVacationTreatment = (value: VacationTreatment) => {
+    switch (value) {
+      case 'paidInFull':
+        return intl.formatMessage({ id: 'bonus-vacation-paid-in-full' });
+      case 'variableBase':
+        return intl.formatMessage({ id: 'bonus-vacation-variable-base' });
+      case 'excluded':
+        return intl.formatMessage({ id: 'bonus-vacation-excluded' });
+    }
   };
 
   const getAdvancedFields = (
@@ -396,8 +421,8 @@ export default function AdvancedSalarySettingsDialog({
                         >
                           <MenuItem value="">
                             {intl.formatMessage({
-                              id: 'bonus-setting-not-configured',
-                              defaultMessage: 'Nie skonfigurowano',
+                              id: 'bonus-treatment-automatic',
+                              defaultMessage: 'Automatycznie',
                             })}
                           </MenuItem>
 
@@ -430,6 +455,22 @@ export default function AdvancedSalarySettingsDialog({
                             })}
                           </MenuItem>
                         </Select>
+                        {bonus.sickLeaveTreatment == null && (
+                          <Box sx={{ mt: 1, px: 1, py: 0.75, bgcolor: 'action.hover', borderRadius: 1 }}>
+                            <Typography variant="caption" display="block" fontWeight={600}>
+                              {intl.formatMessage(
+                                { id: 'bonus-treatment-auto-applied', defaultMessage: 'Zastosowana zasada: {rule}' },
+                                { rule: formatSickLeaveTreatment(resolveBonusTreatments(bonus).sickLeaveTreatment.value) },
+                              )}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              {intl.formatMessage({
+                                id: 'bonus-treatment-auto-l4-help',
+                                defaultMessage: 'Kalkulator przyjmuje tę zasadę przy obliczaniu L4. Sprawdź ją z warunkami wynagradzania.',
+                              })}
+                            </Typography>
+                          </Box>
+                        )}
                       </FormControl>
 
                       {isUop && (
@@ -467,8 +508,8 @@ export default function AdvancedSalarySettingsDialog({
                           >
                             <MenuItem value="">
                               {intl.formatMessage({
-                                id: 'bonus-setting-not-configured',
-                                defaultMessage: 'Nie skonfigurowano',
+                                id: 'bonus-treatment-automatic',
+                                defaultMessage: 'Automatycznie',
                               })}
                             </MenuItem>
 
@@ -496,6 +537,22 @@ export default function AdvancedSalarySettingsDialog({
                               })}
                             </MenuItem>
                           </Select>
+                          {bonus.vacationTreatment == null && (
+                            <Box sx={{ mt: 1, px: 1, py: 0.75, bgcolor: 'action.hover', borderRadius: 1 }}>
+                              <Typography variant="caption" display="block" fontWeight={600}>
+                                {intl.formatMessage(
+                                  { id: 'bonus-treatment-auto-applied', defaultMessage: 'Zastosowana zasada: {rule}' },
+                                  { rule: formatVacationTreatment(resolveBonusTreatments(bonus).vacationTreatment.value) },
+                                )}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                {intl.formatMessage({
+                                  id: 'bonus-treatment-auto-vacation-help',
+                                  defaultMessage: 'Zasada wynika z częstotliwości i formy składnika. W razie potrzeby wybierz ją ręcznie.',
+                                })}
+                              </Typography>
+                            </Box>
+                          )}
                         </FormControl>
                       )}
                     </Stack>

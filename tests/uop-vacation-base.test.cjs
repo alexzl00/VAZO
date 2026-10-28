@@ -73,7 +73,24 @@ test('excluded and paid-in-full bonuses are not added to historical average',()=
  const value=invoke([period(7,{bonuses:[bonus(500,{vacationTreatment:'excluded'}), bonus(250,{id:'p',vacationTreatment:'paidInFull'})]}),period(8),period(9)]);
  assert.equal(value.monthlyBase,6000);
 });
-test('missing vacation classification is an error, not silent bonus inclusion',()=>fails(()=>invoke([period(7,{bonuses:[bonus(50,{vacationTreatment:null})]}),period(8),period(9)]),'vacation-base-error-bonus-policy'));
+test('missing monthly cash classification uses automatic variableBase and reports source',()=>{
+ const result=invoke([period(7,{bonuses:[bonus(50,{vacationTreatment:null})]}),period(8),period(9)]);
+ assert.equal(result.variableGrossTotal,50);
+ assert.ok(result.notes.some(n=>n.id==='vacation-base-note-bonus-auto-included' && n.values.periods==='2026-07'));
+});
+
+test('automatic quarterly bonus is excluded instead of raising an error',()=>{
+ const result=invoke([period(7,{bonuses:[bonus(500,{frequency:'quarterly',vacationTreatment:null})]}),period(8),period(9)]);
+ assert.equal(result.variableGrossTotal,0);
+ assert.ok(result.notes.some(n=>n.id==='vacation-base-note-bonus-auto-excluded'));
+});
+
+test('automatic nonCash bonus is excluded instead of raising an error',()=>{
+ const result=invoke([period(7,{bonuses:[bonus(500,{paymentType:'nonCash',vacationTreatment:null})]}),period(8),period(9)]);
+ assert.equal(result.variableGrossTotal,0);
+});
+
+
 test('quarterly bonuses cannot masquerade as monthly variable payments',()=>fails(()=>invoke([period(7,{bonuses:[bonus(200,{frequency:'quarterly'})]}),period(8),period(9)]),'vacation-base-error-bonus-frequency'));
 test('historical vacation hours are excluded from actual worked denominator',()=>{
  const b=[period(7,{leave:[{start:'2026-07-06',end:'2026-07-10'}]}),period(8),period(9)];
