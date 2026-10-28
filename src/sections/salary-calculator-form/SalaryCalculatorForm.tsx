@@ -58,6 +58,7 @@ import { getWorkRelationsForMonth } from '../../api/work_relations';
 import { getSalaryCarryForwardContext } from '../../api/getSalaryCarryForwardContext';
 import type { SalaryCarryForwardHistory } from '../../api/getSalaryCarryForwardContext';
 import { getUopSicknessBaseHistory } from '../../api/getUopSicknessBase';
+import { getUopVacationBaseHistory } from '../../api/getUopVacationBase';
 import { getMandateSicknessBaseHistory } from '../../api/getMandateSicknessBase';
 
 // utils
@@ -68,6 +69,8 @@ import { calculateTaxesUoP, calculateTaxesContractOfMandate, calculateTaxesUoD, 
 import type { SalaryCalculationResult } from '../../utils/workTypeSalaryCalc';
 
 import { calculateUopSicknessBases, UopSicknessBaseError } from '../../utils/calculateUopSicknessBase';
+import { calculateUopVacationBase, UopVacationBaseError } from '../../utils/calculateUopVacationBase';
+import type { UopVacationBaseResult } from '../../types/uopVacationBase';
 import { calculateMandateSicknessBases, MandateSicknessBaseError } from '../../utils/calculateMandateSicknessBase';
 import type {
   UopSicknessBaseMessage,
@@ -1260,6 +1263,132 @@ const UopL4BaseCalculator = () => {
   );
 };
 
+/** Same Formik/MUI async calculator pattern as UopL4BaseCalculator.
+ * Historical pay averaging exists only in calculateUopVacationBase().
+ */
+const UopVacationBaseCalculator = () => {
+  const intl = useIntl();
+  const { values, setFieldValue } = useFormikContext<SalaryCalculatorValues>();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<UopVacationBaseResult | null>(null);
+  const [calculatedForSignature, setCalculatedForSignature] = useState<string | null>(null);
+
+  const isUop = values.workRateType === 'uop_monthly'
+    || values.workRateType === 'uop_hourly';
+  const signature = JSON.stringify({
+    workRelationId: values.workRelationId,
+    year: values.year,
+    month: values.month,
+    workRateType: values.workRateType,
+    rate: values.rate,
+    workingHours: values.workingHours,
+    employmentStartDate: values.employmentStartDate,
+    employmentEndDate: values.employmentEndDate,
+    holidays: values.holidays,
+    l4: values.l4,
+    leave: values.leave,
+    vacationBaseMonths: values.vacationBaseMonths ?? 3,
+  });
+
+  if (!isUop) return null;
+  const stale = Boolean(result && (
+    signature !== calculatedForSignature || values.leaveBase !== result.monthlyBase
+  ));
+
+  const calculateBase = async () => {
+    if (!values.workRelationId) {
+      setError(intl.formatMessage({ id: 'vacation-base-error-work-relation' }));
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const history = await getUopVacationBaseHistory(
+        values.workRelationId, values.year, values.month,
+      );
+      const next = calculateUopVacationBase({
+        history,
+        target: {
+          year: values.year,
+          month: values.month,
+          workRateType: values.workRateType as 'uop_monthly' | 'uop_hourly',
+          rate: values.rate,
+          workingHours: values.workingHours,
+          leave: values.leave ?? [],
+          l4: values.l4 ?? [],
+          holidays: values.holidays ?? [],
+          employmentStartDate: values.employmentStartDate,
+          employmentEndDate: values.employmentEndDate,
+          vacationBaseMonths: values.vacationBaseMonths ?? 3,
+        },
+      });
+      await setFieldValue('leaveBase', next.monthlyBase, false);
+      setCalculatedForSignature(signature);
+      setResult(next);
+    } catch (cause) {
+      if (cause instanceof UopVacationBaseError) {
+        setError(intl.formatMessage({ id: cause.id }, cause.values));
+      } else {
+        console.error(cause);
+        setError(intl.formatMessage({ id: 'vacation-base-error-fetch' }));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Stack spacing={1.5}>
+      <Button
+        type="button"
+        variant="outlined"
+        disabled={loading || !values.workRelationId}
+        onClick={calculateBase}
+      >
+        {intl.formatMessage({ id: 'vacation-base-calculate' })}
+      </Button>
+      {error && <Alert severity="warning">{error}</Alert>}
+      {result && (
+        <Alert severity={stale ? 'warning' : 'success'}>
+          <Stack spacing={0.75}>
+            <Typography variant="body2" fontWeight={700}>
+              {intl.formatMessage(
+                { id: 'vacation-base-result' },
+                { amount: result.monthlyBase.toFixed(2) },
+              )}
+            </Typography>
+            <Typography variant="body2">
+              {intl.formatMessage({ id: 'vacation-base-hourly-rate' }, {
+                rate: result.vacationHourlyRate.toFixed(2),
+                hours: result.leaveHours,
+              })}
+            </Typography>
+            <Typography variant="body2">
+              {intl.formatMessage({ id: 'vacation-base-history-details' }, {
+                periods: result.referencePeriods.join(', ') || '—',
+                gross: result.variableGrossTotal.toFixed(2),
+                hours: result.actualHoursTotal,
+              })}
+            </Typography>
+            {result.notes.map(note => (
+              <Typography key={note.id} variant="body2">
+                {intl.formatMessage({ id: note.id }, note.values)}
+              </Typography>
+            ))}
+            {stale && (
+              <Typography variant="body2" fontWeight={600}>
+                {intl.formatMessage({ id: 'vacation-base-result-stale' })}
+              </Typography>
+            )}
+          </Stack>
+        </Alert>
+      )}
+    </Stack>
+  );
+};
+
 /** Shares the existing L4 Formik fields and MUI presentation conventions. */
 const MandateL4BaseCalculator = () => {
   const intl = useIntl();
@@ -2086,6 +2215,7 @@ export default function SalaryForm({ initialValues, onSubmit, type, ...rest }: S
                             <Stack spacing={1} width={'320px'}>
                               <FormikNumberField name="leaveBase" labelId="vacation-leave-base"/>
                             </Stack>
+                            <UopVacationBaseCalculator />
                             <Box>
                               <MultiRangeMonthPicker
                                 initialMonth={dayjs(

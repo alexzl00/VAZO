@@ -1,6 +1,5 @@
 html {
   height: 100%;
-  background-color: #0f2249;
   overscroll-behavior: none;
 }
 
@@ -9,7 +8,6 @@ body {
   height: 100%;
   margin: 0;
   overflow: hidden;
-  background-color: #0f2249;
   overscroll-behavior: none;
 }
 
@@ -18,6 +16,5 @@ body {
   height: 100dvh;
   overflow-x: hidden;
   overflow-y: auto;
-  background-color: #0f2249;
   overscroll-behavior: none;
 }

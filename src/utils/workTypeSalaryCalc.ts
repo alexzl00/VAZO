@@ -5,6 +5,7 @@ import {
 import { getBonusTotals } from './salaryBonusTotals';
 import { getMandateContributionContext } from './mandateContributionBase';
 import { countDaysWithinPeriod } from '../utils/monthHelperFunc';
+import { getVacationScheduledHours } from './vacationWorkingTime';
 import {
   getWorkedDaysInMonthWithPolishHolidays,
   getWorkingHoursOutsideEmploymentPeriod,
@@ -1281,31 +1282,22 @@ export const calculateTaxesUoP = (
     employerSickPay + sicknessBenefit,
   );
 
-  const leaveDaysCount = countDaysWithinPeriod(
-    values.leave,
-    values.employmentStartDate,
-    values.employmentEndDate,
-  );
+  const nominalWorkingHours = values.workingHours;
+  const leaveHours = getVacationScheduledHours({
+    year: values.year,
+    month: values.month,
+    leave: values.leave,
+    l4: values.l4,
+    holidays: values.holidays,
+    employmentStartDate: values.employmentStartDate,
+    employmentEndDate: values.employmentEndDate,
+  });
 
-  const allWorkDaysInMonth =
-    getWorkedDaysInMonthWithPolishHolidays(
-      values.year,
-      values.month - 1,
-      values.holidays,
-      [],
-      [],
-    );
-
-  const leavePayment =
-    allWorkDaysInMonth > 0
-      ? round2(
-          (values.leaveBase / allWorkDaysInMonth)
-            * leaveDaysCount,
-        )
-      : 0;
-
-  const nominalWorkingHours =
-    values.workingHours;
+  // leaveBase retains its existing V1 meaning: monthly-equivalent gross.
+  // Historical averaging happens exclusively in calculateUopVacationBase.
+  const leavePayment = nominalWorkingHours > 0
+    ? round2((values.leaveBase / nominalWorkingHours) * leaveHours)
+    : 0;
 
   const perHourRaw =
     values.workRateType === 'uop_hourly'
@@ -1391,13 +1383,9 @@ export const calculateTaxesUoP = (
   let employmentReduction = 0;
 
   if (values.workRateType === 'uop_monthly') {
-    leaveReduction =
-      allWorkDaysInMonth > 0
-        ? round2(
-            (values.rate / allWorkDaysInMonth)
-              * leaveDaysCount,
-          )
-        : 0;
+    leaveReduction = nominalWorkingHours > 0
+      ? round2((values.rate / nominalWorkingHours) * leaveHours)
+      : 0;
 
     l4Reduction = round2(
       (values.rate / 30) * employmentL4DaysCount,

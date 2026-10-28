@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 
 import { getWorkedDaysInMonthWithPolishHolidays } from "./workingTimeHelper";
+import { getHistoricalMinimumWage, getHistoricalUopOvertimeGross } from "./uopHistoricalOvertime";
 import { employeeSocialInsuranceRate, taxes } from "./workTypeSalaryCalc";
 import {
   calculateUopPensionDisabilityBase,
@@ -50,12 +51,7 @@ const periodKey = (year: number, month: number) =>
 const toMonthDate = (month: UopSicknessHistoryMonth) =>
   monthStart(month.year, month.month);
 
-const getMinimumWage = (year: number, month: number): number | null => {
-  if (year === 2024) return month <= 6 ? 4242 : 4300;
-  if (year === 2025) return 4666;
-  if (year === 2026) return 4806;
-  return null;
-};
+const getMinimumWage = getHistoricalMinimumWage;
 
 const getAnnualPensionDisabilityLimit = (year: number): number | null => {
   if (year === 2024) return 234720;
@@ -113,83 +109,18 @@ const countCalendarDays = (
   return uniqueDays.size;
 };
 
-const getHourlyRateForCalculations = (
-  month: UopSicknessHistoryMonth,
-) => {
-  if (month.paymentMode === "hourly") {
-    return month.rate;
-  }
-
-  const raw = month.workingHours > 0
-    ? month.rate / month.workingHours
-    : 0;
-
-  const mode = month.calculationSettings.hourlyRateCalculationMode;
-  return mode === "fullPrecision" ? raw : round2(raw);
-};
-
-const getNightMinimumWage = (
-  year: number,
-  month: number,
-  warnings: UopSicknessBaseMessage[],
-) => {
-  const wage = getMinimumWage(year, month);
-
-  if (wage == null) {
-    warnings.push({
-      id: "l4-base-warning-unsupported-historical-minimum-wage",
-      values: { period: periodKey(year, month) },
-    });
-    return 0;
-  }
-
-  return wage;
-};
-
 const getOvertimeGross = (
   month: UopSicknessHistoryMonth,
   warnings: UopSicknessBaseMessage[],
 ) => {
-  const hourlyRate = getHourlyRateForCalculations(month);
-
-  const daily = round2(
-    hourlyRate * month.dailyOvertime * 1.5,
-  );
-  const weekendHoliday = round2(
-    hourlyRate * month.weekendHolidayOvertime * 2,
-  );
-  const nightOvertime = round2(
-    hourlyRate * month.nightOvertime * 2,
-  );
-
-  const minimumWage = getNightMinimumWage(
-    month.year,
-    month.month,
-    warnings,
-  );
-
-  const minimumHourlyForNightAllowance =
-    month.workingHours > 0
-      ? minimumWage / month.workingHours
-      : 0;
-
-  const nightAllowance = round2(
-    (month.nightHours + month.nightOvertime)
-      * minimumHourlyForNightAllowance
-      * 0.2,
-  );
-
-  const turnOfDay = round2(
-    hourlyRate * month.turnOfDayHours * 0.5,
-  );
-
-  return round2(
-    daily
-      + weekendHoliday
-      + nightOvertime
-      + nightAllowance
-      + turnOfDay,
-  );
+  const value = getHistoricalUopOvertimeGross(month);
+  if (value.minimumWageUnavailable) {
+    warnings.push({
+      id: 'l4-base-warning-unsupported-historical-minimum-wage',
+      values: { period: periodKey(month.year, month.month) },
+    });
+  }
+  return value.gross;
 };
 
 const getMonthWorkStats = (month: UopSicknessHistoryMonth) => {

@@ -117,7 +117,7 @@ export type SalaryBonus = {
   sickLeaveTreatment?: SickLeaveTreatment;
 
   /**
-   * Future vacation-base policy for this bonus.
+   * Vacation-pay classification for this bonus.
    * paidInFull: the employee keeps the component during annual leave.
    * variableBase: include it in the variable vacation-pay base.
    * excluded: do not include it in vacation pay.
@@ -314,7 +314,7 @@ export type SalaryCalculatorValues = {
   /**
    * Look-back period for variable vacation-pay components.
    * 3 months is standard; 12 months can be used for significant fluctuations.
-   * Stored now for the future automatic vacation-base calculation.
+   * Used by the automatic vacation-base calculator.
    */
   vacationBaseMonths?: VacationBaseMonths;
 
