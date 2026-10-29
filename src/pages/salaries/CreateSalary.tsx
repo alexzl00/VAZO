@@ -1,3 +1,4 @@
+import { PAYROLL_DEFAULTS } from "../../utils/statutory/payrollStatutoryConfig";
 import { useNavigate } from "react-router-dom";
 
 // third parties
@@ -33,7 +34,7 @@ const now = new Date();
 export const initialSalaryFormValues: SalaryCalculatorValues = {
   // PIT / KUP
   pit2MonthlyReduction: 0,
-  uopKup: 250,
+  uopKup: PAYROLL_DEFAULTS.uopKup,
   hasMultipleEmploymentRelationships: false,
   kup: 20,
   pit0Relief: "none",
@@ -50,7 +51,7 @@ export const initialSalaryFormValues: SalaryCalculatorValues = {
 
   // Sickness eligibility / UoP sickness
   sicknessBenefitEligible: true,
-  uopEmployerSickPayLimit: 33,
+  uopEmployerSickPayLimit: PAYROLL_DEFAULTS.employerSickPayLimit,
   previousEmployerSickPayDays: 0,
 
   // UZ / UoD insurance status
@@ -63,8 +64,8 @@ export const initialSalaryFormValues: SalaryCalculatorValues = {
 
   // PPK
   ppkEnabled: false,
-  ppkEmployeeRate: 2,
-  ppkEmployerRate: 1.5,
+  ppkEmployeeRate: PAYROLL_DEFAULTS.ppkEmployeeRate,
+  ppkEmployerRate: PAYROLL_DEFAULTS.ppkEmployerRate,
 
   deductionAfterTax: 0,
   additionAfterTax: 0,
@@ -215,3 +216,4 @@ export default function CreateSalaryPage() {
     />
   );
 }
+

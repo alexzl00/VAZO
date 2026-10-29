@@ -1,3 +1,4 @@
+import { PAYROLL_DEFAULTS } from "../utils/statutory/payrollStatutoryConfig";
 import { supabase } from "../lib/supabase";
 
 const getUopCalculationSettings = (values: any) => ({
@@ -29,7 +30,7 @@ export async function createUopSalary(values: any) {
     p_do_not_withhold_pit_advance:
       values.doNotWithholdPitAdvance ?? false,
 
-    p_uop_kup: values.uopKup ?? 250,
+    p_uop_kup: values.uopKup ?? PAYROLL_DEFAULTS.uopKup,
     p_has_multiple_employment_relationships:
       values.hasMultipleEmploymentRelationships ?? false,
     p_previous_uop_kup_used: values.previousUopKupUsed ?? 0,
@@ -38,8 +39,8 @@ export async function createUopSalary(values: any) {
       values.previousPensionDisabilityBase ?? 0,
 
     p_ppk_enabled: values.ppkEnabled ?? false,
-    p_ppk_employee_rate: values.ppkEmployeeRate ?? 2,
-    p_ppk_employer_rate: values.ppkEmployerRate ?? 1.5,
+    p_ppk_employee_rate: values.ppkEmployeeRate ?? PAYROLL_DEFAULTS.ppkEmployeeRate,
+    p_ppk_employer_rate: values.ppkEmployerRate ?? PAYROLL_DEFAULTS.ppkEmployerRate,
     p_ppk_employer_taxable_contribution:
       values.ppkEmployerTaxableContribution ?? null,
 
@@ -57,7 +58,7 @@ export async function createUopSalary(values: any) {
     p_l4_base_after_termination: values.l4BaseAfterTermination ?? null,
     p_sickness_benefit_eligible: values.sicknessBenefitEligible ?? true,
     p_uop_employer_sick_pay_limit:
-      values.uopEmployerSickPayLimit ?? 33,
+      values.uopEmployerSickPayLimit ?? PAYROLL_DEFAULTS.employerSickPayLimit,
     p_previous_employer_sick_pay_days:
       values.previousEmployerSickPayDays ?? 0,
 
@@ -101,7 +102,7 @@ export async function updateUopSalary(id: string, values: any) {
     p_do_not_withhold_pit_advance:
       values.doNotWithholdPitAdvance ?? false,
 
-    p_uop_kup: values.uopKup ?? 250,
+    p_uop_kup: values.uopKup ?? PAYROLL_DEFAULTS.uopKup,
     p_has_multiple_employment_relationships:
       values.hasMultipleEmploymentRelationships ?? false,
     p_previous_uop_kup_used: values.previousUopKupUsed ?? 0,
@@ -110,8 +111,8 @@ export async function updateUopSalary(id: string, values: any) {
       values.previousPensionDisabilityBase ?? 0,
 
     p_ppk_enabled: values.ppkEnabled ?? false,
-    p_ppk_employee_rate: values.ppkEmployeeRate ?? 2,
-    p_ppk_employer_rate: values.ppkEmployerRate ?? 1.5,
+    p_ppk_employee_rate: values.ppkEmployeeRate ?? PAYROLL_DEFAULTS.ppkEmployeeRate,
+    p_ppk_employer_rate: values.ppkEmployerRate ?? PAYROLL_DEFAULTS.ppkEmployerRate,
     p_ppk_employer_taxable_contribution:
       values.ppkEmployerTaxableContribution ?? null,
 
@@ -129,7 +130,7 @@ export async function updateUopSalary(id: string, values: any) {
     p_l4_base_after_termination: values.l4BaseAfterTermination ?? null,
     p_sickness_benefit_eligible: values.sicknessBenefitEligible ?? true,
     p_uop_employer_sick_pay_limit:
-      values.uopEmployerSickPayLimit ?? 33,
+      values.uopEmployerSickPayLimit ?? PAYROLL_DEFAULTS.employerSickPayLimit,
     p_previous_employer_sick_pay_days:
       values.previousEmployerSickPayDays ?? 0,
 

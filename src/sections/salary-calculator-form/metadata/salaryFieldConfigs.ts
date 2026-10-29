@@ -1,3 +1,4 @@
+import { PAYROLL_DEFAULTS } from "../../../utils/statutory/payrollStatutoryConfig";
 import type {
   AdvancedSalaryFieldConfig,
   SalaryFieldConfig,
@@ -85,10 +86,10 @@ export const taxFieldConfigs: SalaryFieldConfig[] = [
     type: 'select',
     labelId: 'taxes-and-deductions-uop-kup',
     contracts: [...UOP_CONTRACTS],
-    defaultValue: 250,
+    defaultValue: PAYROLL_DEFAULTS.uopKup,
     options: [
-      { value: 250, label: '250 zł' },
-      { value: 300, label: '300 zł' },
+      { value: PAYROLL_DEFAULTS.uopKup, label: '250 zł' },
+      { value: PAYROLL_DEFAULTS.uopKupCommuter, label: '300 zł' },
       { value: 0, label: '0 zł' },
     ],
     validation: {
@@ -166,7 +167,7 @@ export const taxFieldConfigs: SalaryFieldConfig[] = [
       { value: 0, label: '0 zł' },
       { value: 100, label: '100 zł' },
       { value: 150, label: '150 zł' },
-      { value: 300, label: '300 zł' },
+      { value: PAYROLL_DEFAULTS.uopKupCommuter, label: '300 zł' },
     ],
     onChange: (value, { setFieldValue }) => {
       setFieldValue('pit2', Number(value) > 0, false);
@@ -207,11 +208,11 @@ export const taxFieldConfigs: SalaryFieldConfig[] = [
     contracts: [...PPK_CONTRACTS],
     visibleWhen: (values) => Boolean(values.ppkEnabled),
     unit: '%',
-    defaultValue: 2,
+    defaultValue: PAYROLL_DEFAULTS.ppkEmployeeRate,
     validation: {
       required: true,
-      min: 0.5,
-      max: 4,
+      min: PAYROLL_DEFAULTS.ppkEmployeeMin,
+      max: PAYROLL_DEFAULTS.ppkEmployeeMax,
       minMessageId: 'validation-ppk-employee-rate-min',
       maxMessageId: 'validation-ppk-employee-rate-max',
     },
@@ -223,11 +224,11 @@ export const taxFieldConfigs: SalaryFieldConfig[] = [
     contracts: [...PPK_CONTRACTS],
     visibleWhen: (values) => Boolean(values.ppkEnabled),
     unit: '%',
-    defaultValue: 1.5,
+    defaultValue: PAYROLL_DEFAULTS.ppkEmployerRate,
     validation: {
       required: true,
-      min: 1.5,
-      max: 4,
+      min: PAYROLL_DEFAULTS.ppkEmployerRate,
+      max: PAYROLL_DEFAULTS.ppkEmployerMax,
       minMessageId: 'validation-ppk-employer-rate-min',
       maxMessageId: 'validation-ppk-employer-rate-max',
     },
@@ -354,10 +355,10 @@ export const advancedTaxFieldConfigs: AdvancedSalaryFieldConfig[] = [
     labelId: 'taxes-and-deductions-uop-sick-pay-limit',
     helperTextId: 'taxes-and-deductions-uop-sick-pay-limit-help',
     contracts: [...UOP_CONTRACTS],
-    defaultValue: 33,
+    defaultValue: PAYROLL_DEFAULTS.employerSickPayLimit,
     options: [
-      { value: 33, labelId: 'taxes-and-deductions-uop-sick-pay-limit-33' },
-      { value: 14, labelId: 'taxes-and-deductions-uop-sick-pay-limit-14' },
+      { value: PAYROLL_DEFAULTS.employerSickPayLimit, labelId: 'taxes-and-deductions-uop-sick-pay-limit-33' },
+      { value: PAYROLL_DEFAULTS.olderEmployeeSickPayLimit, labelId: 'taxes-and-deductions-uop-sick-pay-limit-14' },
     ],
     validation: {
       required: true,

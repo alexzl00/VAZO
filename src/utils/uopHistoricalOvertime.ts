@@ -2,15 +2,12 @@
  * Used by both L4 and vacation history; never calculates either benefit base.
  */
 import type { UopSicknessHistoryMonth } from '../types/uopSicknessBase';
+import { getHistoricalPayrollStatutoryConfig } from './statutory/payrollStatutoryConfig';
 
 const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
-export const getHistoricalMinimumWage = (year: number, month: number): number | null => {
-  if (year === 2024) return month <= 6 ? 4242 : 4300;
-  if (year === 2025) return 4666;
-  if (year === 2026) return 4806;
-  return null;
-};
+export const getHistoricalMinimumWage = (year: number, month: number): number | null =>
+  getHistoricalPayrollStatutoryConfig(year, month)?.minimumWage ?? null;
 
 export const getHistoricalUopOvertimeGross = (
   month: UopSicknessHistoryMonth,

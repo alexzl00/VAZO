@@ -1663,7 +1663,8 @@ const buildSalarySchema = (formatMessage: ValidationMessageFormatter) =>
     year: Yup.number()
       .typeError(formatMessage('validation-number-invalid'))
       .required(formatMessage('validation-required'))
-      .min(2000, formatMessage('validation-number-min', { min: 2000 })),
+      .min(2025, formatMessage('validation-number-min', { min: 2025 }))
+      .max(2026, formatMessage('validation-number-max', { max: 2026 })),
     month: Yup.number()
       .typeError(formatMessage('validation-number-invalid'))
       .required(formatMessage('validation-required'))

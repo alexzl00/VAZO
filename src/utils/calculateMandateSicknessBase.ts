@@ -2,7 +2,8 @@ import dayjs from 'dayjs';
 import { getBonusTotals } from './salaryBonusTotals';
 import { getMandateContributionContext } from './mandateContributionBase';
 import { calculateUopPensionDisabilityBase } from './uopSocialContributionBase';
-import { employeeSocialInsuranceRate } from './workTypeSalaryCalc';
+import { employeeSocialInsuranceRate, getHistoricalPayrollStatutoryConfig } from './statutory/payrollStatutoryConfig';
+import { getPostTerminationBenefitCap } from './statutory/postTerminationBenefitCaps';
 import type {
   CalculateMandateSicknessBasesParams,
   MandateSicknessBaseHistory,
@@ -33,37 +34,21 @@ const period = (year: number, month: number) => `${year}-${String(month).padStar
 const firstOfMonth = (year: number, month: number) => dayjs(`${period(year, month)}-01`);
 const monthOffset = (date: dayjs.Dayjs, offset: number) => date.add(offset, 'month').format('YYYY-MM');
 
-// The historical year is essential: NEVER calculate 2024/25 sickness bases
-// using the current payroll year's 2026 minimum wage/voluntary sickness cap.
-const contributionLimits: Record<number, { minimumWage: number; voluntarySicknessCap: number; annualPensionCap: number }> = {
-  2024: { minimumWage: 4300, voluntarySicknessCap: 19560, annualPensionCap: 234720 },
-  2025: { minimumWage: 4666, voluntarySicknessCap: 21682.5, annualPensionCap: 260190 },
-  2026: { minimumWage: 4806, voluntarySicknessCap: 23550, annualPensionCap: 282600 },
-};
-
+// Historical contribution parameters must follow the period of the salary
+// input being reconstructed (possibly 2024 for a 2025 sickness period).
 const getLimits = (year: number, month: number) => {
-  if (year === 2024 && month <= 6) {
-    return { minimumWage: 4242, voluntarySicknessCap: 19560, annualPensionCap: 234720 };
-  }
-  const limits = contributionLimits[year];
-  if (!limits) throw new MandateSicknessBaseError('mandate-l4-base-error-year', { year });
-  return limits;
-};
-
-/** GUS national-average quarterly limits, effective in three-month blocks.
- * Never silently apply a guessed rate to an unverified future quarter.
- * https://psz.zus.pl/pl/web/guest/baza-wiedzy/skladki-wskazniki-odsetki/wskazniki/minimalne-i-przecietne-wynagrodzenie
- */
-const postInsuranceMaximum2026: Record<number, number> = {
-  1: 8771.70, 2: 8771.70,
-  3: 9197.79, 4: 9197.79, 5: 9197.79,
-  6: 9562.88, 7: 9562.88, 8: 9562.88,
-  9: 9233.13, 10: 9233.13, 11: 9233.13,
+  const policy = getHistoricalPayrollStatutoryConfig(year, month);
+  if (!policy) throw new MandateSicknessBaseError('mandate-l4-base-error-year', { year });
+  return {
+    minimumWage: policy.minimumWage,
+    voluntarySicknessCap: policy.voluntarySicknessMonthlyBaseLimit,
+    annualPensionCap: policy.zusAnnualPensionDisabilityLimit,
+  };
 };
 
 const maxPostInsuranceBase = (year: number, month: number): number => {
-  const limit = year === 2026 ? postInsuranceMaximum2026[month] : undefined;
-  if (limit === undefined) {
+  const limit = getPostTerminationBenefitCap(year, month);
+  if (limit === null) {
     throw new MandateSicknessBaseError('mandate-l4-base-error-post-termination-limit', {
       period: period(year, month),
     });

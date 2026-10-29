@@ -4,6 +4,9 @@ import {
 } from './uopSocialContributionBase';
 import { getBonusTotals } from './salaryBonusTotals';
 import { getMandateContributionContext } from './mandateContributionBase';
+import { getPayrollStatutoryConfig, isSupportedPayrollYear, PAYROLL_DEFAULTS } from './statutory/payrollStatutoryConfig';
+import type { PayrollStatutoryConfig } from './statutory/payrollStatutoryConfig';
+export { employeeSocialInsuranceRate } from './statutory/payrollStatutoryConfig';
 import { countDaysWithinPeriod } from '../utils/monthHelperFunc';
 import { getVacationScheduledHours } from './vacationWorkingTime';
 import {
@@ -130,59 +133,6 @@ export type SalaryCalculationResult = {
   calculationType: 'uop' | 'mandate' | 'uod_fixed';
 };
 
-export const taxes = {
-  year: 2026,
-
-  // PIT
-  pitFirstRate: 12,
-  pitSecondRate: 32,
-  pitThreshold: 120_000,
-  pit0Limit: 85_528,
-  noPitAdvanceIncomeLimit: 30_000,
-  copyrightKupAnnualLimit: 120_000,
-  uopKupStandard: 250,
-  uopKupCommuter: 300,
-
-  // employee ZUS
-  zusPensionInsurance: 9.76,
-  zusDisability: 1.5,
-  zusSicknessInsurance: 2.45,
-  zusAnnualPensionDisabilityLimit: 282_600,
-  voluntarySicknessMonthlyBaseLimit: 23_550,
-
-  // health
-  healthInsurance: 9,
-
-  // 2026 statutory values
-  minimumWage: 4_806,
-  minimumHourlyRate: 31.4,
-  reducedPpkMonthlyIncomeLimit: 5_767.2,
-
-  // PPK
-  ppkEmployeeBasic: 2,
-  ppkEmployerBasic: 1.5,
-
-  // overtime additions
-  dailyOvertimeMultiplier: 1.5, // normal pay + 50% addition
-  weekendHolidayOvertimeMultiplier: 2, // normal pay + 100% addition
-  nightOvertimeMultiplier: 2, // normal pay + 100% addition; night allowance is separate
-  nightAllowancePercentOfMinimumHourly: 20,
-
-  // Kept as your existing business rule. This is not a universal statutory rate.
-  turnOfDayHours: 50,
-};
-
-/**
- * Employee-financed social-insurance percentage used when the full
- * pension/disability/sickness contribution set applies.
- *
- * Keep the component rates in `taxes` as the single source of truth.
- */
-export const employeeSocialInsuranceRate =
-  taxes.zusPensionInsurance +
-  taxes.zusDisability +
-  taxes.zusSicknessInsurance;
-
 const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 const buildMonthlyFacts = ({
   taxableIncome,
@@ -295,12 +245,12 @@ const warnIfPostEmploymentL4BaseMissing = (
 
 
 const assertSupportedTaxYear = (values: SalaryCalculatorValues) => {
-  if (values.year !== taxes.year && values.year >= 1000) {
+  if (!isSupportedPayrollYear(values.year) || !Number.isInteger(values.month) || values.month < 1 || values.month > 12) {
     throw new SalaryCalculationError(
       'salary-calculation-unsupported-tax-year',
       {
         year: values.year,
-        supportedYear: taxes.year,
+        supportedYears: '2025–2026',
       },
     );
   }
@@ -340,7 +290,7 @@ const buildYearToDate = ({
   copyrightKupUsed: round2((values.previous50KupUsed ?? 0) + current50Kup),
   uopKupUsed: round2((values.previousUopKupUsed ?? 0) + currentUopKup),
   employerSickPayDays: Math.min(
-    values.uopEmployerSickPayLimit ?? 33,
+    values.uopEmployerSickPayLimit ?? PAYROLL_DEFAULTS.employerSickPayLimit,
     (values.previousEmployerSickPayDays ?? 0) + currentEmployerSickPayDays,
   ),
 });
@@ -376,6 +326,7 @@ const getPit0Split = (
   pit0EligibleRevenue: number,
   alwaysTaxableRevenue = 0,
 ) => {
+  const taxes = getPayrollStatutoryConfig(values.year, values.month);
   const eligibleRevenue = Math.max(0, pit0EligibleRevenue);
   const taxableRegardlessOfRelief = Math.max(0, alwaysTaxableRevenue);
 
@@ -423,7 +374,8 @@ const calculateProgressivePitAdvance = (
   currentPitBase: number,
   previousTaxableIncome: number,
   monthlyTaxReduction: number,
-  doNotWithholdPitAdvance = false,
+  doNotWithholdPitAdvance: boolean | undefined,
+  taxes: PayrollStatutoryConfig,
 ) => {
   if (currentPitBase <= 0) {
     return { pitTax: 0, pitAt12: 0, pitAt32: 0 };
@@ -469,10 +421,12 @@ const calculateEmployeeSocialContributions = ({
   socialBase,
   previousPensionDisabilityBase,
   sicknessBase,
+  taxes,
 }: {
   socialBase: number;
   previousPensionDisabilityBase: number;
   sicknessBase: number;
+  taxes: PayrollStatutoryConfig;
 }) => {
   const pensionDisabilityBase = calculateUopPensionDisabilityBase({
     socialInsuranceBase: socialBase,
@@ -500,6 +454,7 @@ const calculatePpk = (
   values: SalaryCalculatorValues,
   warnings: SalaryCalculationMessage[],
 ) => {
+  const taxes = getPayrollStatutoryConfig(values.year, values.month);
   if (!enabled || base <= 0) {
     return { ppkBase: 0, ppkEmployee: 0, ppkEmployer: 0 };
   }
@@ -507,11 +462,11 @@ const calculatePpk = (
   const employeeRate = values.ppkEmployeeRate ?? taxes.ppkEmployeeBasic;
   const employerRate = values.ppkEmployerRate ?? taxes.ppkEmployerBasic;
 
-  if (employeeRate < 0.5 || employeeRate > 4) {
+  if (employeeRate < taxes.ppkEmployeeMinimum || employeeRate > taxes.ppkEmployeeMaximum) {
     warnings.push({ id: 'salary-warning-ppk-employee-rate-range' });
   }
 
-  if (employerRate < 1.5 || employerRate > 4) {
+  if (employerRate < taxes.ppkEmployerBasic || employerRate > taxes.ppkEmployerMaximum) {
     warnings.push({ id: 'salary-warning-ppk-employer-rate-range' });
   }
 
@@ -543,6 +498,7 @@ const calculatePercentageKup = ({
   deductibleSocial: number;
   currentPit0ExemptRevenue: number;
 }) => {
+  const taxes = getPayrollStatutoryConfig(values.year, values.month);
   const kupBase = Math.max(0, taxableRevenue - deductibleSocial);
 
   if (values.kup === 20) {
@@ -568,14 +524,15 @@ const calculateUopKup = (
   values: SalaryCalculatorValues,
   taxableRevenueAfterSocial: number,
 ) => {
+  const taxes = getPayrollStatutoryConfig(values.year, values.month);
   const monthlyKup = values.uopKup ?? taxes.uopKupStandard;
   if (monthlyKup === 0 || taxableRevenueAfterSocial <= 0) return 0;
 
   const multiple = values.hasMultipleEmploymentRelationships ?? false;
 
   const annualLimit = monthlyKup === taxes.uopKupCommuter
-    ? (multiple ? 5_400 : 3_600)
-    : (multiple ? 4_500 : 3_000);
+    ? (multiple ? taxes.uopKupAnnualMultipleCommuter : taxes.uopKupAnnualCommuter)
+    : (multiple ? taxes.uopKupAnnualMultipleStandard : taxes.uopKupAnnualStandard);
 
   const remainingAnnualKup = Math.max(
     0,
@@ -591,6 +548,7 @@ export const calculateTaxesUoD = (
   values: SalaryCalculatorValues,
 ): SalaryCalculationResult => {
   assertSupportedTaxYear(values);
+  const taxes = getPayrollStatutoryConfig(values.year, values.month);
 
   const warnings: SalaryCalculationMessage[] = [];
   const {
@@ -623,6 +581,7 @@ export const calculateTaxesUoD = (
       socialBase: socialInsuranceBase,
       previousPensionDisabilityBase: values.previousPensionDisabilityBase ?? 0,
       sicknessBase: socialInsuranceBase,
+      taxes,
     });
 
     ({
@@ -657,10 +616,10 @@ export const calculateTaxesUoD = (
   ) && !treatedAsEmployee;
 
   if (lumpSum) {
-    if (fullSalaryBrutto > 200) {
+    if (fullSalaryBrutto > taxes.smallContractLumpSumMax) {
       warnings.push({
         id: 'salary-warning-small-contract-lump-sum-over-limit',
-        values: { limit: 200 },
+        values: { limit: taxes.smallContractLumpSumMax },
       });
     }
 
@@ -691,6 +650,7 @@ export const calculateTaxesUoD = (
       values.previousTaxableIncome ?? 0,
       values.pit2MonthlyReduction ?? 0,
       values.doNotWithholdPitAdvance,
+      taxes,
     );
 
     ({ pitTax, pitAt12, pitAt32 } = pit);
@@ -766,6 +726,7 @@ export const calculateTaxesContractOfMandate = (
   values: SalaryCalculatorValues,
 ): SalaryCalculationResult => {
   assertSupportedTaxYear(values);
+  const taxes = getPayrollStatutoryConfig(values.year, values.month);
 
   const warnings: SalaryCalculationMessage[] = [];
   const {
@@ -893,6 +854,7 @@ export const calculateTaxesContractOfMandate = (
     previousPensionDisabilityBase:
       values.previousPensionDisabilityBase ?? 0,
     sicknessBase,
+    taxes,
   });
 
   const healthInsuranceBase = healthCompulsory
@@ -953,10 +915,10 @@ export const calculateTaxesContractOfMandate = (
   let scalePitBaseForYtd = 0;
 
   if (lumpSum) {
-    if (regularRemunerationBrutto > 200) {
+    if (regularRemunerationBrutto > taxes.smallContractLumpSumMax) {
       warnings.push({
         id: 'salary-warning-small-contract-lump-sum-over-limit',
-        values: { limit: 200 },
+        values: { limit: taxes.smallContractLumpSumMax },
       });
     }
 
@@ -978,6 +940,7 @@ export const calculateTaxesContractOfMandate = (
         values.previousTaxableIncome ?? 0,
         values.pit2MonthlyReduction ?? 0,
         values.doNotWithholdPitAdvance,
+        taxes,
       );
 
     pitBase = benefitPitBase;
@@ -1026,6 +989,7 @@ export const calculateTaxesContractOfMandate = (
       values.previousTaxableIncome ?? 0,
       values.pit2MonthlyReduction ?? 0,
       values.doNotWithholdPitAdvance,
+      taxes,
     );
 
     ({ pitTax, pitAt12, pitAt32 } = pit);
@@ -1131,6 +1095,7 @@ export const calculateTaxesUoP = (
   values: SalaryCalculatorValues,
 ): SalaryCalculationResult => {
   assertSupportedTaxYear(values);
+  const taxes = getPayrollStatutoryConfig(values.year, values.month);
 
   const warnings: SalaryCalculationMessage[] = [];
   const {
@@ -1159,7 +1124,7 @@ export const calculateTaxesUoP = (
   );
 
   const employerSickPayLimit =
-    values.uopEmployerSickPayLimit ?? 33;
+    values.uopEmployerSickPayLimit ?? PAYROLL_DEFAULTS.employerSickPayLimit;
 
   const previousEmployerSickPayDays = Math.max(
     0,
@@ -1498,6 +1463,7 @@ export const calculateTaxesUoP = (
       previousPensionDisabilityBase:
         values.previousPensionDisabilityBase ?? 0,
       sicknessBase: socialInsuranceBase,
+      taxes,
     });
 
   // Employer-funded sick pay is included in the health base. Sickness benefit is not.
@@ -1581,6 +1547,7 @@ export const calculateTaxesUoP = (
     values.previousTaxableIncome ?? 0,
     values.pit2MonthlyReduction ?? 0,
     values.doNotWithholdPitAdvance,
+    taxes,
   );
 
   const netto = round2(

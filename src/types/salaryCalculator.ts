@@ -154,7 +154,7 @@ export type SalaryCalculatorValues = {
   /** YTD PIT-0 exempt revenue before this calculation. Shared annual limit: 85,528 zł. */
   previousPit0Revenue?: number;
 
-  /** YTD pension/disability contribution base before this calculation. Annual limit in 2026: 282,600 zł. */
+  /** YTD pension/disability contribution base before this calculation. The annual limit depends on the salary year. */
   previousPensionDisabilityBase?: number;
 
   /** YTD 50% KUP already used before this calculation. */
@@ -201,7 +201,7 @@ export type SalaryCalculatorValues = {
 
   /**
    * Sum of compulsory social-insurance bases from earlier concurrent UZ titles
-   * in the same month/order. If it already reaches the 2026 minimum wage,
+   * in the same month/order. If it already reaches the applicable minimum wage,
    * social insurance from this UZ is treated as non-compulsory.
    */
   mandateOtherSocialBaseBeforeThisContract?: number;

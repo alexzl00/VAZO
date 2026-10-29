@@ -1,3 +1,4 @@
+import { PAYROLL_DEFAULTS } from "../../utils/statutory/payrollStatutoryConfig";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
@@ -81,7 +82,7 @@ export default function UpdateSalary() {
             inputs.pit2_monthly_reduction ?? 0,
 
           uopKup:
-            inputs.uop_kup ?? 250,
+            inputs.uop_kup ?? PAYROLL_DEFAULTS.uopKup,
 
           hasMultipleEmploymentRelationships:
             inputs.has_multiple_employment_relationships ?? false,
@@ -124,7 +125,7 @@ export default function UpdateSalary() {
 
           // UoP sickness
           uopEmployerSickPayLimit:
-            inputs.uop_employer_sick_pay_limit ?? 33,
+            inputs.uop_employer_sick_pay_limit ?? PAYROLL_DEFAULTS.employerSickPayLimit,
 
           previousEmployerSickPayDays:
             inputs.previous_employer_sick_pay_days ?? 0,
@@ -154,10 +155,10 @@ export default function UpdateSalary() {
             inputs.ppk_enabled ?? false,
 
           ppkEmployeeRate:
-            inputs.ppk_employee_rate ?? 2,
+            inputs.ppk_employee_rate ?? PAYROLL_DEFAULTS.ppkEmployeeRate,
 
           ppkEmployerRate:
-            inputs.ppk_employer_rate ?? 1.5,
+            inputs.ppk_employer_rate ?? PAYROLL_DEFAULTS.ppkEmployerRate,
 
           ppkEmployerTaxableContribution:
             inputs.ppk_employer_taxable_contribution ?? undefined,

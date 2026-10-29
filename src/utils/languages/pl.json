@@ -135,6 +135,7 @@
   "l4-base-warning-long-period-bonus-without-definition": "Składnik „{bonus}” za {period} jest kwartalny lub roczny, ale nie ma stabilnego powiązania z definicją premii. Wynik został obliczony ze snapshotu miesiąca, lecz warto go zweryfikować.",
   "sick-leave-info": "Zwolnienie lekarskie (L4) – jak uzupełnić\nW tym bloku wpisujesz okresy zwolnienia lekarskiego przypadające w danym miesiącu.\n\n• Podaj datę początku i datę końca zwolnienia.\n• Liczba dni L4 jest liczona jako dni kalendarzowe.\n• Kalkulator wykorzystuje limit 33 albo 14 dni wynagrodzenia chorobowego finansowanego przez pracodawcę i po jego wykorzystaniu rozdziela dalsze dni jako zasiłek chorobowy.\n• Wykorzystane wcześniej dni oraz właściwy limit ustawisz w Ustawieniach zaawansowanych.",
   "mandate-l4-base-error-year": "Brak parametrów ZUS dla {year} roku. Wprowadź podstawę L4 ręcznie po sprawdzeniu danych.",
+  "l4-base-error-post-termination-limit": "Nie można potwierdzić limitu podstawy zasiłku po ustaniu zatrudnienia dla {period}. Wpisz zweryfikowaną podstawę ręcznie.",
   "mandate-l4-base-error-post-termination-limit": "Nie można potwierdzić limitu podstawy zasiłku po zakończeniu umowy dla {period}. Wpisz zweryfikowaną podstawę ręcznie.",
   "mandate-l4-base-error-engine": "Zapisane wynagrodzenie za {period} używa innej wersji silnika lub schematu danych. Sprawdź podstawę L4 ręcznie.",
   "mandate-l4-base-error-mixed-insurance": "Wskazano jednocześnie zwykłe L4 i L4 wypadkowe. Ich podstawy mogą się różnić. Zweryfikuj podstawę ręcznie.",
@@ -441,7 +442,7 @@
   "validation-total-overtime-limit": "Łączna liczba nadgodzin nie może przekraczać ustawionego limitu.",
 
   "salary-calculation-failed": "Nie udało się obliczyć wynagrodzenia.",
-  "salary-calculation-unsupported-tax-year": "Reguły podatkowe dla roku {year} nie są skonfigurowane. Kalkulator obecnie obsługuje zweryfikowane zasady dla roku {supportedYear}.",
+  "salary-calculation-unsupported-tax-year": "Reguły podatkowe dla roku {year} nie są skonfigurowane. Kalkulator obsługuje lata {supportedYears}.",
   "salary-warning-ppk-employee-rate-range": "Wpłata pracownika do PPK powinna mieścić się w zakresie od 0,5% do 4%.",
   "salary-warning-ppk-employer-rate-range": "Wpłata pracodawcy do PPK powinna mieścić się w zakresie od 1,5% do 4%.",
   "salary-warning-ppk-reduced-rate-income-limit": "Obniżona wpłata pracownika do PPK poniżej 2% co do zasady wymaga, aby łączne miesięczne wynagrodzenie nie przekraczało {limit} zł w {year} roku.",

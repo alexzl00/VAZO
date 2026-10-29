@@ -15,7 +15,7 @@ export const staticHolidays = (year: number): Holiday[] => [
   { name: "Wniebowzięcie Najświętszej Maryi Panny i Święto Wojska Polskiego", date: `${year}-08-15`, type: 'static' },
   { name: "Wszystkich Świętych", date: `${year}-11-01`, type: 'static' },
   { name: "Narodowe Święto Niepodległości", date: `${year}-11-11`, type: 'static' },
-  { name: "Wigilia Bożego Narodzenia", date: `${year}-12-24`, type: 'static' },
+  ...(year >= 2025 ? [{ name: "Wigilia Bożego Narodzenia", date: `${year}-12-24`, type: 'static' as const }] : []),
   { name: "Boże Narodzenie I dzień", date: `${year}-12-25`, type: 'static' },
   { name: "Boże Narodzenie II dzień", date: `${year}-12-26`, type: 'static' },
 ];

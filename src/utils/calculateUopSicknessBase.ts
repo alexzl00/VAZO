@@ -3,7 +3,8 @@ import { resolveBonusTreatments } from "./bonusTreatmentDefaults";
 
 import { getWorkedDaysInMonthWithPolishHolidays } from "./workingTimeHelper";
 import { getHistoricalMinimumWage, getHistoricalUopOvertimeGross } from "./uopHistoricalOvertime";
-import { employeeSocialInsuranceRate, taxes } from "./workTypeSalaryCalc";
+import { employeeSocialInsuranceRate, getHistoricalPayrollStatutoryConfig } from "./statutory/payrollStatutoryConfig";
+import { getPostTerminationBenefitCap } from "./statutory/postTerminationBenefitCaps";
 import {
   calculateUopPensionDisabilityBase,
   calculateUopSocialInsuranceBase,
@@ -54,12 +55,8 @@ const toMonthDate = (month: UopSicknessHistoryMonth) =>
 
 const getMinimumWage = getHistoricalMinimumWage;
 
-const getAnnualPensionDisabilityLimit = (year: number): number | null => {
-  if (year === 2024) return 234720;
-  if (year === 2025) return 260190;
-  if (year === 2026) return 282600;
-  return null;
-};
+const getAnnualPensionDisabilityLimit = (year: number, month: number): number | null =>
+  getHistoricalPayrollStatutoryConfig(year, month)?.zusAnnualPensionDisabilityLimit ?? null;
 
 const clampRangeToMonth = (
   range: ISODateRange,
@@ -291,7 +288,7 @@ const getEffectiveEmployeeContributionRate = (
     return employeeSocialInsuranceRate;
   }
 
-  const annualLimit = getAnnualPensionDisabilityLimit(month.year);
+  const annualLimit = getAnnualPensionDisabilityLimit(month.year, month.month);
   if (annualLimit == null) {
     warnings.push({
       id: "l4-base-warning-unsupported-historical-zus-cap",
@@ -318,12 +315,14 @@ const getEffectiveEmployeeContributionRate = (
     });
   }
 
+  const policy = getHistoricalPayrollStatutoryConfig(month.year, month.month);
+  if (!policy) return employeeSocialInsuranceRate;
   const employeeContributions = round2(
     percent(
       pensionDisabilityBase,
-      taxes.zusPensionInsurance + taxes.zusDisability,
+      policy.zusPensionInsurance + policy.zusDisability,
     )
-      + percent(actualSocialGross, taxes.zusSicknessInsurance),
+      + percent(actualSocialGross, policy.zusSicknessInsurance),
   );
 
   return actualSocialGross > 0
@@ -947,11 +946,24 @@ export const calculateUopSicknessBase = (
     minimumBase != null
     && calculatedBaseBeforeMinimum < minimumBase;
 
-  const base = round2(
+  const baseBeforePostTerminationCap = round2(
     minimumApplied
       ? minimumBase!
       : calculatedBaseBeforeMinimum,
   );
+  // Art. 46 limits the base for benefits after the end of insurance.
+  // The same effective-dated table is shared with UZ; never guess a future cap.
+  const postTerminationCap = context === 'afterInsurance'
+    ? getPostTerminationBenefitCap(target.year, target.month)
+    : null;
+  if (context === 'afterInsurance' && postTerminationCap === null) {
+    throw new UopSicknessBaseError('l4-base-error-post-termination-limit', {
+      period: periodKey(target.year, target.month),
+    });
+  }
+  const base = postTerminationCap === null
+    ? baseBeforePostTerminationCap
+    : round2(Math.min(baseBeforePostTerminationCap, postTerminationCap));
 
   return {
     base,
