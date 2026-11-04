@@ -20,6 +20,9 @@ const CreateWorkRelation = Loadable(lazy(() => import('../pages/work_relations/C
 const ViewWorkRelation = Loadable(lazy(() => import('../pages/work_relations/ViewWorkRelation')));
 const EditWorkRelation = Loadable(lazy(() => import('../pages/work_relations/EditWorkRelation')));
 
+// statistics
+const StatisticsPage = Loadable(lazy(() => import('../pages/salaries/StatisticsPage')));
+
 const MainRoutes = {
   path: '/',
   element: <MainLayout />, // wrap all children with MainLayout
@@ -42,6 +45,10 @@ const MainRoutes = {
         {
           path: 'update-salary/:id',
           element: <UpdateSalary />,
+        },
+        {
+          path: 'statistics',
+          element: <StatisticsPage />
         },
         {
           path: 'profile',

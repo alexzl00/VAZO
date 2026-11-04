@@ -83,7 +83,7 @@ const navbarItems = [
   },
   {
     id: "navbar-statistics",
-    path: "/salaries-statistics",
+    path: "/statistics",
     Icon: BarChartOutlined,
     requiresAuth: true,
   }

@@ -188,6 +188,9 @@ export default React.memo(function TaxChart({ calculation }: TaxChartProps) {
         fast: { animation: { duration: 150 } },
       },
       plugins: {
+        legend: {
+          display: false,
+        },
         tooltip: {
           bodyFont: { family: "'Poppins', sans-serif" },
           titleFont: { family: "'Poppins', sans-serif" },
