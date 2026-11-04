@@ -9,8 +9,6 @@ import {
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 
-import { useNavigate } from 'react-router-dom';
-
 // third party
 import { useSnackbar } from 'notistack';
 import { useIntl } from 'react-intl';

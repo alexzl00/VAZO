@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 
 // mui
 import Grid from "@mui/material/Grid";
-import useMediaQuery from "@mui/material/useMediaQuery";
+// import useMediaQuery from "@mui/material/useMediaQuery";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import { useTheme } from "@mui/material/styles";
@@ -37,7 +37,7 @@ interface FormWithInfoProps {
 const FormWithInfo: React.FC<FormWithInfoProps> = ({ children, title, infoText }) => {
   const theme = useTheme();
   const [isTextShown, setIsTextShown] = useState(false);
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  // const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const handleInfoClick = () => {
     setIsTextShown((prev) => !prev);

@@ -10,7 +10,6 @@ import {
   Button,
   Stack,
   TextField,
-  FormHelperText,
   InputLabel
 } from '@mui/material';
 import IconButton from "@mui/material/IconButton";
@@ -20,10 +19,9 @@ import RestartAlt from "@mui/icons-material/RestartAlt";
 
 import { alpha } from '@mui/material/styles';
 import { CheckCircleOutlined, CloseOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
-import { Field } from 'formik';
-import type { FieldProps, FormikErrors } from 'formik';
+import type { FormikErrors } from 'formik';
 
-import { FormikNumberField } from '../FormikFields';
+// import { FormikNumberField } from '../FormikFields';
 
 // types
 import type { SalaryCalculatorValues } from '../../types/salaryCalculator';

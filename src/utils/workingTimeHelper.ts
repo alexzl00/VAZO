@@ -4,8 +4,8 @@ import { getPolishHolidays } from './getHolidays';
 import { getWorkedDaysInMonth } from './monthHelperFunc';
 import type { ISODateRange } from './monthHelperFunc';
 
-const toIso = (value: { format: (template: string) => string }) =>
-  value.format('YYYY-MM-DD');
+// const toIso = (value: { format: (template: string) => string }) =>
+//   value.format('YYYY-MM-DD');
 
 const isDateInsideRange = (dateIso: string, range: ISODateRange) =>
   dateIso >= range.start && dateIso <= range.end;

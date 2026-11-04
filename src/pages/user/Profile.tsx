@@ -35,7 +35,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { supabase } from "../../lib/supabase";
 
 // types
-import type { SubscriptionPlan } from "../../types/user/subscription";
+// import type { SubscriptionPlan } from "../../types/user/subscription";
 import type { ProfileData } from "../../types/user/profile";
 
 // api
