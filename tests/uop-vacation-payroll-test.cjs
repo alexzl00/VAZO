@@ -2,7 +2,7 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const Module = require('node:module');
-const ts = require('/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescript');
+const ts = require('typescript');
 const fs = require('node:fs');
 require.extensions['.ts'] = (module,filename) => module._compile(ts.transpileModule(
   fs.readFileSync(filename,'utf8'), {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}
@@ -29,7 +29,8 @@ Module._load=function(name,parent){
  }
  return orig.apply(this,arguments);
 };
-const {calculateTaxesUoP,taxes}=require('../src/utils/workTypeSalaryCalc.ts');
+const {calculateTaxesUoP}=require('../src/utils/workTypeSalaryCalc.ts');
+const {getPayrollStatutoryConfig}=require('../src/utils/statutory/payrollStatutoryConfig.ts');
 const base=()=>({
  year:2026,month:10,workRateType:'uop_monthly',rate:6000,workingHours:176,
  holidays:[],leave:[],l4:[],leaveBase:6000,l4Base:6000,l4BaseAfterTermination:0,
@@ -44,7 +45,7 @@ const base=()=>({
  deductionAfterTax:0,additionAfterTax:0,
 });
 const vacation=[{start:'2026-10-12',end:'2026-10-16'}];
-test('2026 engine year remains v1 payroll target',()=>assert.equal(taxes.year,2026));
+test('2026 engine year remains v1 payroll target',()=>assert.equal(getPayrollStatutoryConfig(2026, 10).year,2026));
 test('fixed monthly wage with equal vacation base is invariant',()=>{
  const normal=calculateTaxesUoP(base());
  const paid=calculateTaxesUoP({...base(),leave:vacation});

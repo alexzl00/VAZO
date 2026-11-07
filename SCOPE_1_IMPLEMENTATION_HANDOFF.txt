@@ -1,0 +1,111 @@
+VAZO /PORADNIK — SCOPE 1 IMPLEMENTATION HANDOFF
+Date: 2026-11-04
+Original master plan: UNCHANGED
+This archive is a PATCH against the original complete VAZO repository,
+not a standalone new project. It contains only new/modified files.
+
+1. WHAT WAS IMPLEMENTED
+- Dedicated server-safe React -> STATIC HTML rendering of public guide pages.
+  Existing React Router, AuthProvider, Supabase and calculator remain unchanged.
+- Separate responsive Polish VAZO reading layout (no dashboard/side navigation).
+- Typed article registry; one draft TECHNICAL sample; no legal articles yet.
+- SEO helpers: strict HTTPS origin, route policy, metadata, canonical,
+  Open Graph, Article/BreadcrumbList JSON-LD, published-only sitemap.
+- Strong preview-only release gate: "off" on Production, "preview" on
+  Vercel Preview. A public release requires approved published articles.
+- Noindex on all preview HTML, no draft canonical or sitemap.
+- Explicit Vercel cleanUrls and narrowly matched SPA rewrites to preserve
+  /salary-calculator, /salaries, auth and work relations. No catchall rewrite
+  is used, so unknown article slugs should return HTTP 404.
+- No new runtime dependency and no npm lockfile changes.
+- Existing SPA index.html, existing router, main.css and payroll logic intact.
+
+2. APPLY THE PATCH
+Extract the accompanying VAZO_PORADNIK_SCOPE_1_CODE_PATCH.zip at the ROOT
+of your REAL complete repository, preserving nested directories.
+Existing files overwritten by the patch:
+  package.json (only npm build and test script changes)
+  .gitignore   (only allows .env.example to be tracked)
+Everything else in this patch is new.
+No src/main.tsx, src/routes/*, src/components/NavBar.tsx or payroll source
+is overwritten. Do not replace your full repo with the old 34-file review ZIP.
+
+3. VERCEL ENVIRONMENT SETTINGS
+Production:
+  VITE_SITE_URL=https://vazo.vercel.app
+  PORADNIK_RELEASE_MODE=off
+Preview:
+  VITE_SITE_URL=https://vazo.vercel.app
+  PORADNIK_RELEASE_MODE=preview
+
+Set these in Vercel > Project > Settings > Environment Variables.
+Ensure each variable has the correct Production/Preview target.
+Vercel uses the unchanged "Vite" framework preset, npm run build, dist.
+When a custom domain is purchased, only VITE_SITE_URL needs changing in
+Vercel (plus DNS/domain attachment and host redirects).
+
+IMPORTANT: A Preview deployment is a separate URL and noindex, not private
+access control. Do not put personal/user/production financial data in it.
+
+4. BUILD LOCALLY (FULL REPO REQUIRED)
+  npm ci
+  npm run build
+  npm run test:poradnik
+
+Default release mode is OFF. This must create NO /poradnik HTML in dist.
+
+To build the preview locally (Unix/macOS shell):
+  VITE_SITE_URL=https://vazo.vercel.app PORADNIK_RELEASE_MODE=preview npm run build
+  PORADNIK_RELEASE_MODE=preview npm run test:poradnik
+
+Expected preview files:
+  dist/index.html
+  dist/poradnik.html
+  dist/poradnik/demo-architektury.html
+  dist/poradnik/poradnik.css
+  dist/poradnik/VAZO-logo.png
+
+Expected Production/off files:
+  dist/index.html
+  (no dist/poradnik.html, no demo article, no sitemap.xml)
+
+The demo guide is meant to be tested on a Vercel Preview URL, not via
+"npm run dev": we intentionally did not integrate the independent SSG
+routes into the existing SPA dev server.
+
+5. DEPLOYED VALIDATION — REQUIRED (NOT CHECKED IN THIS ENVIRONMENT)
+Replace <PREVIEW_URL> with the Vercel-generated Preview deployment origin.
+  curl -IL <PREVIEW_URL>/salary-calculator
+  curl -IL <PREVIEW_URL>/login
+  curl -IL <PREVIEW_URL>/salaries
+  curl -IL <PREVIEW_URL>/poradnik
+  curl -IL <PREVIEW_URL>/poradnik/demo-architektury
+  curl -IL <PREVIEW_URL>/poradnik/nonexistent-slug
+  curl -s <PREVIEW_URL>/poradnik/demo-architektury | head -c 2000
+
+Expected: app route HTTP 200; preview guides HTTP 200 with real page body,
+noindex (meta plus normally Vercel X-Robots-Tag), unknown slug real HTTP 404.
+Production https://vazo.vercel.app/poradnik should be real HTTP 404 while OFF.
+If a Vercel preset forces SPA fallback on unknown routes, STOP and adjust
+routing. The local tests cannot prove live Vercel HTTP statuses.
+
+6. PHASE 2 PUBLICATION — NOT DONE HERE
+Write and verify three actual Polish guides and their official sources.
+Set their statuses to 'published', with publishedAt/reviewedAt/scope/sources.
+Update article registry and create their content files. Then enable
+PORADNIK_RELEASE_MODE=public in Production, publish the sitemap, review
+canonical URLs, and only then add the guide to calculator navigation.
+
+7. BUILD VERIFICATION LIMITATIONS
+The review ZIP supplied 34 files, not the complete project source tree.
+Its missing imports prevent a full end-to-end TypeScript+Vite application
+build in this environment. npm dependencies could not be installed here.
+Node syntax checks and independent source/routing tests were executed;
+actual Vite SSR output, CSS, mobile display, and Vercel HTTP response
+verification require your complete repo / deployment.
+
+8. TECHNICAL REFERENCES
+https://vite.dev/guide/ssr
+https://vercel.com/docs/frameworks/frontend/vite
+https://vercel.com/docs/project-configuration/vercel-json
+https://vercel.com/docs/routing/rewrites

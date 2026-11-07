@@ -1,0 +1,20 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/salary-calculator", "destination": "/" },
+    { "source": "/salaries", "destination": "/" },
+    { "source": "/update-salary/:id", "destination": "/" },
+    { "source": "/statistics", "destination": "/" },
+    { "source": "/profile", "destination": "/" },
+    { "source": "/work-relations", "destination": "/" },
+    { "source": "/create-work-relation", "destination": "/" },
+    { "source": "/view-work-relation/:id", "destination": "/" },
+    { "source": "/edit-work-relation/:id", "destination": "/" },
+    { "source": "/login", "destination": "/" },
+    { "source": "/signup", "destination": "/" },
+    { "source": "/reset-password", "destination": "/" },
+    { "source": "/update-password", "destination": "/" }
+  ]
+}
