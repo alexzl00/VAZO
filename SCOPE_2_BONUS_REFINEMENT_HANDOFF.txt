@@ -1,0 +1,41 @@
+VAZO / PORADNIK — Scope 2 final refinements
+Date: 2026-11-10
+
+Changes:
+1. src/content/poradnik/l4/jak-obliczyc-podstawe-l4.tsx
+   Added brief chapter on factors determining whether bonuses count toward the L4 base, with a 400-zl comparison.
+2. src/content/poradnik/vacation/jak-obliczyc-wynagrodzenie-urlopowe.tsx
+   Added brief chapter distinguishing fixed monthly, variable monthly, quarterly/annual and exceptional one-off bonuses, with a 200+400+600-zl example.
+3. src/poradnik/poradnik.css
+   VAZO logo/link remains white on hover/focus instead of inheriting the generic blue hover color.
+4. src/content/poradnik/index.ts
+   Updated reviewed dates for changed articles and added PIP and official legal-register sources to the vacation article.
+5. tests/poradnik-bonus-sections.test.mjs
+   Targeted source-level regression checks for new sections, source registry, and hover styling.
+
+HOW TO APPLY
+- Ensure you are on your current Scope 2 feature branch.
+- Check for any unpublished edits to the four existing files before extracting. The archive replaces those files based on the previously supplied Scope 2 patch.
+- Extract this patch in the project root:
+    unzip -o ~/Downloads/VAZO_SCOPE_2_BONUS_REFINEMENT_PATCH.zip -d .
+- Inspect changes:
+    git diff -- src/content/poradnik src/poradnik/poradnik.css
+- Test:
+    node --test tests/poradnik-bonus-sections.test.mjs
+    VITE_SITE_URL=https://vazo.vercel.app PORADNIK_RELEASE_MODE=preview npm run build
+    PORADNIK_RELEASE_MODE=preview npm run test:poradnik
+    npm run preview
+- Confirm the two new chapters and VAZO header hover locally, then push the feature branch for a new Vercel Preview deployment.
+
+IMPORTANT
+- No salary-calculation code changed.
+- No app routes, SEO release modes, .env or master plans changed.
+- No pl.json modifications: these are article editorial paragraphs, not reusable UI strings.
+- The three guides remain drafts; do not enable public mode yet.
+- We ran 4 focused Node tests and TypeScript syntax/transpilation checks on the 3 modified TSX/TS files.
+- Full project build and runtime preview are unverified in this isolated environment.
+
+LEGAL REFERENCE BASIS
+- ZUS: https://www.zus.pl/swiadczenia/zasilki/zasilek-chorobowy/podstawa-wymiaru/dla-pracownikow
+- PIP: https://www.pip.gov.pl/aktualnosci/nie-wystarczy-nazwa-premia
+- ELI: https://eli.gov.pl/eli/DU/1997/14/ogl/pol

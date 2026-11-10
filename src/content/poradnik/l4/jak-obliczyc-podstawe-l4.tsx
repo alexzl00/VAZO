@@ -38,13 +38,24 @@ export default function SickBaseContent() {
         składniki, zależnie od ich charakteru, okresu, za który przysługują, oraz zasad
         wypłacania podczas choroby.
       </p>
+      <h2>Kiedy premia wlicza się do podstawy L4?</h2>
+      <p>Sprawdź trzy rzeczy:</p>
+      <ul>
+        <li><strong>Składki:</strong> czy od premii naliczano składkę na ubezpieczenie chorobowe?</li>
+        <li><strong>Wypłata podczas L4:</strong> czy dostajesz tę premię także za czas choroby?
+          Jeśli tak, zwykle nie wchodzi ona do podstawy świadczenia w trakcie zatrudnienia.</li>
+        <li><strong>Okres premii:</strong> czy jest miesięczna, kwartalna czy roczna?
+          Każdą rozlicza się inaczej. Ważne jest też, czy pracodawca zmniejsza ją za nieobecność.</li>
+      </ul>
       <p>
-        Nie każdy dodatek dolicza się automatycznie. Przykładowo, składnika, do którego
-        pracownik zachowuje prawo i który otrzymuje za okres pobierania zasiłku, co do zasady
-        nie uwzględnia się w podstawie świadczenia za czas trwania ubezpieczenia.
-        ZUS wskazuje przy tym odrębną zasadę dotyczącą świadczeń po ustaniu zatrudnienia.
-        Premie kwartalne lub roczne także nie są po prostu dodawane do jednego wybranego miesiąca:
-        stosuje się dla nich właściwe reguły uwzględniania.
+        <strong>Przykład:</strong> miesięczna premia sprzedażowa 400 zł, od której naliczano
+        składkę chorobową i która nie przysługuje za czas L4, zwykle wchodzi do podstawy.
+        Premia 400 zł wypłacana w całości także za czas choroby — zwykle nie.
+      </p>
+      <p>
+        <strong>Ważne:</strong> po zakończeniu zatrudnienia zasady dotyczące premii zachowywanych
+        w czasie choroby mogą być inne. O konkretnym bonusie decydują zasady jego wypłaty,
+        a nie sama nazwa „premia”.
       </p>
 
       <h2>Przykład obliczenia podstawy L4</h2>

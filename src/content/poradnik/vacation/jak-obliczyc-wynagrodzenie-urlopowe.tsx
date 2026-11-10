@@ -20,11 +20,24 @@ export default function VacationPayContent() {
         okres można przedłużyć do <strong>12 miesięcy</strong>. Zmiany zasad lub wysokości
         składników mogą wymagać ponownego ustalenia podstawy.
       </p>
+      <h2>Które premie liczą się do wynagrodzenia urlopowego?</h2>
+      <p>Najważniejsze jest to, jak premia jest przyznawana:</p>
+      <ul>
+        <li><strong>Stała co miesiąc:</strong> np. 300 zł dodatku miesięcznego —
+          uwzględnia się kwotę należną w miesiącu urlopu, bez liczenia średniej.</li>
+        <li><strong>Zmienna co miesiąc:</strong> np. premia za wyniki sprzedaży —
+          zwykle wchodzi do średniej z 3 miesięcy (czasem z 12).</li>
+        <li><strong>Kwartalna lub roczna:</strong> nie dodaje się jej do miesięcznej średniej
+          urlopowej; wypłaca się ją na zwykłych zasadach.</li>
+        <li><strong>Jednorazowa:</strong> np. nagroda za wyjątkowe zadanie —
+          nie wchodzi do podstawy urlopowej.</li>
+      </ul>
       <p>
-        Nie każdy bonus automatycznie wchodzi do średniej. W szczególności znaczenie mają
-        rodzaj i okresowość składnika oraz wyłączenia wynikające z przepisów urlopowych.
-        Przed przyjęciem premii do podstawy należy sprawdzić zasady jej przyznawania.
+        <strong>Przykład:</strong> jeśli premia sprzedażowa wyniosła kolejno 200, 400 i 600 zł,
+        do obliczenia stawki zmiennej przyjmujesz łącznie <strong>1200 zł</strong>
+        i dzielisz tę kwotę przez godziny faktycznie przepracowane w tych miesiącach.
       </p>
+      <p>O tym, do której grupy należy premia, decydują zasady wypłaty, a nie jej nazwa.</p>
 
       <h2>Jak policzyć stawkę godzinową składników zmiennych?</h2>
       <p>

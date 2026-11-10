@@ -27,6 +27,8 @@ img { max-width: 100%; height: auto; }
 .guide-header { background: var(--vazo-header); border-bottom: 1px solid rgba(255,255,255,.14); }
 .guide-header-inner { width: min(1140px, calc(100% - 40px)); margin: auto; min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .guide-brand { display: inline-flex; align-items: center; gap: 10px; font-size: 1.2rem; letter-spacing: .06em; font-weight: 800; text-decoration: none; color: #fff; }
+.guide-brand:hover, .guide-brand:focus-visible { color: #fff; text-decoration: none; }
+.guide-brand:hover { opacity: .88; }
 .guide-brand img { display: block; width: 44px; height: 44px; object-fit: contain; }
 .guide-nav { display: flex; align-items: center; justify-content: flex-end; gap: clamp(12px, 3vw, 30px); font-size: .9rem; font-weight: 650; }
 .guide-nav a { color: #f5f1ff; text-decoration: none; }

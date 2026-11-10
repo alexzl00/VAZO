@@ -32,10 +32,10 @@ export const ARTICLES: readonly ArticleDefinition[] = [
     excerpt: '12 miesięcy, premie, pomniejszenie o składki i przykład obliczenia miesięcznej podstawy.',
     directAnswer: 'Podstawę L4 pracownika ustala się co do zasady z przeciętnego miesięcznego wynagrodzenia za 12 miesięcy kalendarzowych poprzedzających miesiąc choroby. Uwzględnia się odpowiednie składniki przychodu po odliczeniu składek społecznych finansowanych przez pracownika. To nie jest ani pensja netto, ani automatycznie 80% kwoty brutto.',
     status: 'draft',
-    reviewedAt: '2026-11-07',
+    reviewedAt: '2026-11-10',
     effectiveDateScope: 'zasady ogólne na listopad 2026 r.; umowa o pracę',
     sources: [
-      { title: 'ZUS — Podstawa wymiaru zasiłku chorobowego dla pracowników', url: 'https://www.zus.pl/swiadczenia/zasilki/zasilek-chorobowy/podstawa-wymiaru/dla-pracownikow', reviewedAt: '2026-11-07' },
+      { title: 'ZUS — Podstawa wymiaru zasiłku chorobowego dla pracowników', url: 'https://www.zus.pl/swiadczenia/zasilki/zasilek-chorobowy/podstawa-wymiaru/dla-pracownikow', reviewedAt: '2026-11-10' },
     ],
     relatedArticleIds: ['ile-wynosi-wyplata-na-l4'],
     cta: {
@@ -81,11 +81,13 @@ export const ARTICLES: readonly ArticleDefinition[] = [
     excerpt: 'Stała pensja, zmienne dodatki, średnia godzinowa i przykład dwóch dni urlopu.',
     directAnswer: 'Za urlop wypoczynkowy pracownik otrzymuje wynagrodzenie takie, jakie otrzymałby, gdyby pracował. Stałe składniki miesięczne uwzględnia się w kwocie należnej w miesiącu urlopu, a odpowiednie składniki zmienne rozlicza się zwykle na podstawie trzech poprzednich miesięcy i faktycznie przepracowanych godzin.',
     status: 'draft',
-    reviewedAt: '2026-11-07',
+    reviewedAt: '2026-11-10',
     effectiveDateScope: 'zasady ogólne na listopad 2026 r.; urlop wypoczynkowy przy umowie o pracę',
     sources: [
       { title: 'PIP — Urlop wypoczynkowy i wynagrodzenie za czas urlopu', url: 'https://www.pip.gov.pl/dla-pracodawcow/porady-prawne/urlopy-pracownicze', reviewedAt: '2026-11-07' },
       { title: 'PIP — Przez jakie godziny dzielić zmienne składniki wynagrodzenia urlopowego?', url: 'https://www.pip.gov.pl/dla-pracodawcow/pytania-i-odpowiedzi/jak-prawidlowo-ustalic-stawke-wynagrodzenia-urlopowego-ze-zmiennych-skladnikow-wynagrodzenia-przyslugujacych-za-okresy-nie-dluzsze-niz-miesiac-przez-jakie-godziny-nalezy-podzielic-te-skladniki', reviewedAt: '2026-11-07' },
+      { title: 'PIP — Nie wystarczy nazwa: premia', url: 'https://www.pip.gov.pl/aktualnosci/nie-wystarczy-nazwa-premia', reviewedAt: '2026-11-10' },
+      { title: 'Dziennik Ustaw — zasady wynagrodzenia urlopowego (§ 6–12)', url: 'https://eli.gov.pl/eli/DU/1997/14/ogl/pol', reviewedAt: '2026-11-10' },
     ],
     relatedArticleIds: [],
     cta: {
