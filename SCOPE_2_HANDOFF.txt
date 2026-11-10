@@ -1,0 +1,75 @@
+VAZO — PORADNIK / SCOPE 2 CODE HANDOFF
+Date: 2026-11-07
+
+BASELINE
+- Scope 1 code patch with the separate TypeScript createElement fix already applied.
+- Original VAZO project outside /poradnik is left unchanged.
+- Original master SEO implementation plan and Scope 1 architecture plan are unchanged.
+
+DELIVERABLE
+- Separate Scope 2 patch. These files are replacements/additions only, not a complete repository.
+- The technical demo source src/content/poradnik/demo.tsx must be REMOVED manually after extracting the patch.
+- Three article files are DRAFT and can only be rendered in PORADNIK_RELEASE_MODE=preview.
+- No public publishing approval has been given; keep Production release mode OFF.
+
+APPLY TO YOUR EXISTING PROJECT ROOT
+1. Make a clean feature branch; commit/stash existing uncommitted work.
+2. BACK UP src/utils/languages/pl.json if you have updated translations since the review ZIP from 2026-11-04.
+3. Unzip the patch into your existing project root, overwriting matching Scope 1 files.
+4. Remove the old source:
+      rm -f src/content/poradnik/demo.tsx
+5. Review `git diff`, especially src/utils/languages/pl.json. The delivered JSON retains the original section spacing and appends 29 poradnik-* IDs. If your local pl.json has newer edits, merge these 29 keys rather than restoring the older file.
+6. Validate locally using installed project dependencies:
+      VITE_SITE_URL=https://vazo.vercel.app PORADNIK_RELEASE_MODE=preview npm run build
+      PORADNIK_RELEASE_MODE=preview npm run test:poradnik
+      npm run preview
+7. Visit:
+      http://localhost:4173/poradnik
+      http://localhost:4173/poradnik/jak-obliczyc-podstawe-l4
+      http://localhost:4173/poradnik/ile-wynosi-wyplata-na-l4
+      http://localhost:4173/poradnik/jak-obliczyc-wynagrodzenie-urlopowe
+8. Production must stay PORADNIK_RELEASE_MODE=off. Preview remains noindex and has no draft canonicals, Article JSON-LD or sitemap entries. Test Vercel actual HTTP statuses on a Preview deployment before publication.
+
+WHAT CHANGED
+- /poradnik index now centered, including hero and category card region.
+- Header #211331, white text, accessible contrast and narrower/mobile wrapping.
+- Removed all visible technical/demo/preview UI notices; removed technical registry record.
+- Static React renderer uses synchronous pl.json messages through react-intl (IntlProvider/createIntl). Existing browser Translations wrapper remains untouched.
+- Added 29 `poradnik-*` localized UI keys to existing pl.json, keeping old formatting.
+- Exactly 3 typed draft articles and official source links; article-specific editorial content remains in content modules.
+- One release-aware visibility helper drives prerender output, index and related links.
+- Build-time release gates preserved and strengthened.
+- Build/SEO tests updated for all three pilot URLs and translated HTML.
+
+LOCAL VERIFICATION COMPLETED IN THE ASSISTANT ENVIRONMENT
+- TS/TSX syntax parsing: 22 files parsed, zero parse errors.
+- JavaScript syntax check: 3 scripts/tests passed.
+- Tests executable without app dependencies: 3 passed.
+- Runtime SSR/HTML tests: 2 skipped because packages could not be installed in this environment (npm registry DNS unavailable).
+- NOT verified: full VAZO TypeScript/Vite build, browser visual comparison, real Vercel routing/status codes.
+
+LEGAL AND FINANCIAL REVIEW
+- Reviewed official ZUS and Państwowa Inspekcja Pracy information on 2026-11-07.
+- Articles are still intentionally DRAFT, not approved legal content.
+- Illustrative math independently checked (L4 base 5177.40 zł, 6-day 80% amount 828.36 zł, vacation variable component 48.00 zł).
+- The current payroll engine was NOT included in the Scope 1 repository review ZIP, so examples and CTA claims have not been reconciled with the latest engine. Do NOT switch Production to public or mark the articles published before checking those actual files and source/QA approval.
+
+ENGINE FILES REQUIRED FOR FINAL ALIGNMENT
+- src/utils/calculateUopSicknessBase.ts
+- src/utils/calculateUopVacationBase.ts
+- src/utils/workTypeSalaryCalc.ts
+- src/utils/statutory/payrollStatutoryConfig.ts
+- src/types/uopSicknessBase.ts
+- src/types/uopVacationBase.ts
+- src/utils/vacationWorkingTime.ts
+- tests/uop-vacation-base.test.cjs
+- tests/uop-vacation-payroll-test.cjs
+- Any locally imported helpers required by the above if their interfaces are not evident.
+
+REFERENCES CHECKED
+https://www.zus.pl/swiadczenia/zasilki/zasilek-chorobowy/podstawa-wymiaru/dla-pracownikow
+https://bip.zus.pl/pl/web/guest/swiadczenia/zasilki/zasilek-chorobowy/z-ubezpieczenia-chorobowego/prawo-do-zasilku-i-okres-przyslugiwania
+https://psz.zus.pl/web/guest/swiadczenia/zasilki/zasilek-chorobowy/z-ubezpieczenia-chorobowego/wysokosc
+https://psz.zus.pl/web/guest/swiadczenia/zasilki/zasilek-chorobowy/postepowanie-w-sprawie-zasilkow/platnicy-zasilku
+https://www.pip.gov.pl/dla-pracodawcow/porady-prawne/urlopy-pracownicze
+https://www.pip.gov.pl/dla-pracodawcow/pytania-i-odpowiedzi/jak-prawidlowo-ustalic-stawke-wynagrodzenia-urlopowego-ze-zmiennych-skladnikow-wynagrodzenia-przyslugujacych-za-okresy-nie-dluzsze-niz-miesiac-przez-jakie-godziny-nalezy-podzielic-te-skladniki

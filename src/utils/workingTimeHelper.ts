@@ -66,9 +66,15 @@ export const getNominalWorkingHoursInMonth = (
     (holiday) => dayjs(holiday.date).month() === monthIndex,
   );
 
-  const statutoryReductionHours = statutoryHolidays.filter(
-    (holiday) => dayjs(holiday.date).day() !== 0,
-  ).length * 8;
+  // These are scheduled Monday–Friday hours based on the employee's marked
+  // calendar, not the statutory working-time norm for the accounting period.
+  // A Saturday holiday does not itself remove a weekday from that schedule:
+  // the employer-designated replacement day is marked in additionalDaysOff.
+  // Subtracting both would count the same day off twice.
+  const statutoryReductionHours = statutoryHolidays.filter((holiday) => {
+    const weekday = dayjs(holiday.date).day();
+    return weekday >= 1 && weekday <= 5;
+  }).length * 8;
 
   const statutoryHolidayDates = new Set(
     statutoryHolidays.map((holiday) => holiday.date),

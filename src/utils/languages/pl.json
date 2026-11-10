@@ -645,5 +645,36 @@
   "statistics-annual-modal-scope": "To wykorzystanie limitów w wybranych stosunkach pracy, a nie całkowite wykorzystanie limitów podatnika. Inne umowy, przychody i późniejsze korekty PIT/ZUS mogą wpływać na rzeczywistą sytuację roczną. Brak rekordu lub wartości NULL oznacza niepełną historię, a nie zero.",
 
   "statistics-unclassified": "Niezweryfikowane",
-  "statistics-unclassified-note": "Niezgodne lub niekompletne rekordy pozostają w strukturze jako niezweryfikowane. Kwoty poszczególnych świadczeń są dostępne tylko dla rekordów, które można sprawdzić."
+  "statistics-unclassified-note": "Niezgodne lub niekompletne rekordy pozostają w strukturze jako niezweryfikowane. Kwoty poszczególnych świadczeń są dostępne tylko dla rekordów, które można sprawdzić.",
+
+
+  "poradnik-skip-content": "Przejdź do treści",
+  "poradnik-brand-aria": "VAZO — kalkulator wynagrodzeń",
+  "poradnik-main-navigation": "Nawigacja główna",
+  "poradnik-nav-guide": "Poradnik",
+  "poradnik-nav-calculator": "Kalkulator wynagrodzeń",
+  "poradnik-footer-brand": "VAZO · Poradnik wynagrodzeń",
+  "poradnik-footer-calculator": "Wróć do kalkulatora",
+  "poradnik-index-eyebrow": "VAZO · Wiedza o wynagrodzeniach",
+  "poradnik-index-heading": "Poradnik wynagrodzeń",
+  "poradnik-index-introduction": "Zrozum, jak oblicza się wynagrodzenie, świadczenia na L4 i zapłatę za urlop. Konkretnie, prostym językiem i z przykładami.",
+  "poradnik-index-seo-title": "Poradnik wynagrodzeń — VAZO",
+  "poradnik-index-seo-description": "Jak obliczyć podstawę i wypłatę na L4 oraz wynagrodzenie urlopowe? Przystępne artykuły, przykłady i źródła urzędowe.",
+  "poradnik-category-l4": "L4 i zasiłki chorobowe",
+  "poradnik-category-urlopy": "Urlopy i wynagrodzenie urlopowe",
+  "poradnik-category-nadgodziny": "Nadgodziny i czas pracy",
+  "poradnik-category-podatki": "Podatki, PIT i ulgi",
+  "poradnik-category-ppk": "PPK i składki ZUS",
+  "poradnik-category-umowy": "Rodzaje umów, premie i wynagrodzenie netto",
+  "poradnik-card-read": "Czytaj poradnik",
+  "poradnik-card-aria": "Czytaj: {title}",
+  "poradnik-breadcrumbs-aria": "Ścieżka nawigacji",
+  "poradnik-reviewed-at": "Ostatnio zweryfikowano:",
+  "poradnik-legal-scope": "Stan prawny",
+  "poradnik-sources-heading": "Źródła urzędowe",
+  "poradnik-source-checked": "sprawdzono:",
+  "poradnik-related-heading": "Powiązane poradniki",
+  "poradnik-cta-aria": "Kalkulator wynagrodzeń",
+  "poradnik-cta-heading": "Sprawdź swoją wypłatę w kalkulatorze",
+  "poradnik-cta-button": "Przejdź do kalkulatora"
 }

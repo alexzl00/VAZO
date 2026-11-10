@@ -27,3 +27,6 @@ dist-ssr
 .env.local
 .vercel
 .env*
+
+# Track public environment variable documentation, never real .env files.
+!.env.example
