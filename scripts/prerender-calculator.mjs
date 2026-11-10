@@ -12,6 +12,10 @@ const vercelEnv = process.env.VERCEL_ENV;
 
 const vite = await createServer({
   root,
+  optimizeDeps: {
+    noDiscovery: true,
+    include: [],
+  },
   server: { middlewareMode: true, hmr: false },
   appType: 'custom',
 });

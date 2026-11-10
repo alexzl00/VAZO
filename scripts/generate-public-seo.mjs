@@ -7,7 +7,15 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const env = loadEnv('production', root, '');
 const mode = process.env.PORADNIK_RELEASE_MODE ?? env.PORADNIK_RELEASE_MODE ?? 'off';
 const rawOrigin = process.env.VITE_SITE_URL ?? env.VITE_SITE_URL;
-const vite = await createServer({ root, server: { middlewareMode: true, hmr: false }, appType: 'custom' });
+const vite = await createServer({
+  root,
+  optimizeDeps: {
+    noDiscovery: true,
+    include: [],
+  },
+  server: { middlewareMode: true, hmr: false },
+  appType: 'custom',
+});
 try {
   const { parseSiteOrigin, resolveReleaseMode, assertReleaseEnvironment } = await vite.ssrLoadModule('/src/seo/siteConfig.ts');
   const releaseMode = resolveReleaseMode(mode);
