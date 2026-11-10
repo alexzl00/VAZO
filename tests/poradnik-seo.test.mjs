@@ -14,11 +14,12 @@ test('Vercel preserves explicit SPA routes without absorbing unknown guide URLs'
   assert.equal(config.cleanUrls, true);
   assert.equal(config.trailingSlash, false);
   const routes = config.rewrites.map((entry) => entry.source);
-  for (const route of ['/salary-calculator', '/salaries', '/login', '/statistics', '/view-work-relation/:id']) {
+  for (const route of ['/salaries', '/login', '/statistics', '/view-work-relation/:id']) {
     assert.ok(routes.includes(route), `missing ${route}`);
   }
   assert.ok(routes.every((route) => !route.startsWith('/poradnik') && !route.includes('(.*)') && !route.includes(':path*')));
-  assert.ok(config.rewrites.every((route) => route.destination === '/'));
+  assert.ok(!routes.includes('/salary-calculator'), 'calculator uses its own HTML');
+  assert.ok(config.rewrites.every((route) => route.destination === '/app-shell'));
 });
 
 test('SSG tree remains separate from authenticated payroll state', async () => {
@@ -50,7 +51,8 @@ test('Scope 2 generated HTML respects release visibility and translation', async
   assert.equal(await exists('dist/poradnik/demo-architektury.html'), false);
   if (mode === 'off') {
     assert.equal(await exists('dist/poradnik.html'), false);
-    assert.equal(await exists('dist/sitemap.xml'), false);
+    assert.equal(await exists('dist/sitemap.xml'), true);
+    assert.match(await readFile(file('dist/sitemap.xml'), 'utf8'), /\/salary-calculator/);
     return;
   }
   const index = await readFile(file('dist/poradnik.html'), 'utf8');
@@ -70,7 +72,10 @@ test('Scope 2 generated HTML respects release visibility and translation', async
     }
   }
   assert.match(index, /Poradnik wynagrodzeń/);
-  assert.equal(await exists('dist/sitemap.xml'), mode === 'public');
+  assert.equal(await exists('dist/sitemap.xml'), true);
+  const sitemap = await readFile(file('dist/sitemap.xml'), 'utf8');
+  assert.match(sitemap, /\/salary-calculator/);
+  if (mode !== 'public') assert.doesNotMatch(sitemap, /\/poradnik/);
 });
 
 test('Registry, published-only sitemap, shared URLs, and example math', async (t) => {

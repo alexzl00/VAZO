@@ -36,3 +36,17 @@ export function articleSchema(origin: string, article: ArticleDefinition): objec
     publisher: { '@type': 'Organization', name: 'VAZO' },
   };
 }
+
+/** A factual application description, without ratings, offers or feature claims. */
+export function calculatorSchema(origin: string, description: string): object {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'VAZO — Kalkulator wynagrodzeń',
+    url: absoluteSiteUrl(origin, PUBLIC_PATHS.calculator),
+    description,
+    inLanguage: 'pl-PL',
+    applicationCategory: 'FinanceApplication',
+    operatingSystem: 'Web',
+  };
+}

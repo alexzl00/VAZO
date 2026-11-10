@@ -3,18 +3,53 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/salary-calculator", "destination": "/" },
-    { "source": "/salaries", "destination": "/" },
-    { "source": "/update-salary/:id", "destination": "/" },
-    { "source": "/statistics", "destination": "/" },
-    { "source": "/profile", "destination": "/" },
-    { "source": "/work-relations", "destination": "/" },
-    { "source": "/create-work-relation", "destination": "/" },
-    { "source": "/view-work-relation/:id", "destination": "/" },
-    { "source": "/edit-work-relation/:id", "destination": "/" },
-    { "source": "/login", "destination": "/" },
-    { "source": "/signup", "destination": "/" },
-    { "source": "/reset-password", "destination": "/" },
-    { "source": "/update-password", "destination": "/" }
+    {
+      "source": "/salaries",
+      "destination": "/app-shell"
+    },
+    {
+      "source": "/update-salary/:id",
+      "destination": "/app-shell"
+    },
+    {
+      "source": "/statistics",
+      "destination": "/app-shell"
+    },
+    {
+      "source": "/profile",
+      "destination": "/app-shell"
+    },
+    {
+      "source": "/work-relations",
+      "destination": "/app-shell"
+    },
+    {
+      "source": "/create-work-relation",
+      "destination": "/app-shell"
+    },
+    {
+      "source": "/view-work-relation/:id",
+      "destination": "/app-shell"
+    },
+    {
+      "source": "/edit-work-relation/:id",
+      "destination": "/app-shell"
+    },
+    {
+      "source": "/login",
+      "destination": "/app-shell"
+    },
+    {
+      "source": "/signup",
+      "destination": "/app-shell"
+    },
+    {
+      "source": "/reset-password",
+      "destination": "/app-shell"
+    },
+    {
+      "source": "/update-password",
+      "destination": "/app-shell"
+    }
   ]
 }

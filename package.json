@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && node scripts/prerender-poradnik.mjs && node scripts/validate-public-seo.mjs",
+    "build": "tsc -b && vite build && node scripts/prerender-poradnik.mjs && node scripts/prerender-calculator.mjs && node scripts/generate-public-seo.mjs && node scripts/validate-public-seo.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:poradnik": "node --test tests/poradnik-seo.test.mjs"
+    "test:poradnik": "node --test tests/poradnik-seo.test.mjs",
+    "test:seo": "node --test tests/poradnik-seo.test.mjs tests/calculator-seo.test.mjs"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",

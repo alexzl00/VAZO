@@ -2,12 +2,12 @@ import type { ArticleDefinition } from '../content/poradnik/types';
 import { absoluteSiteUrl, guidePath, PUBLIC_PATHS } from './urls';
 import { escapeHtml } from './metadata';
 
-/** Only actual published routes are included. Calculator joins here in Phase 3. */
+/** Only canonical, intentionally public routes are emitted. */
 export function sitemapRoutes(articles: readonly ArticleDefinition[]): Array<{ path: string; updatedAt?: string }> {
   const published = articles.filter((article) => article.status === 'published');
-  if (!published.length) return [];
   return [
-    { path: PUBLIC_PATHS.poradnik },
+    { path: PUBLIC_PATHS.calculator },
+    ...(published.length ? [{ path: PUBLIC_PATHS.poradnik }] : []),
     ...published.map((article) => ({ path: guidePath(article.slug), updatedAt: article.updatedAt ?? article.reviewedAt })),
   ];
 }

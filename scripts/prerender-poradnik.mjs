@@ -23,11 +23,10 @@ if (releaseMode === 'public' && vercelEnv === 'preview') {
 await access(path.join(dist, 'index.html'));
 await rm(path.join(dist, 'poradnik.html'), { force: true });
 await rm(path.join(dist, 'poradnik'), { recursive: true, force: true });
-await rm(path.join(dist, 'sitemap.xml'), { force: true });
 
 if (releaseMode === 'off') {
   // robots.txt is intentionally not used to hide the calculator from search.
-  console.log('[poradnik] off: no guide pages or sitemap emitted.');
+  console.log('[poradnik] off: no guide pages emitted (sitemap is built separately).');
   process.exit(0);
 }
 
@@ -44,7 +43,6 @@ try {
   const { parseSiteOrigin, assertReleaseEnvironment } = await vite.ssrLoadModule('/src/seo/siteConfig.ts');
   const { indexSeoPage, articleSeoPage, renderSeoHead } = await vite.ssrLoadModule('/src/seo/metadata.ts');
   const { guidePath } = await vite.ssrLoadModule('/src/seo/routes.ts');
-  const { generateSitemap } = await vite.ssrLoadModule('/src/seo/sitemap.ts');
   const origin = parseSiteOrigin(rawOrigin);
   assertReleaseEnvironment(releaseMode, vercelEnv);
   validateRegistry();
@@ -88,14 +86,6 @@ try {
     const pathname = guidePath(article.slug);
     const filename = path.join(dist, `${pathname.slice(1)}.html`);
     await writeFile(filename, pageHtml(articleSeoPage(article), renderArticle(article, releaseMode)), 'utf8');
-  }
-
-  if (releaseMode === 'public') {
-    await writeFile(path.join(dist, 'sitemap.xml'), generateSitemap(origin, published), 'utf8');
-    await writeFile(path.join(dist, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`, 'utf8');
-  } else {
-    // In preview, no draft is listed in a sitemap. The HTML carries noindex.
-    // Leave any existing public/robots.txt untouched: preview is not secret.
   }
 
   const indexHtml = await readFile(path.join(dist, 'poradnik.html'), 'utf8');

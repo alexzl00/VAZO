@@ -1,0 +1,68 @@
+VAZO — Scope 3 corrective patch: metadata-only SEO, ZERO added calculator UI
+Date: 2026-11-10
+
+DECISION
+- Both / and /salary-calculator must render the original src/pages/salaries/CreateSalary.tsx.
+- Do not wrap CreateSalary with SalaryCalculatorLanding or append CalculatorSeoSection.
+- Preserve the React/MUI calculator, layout, forms, and payroll logic unchanged.
+- Keep SEO title, description, canonical to /salary-calculator, Open Graph and
+  WebApplication JSON-LD on indexable builds, sitemap, and noindex private shell.
+- Do not add hidden SEO-only text or duplicate content inside #root.
+
+CHANGED / ADDED FILES IN THIS ZIP
+  src/routes/MainRoutes.tsx                  restore direct CreateSalary import
+  src/seo/calculatorPage.ts                  NEW metadata only (title/description)
+  src/seo/metadata.ts                        reference calculatorPage.ts
+  scripts/prerender-calculator.mjs           insert head metadata only; preserve empty #root
+  scripts/validate-public-seo.mjs            validate SEO tags and unchanged app body
+  tests/calculator-seo.test.mjs              new regression tests for no UI additions
+  src/utils/languages/pl.json                remove three obsolete calculator-seo-* keys
+
+IMPORTANT: ZIP OVERWRITE DOES NOT DELETE OLD FILES.
+After extraction, from repository root REMOVE these obsolete Scope 3 files:
+  rm -f \
+    src/pages/salaries/SalaryCalculatorLanding.tsx \
+    src/sections/calculator-seo/CalculatorSeoSection.tsx \
+    src/sections/calculator-seo/calculatorSeo.css \
+    src/calculator-seo/entry-server.tsx \
+    src/content/calculator/landing.ts \
+    src/content/calculator/relatedGuides.ts
+
+APPLY
+  unzip -o ~/Downloads/VAZO_SCOPE_3_NO_VISIBLE_SEO_PATCH.zip -d .
+  [Run rm -f command above]
+
+CAUTION: src/utils/languages/pl.json is based on the supplied snapshot.
+If you've edited it since sending VAZO_SCOPE_3_REVIEW.zip, do not overwrite
+those edits: remove ONLY the keys calculator-seo-possibilities,
+calculator-seo-scope-label, and calculator-seo-related manually, keeping spacing.
+
+TEST
+  node --test tests/calculator-seo.test.mjs
+  VITE_SITE_URL=https://vazo.vercel.app PORADNIK_RELEASE_MODE=preview npm run build
+  PORADNIK_RELEASE_MODE=preview npm run test:seo
+  npm run preview
+
+EXPECTED
+  / and /salary-calculator show the pre-Scope-3 calculator interface, with
+  absolutely no separate SEO panel or new MUI elements.
+  In generated dist/index.html and dist/salary-calculator.html, the #root
+  element stays empty before React runs.
+  Both receive canonical https://vazo.vercel.app/salary-calculator.
+  Preview pages are noindex; production calculator is indexable.
+  /login, /salaries, /profile etc use a noindex HTML shell.
+  Published calculator is listed once in sitemap.xml regardless of Poradnik drafts.
+
+LIMITATION
+SEO metadata alone is weaker than a server-rendered page with crawlable
+on-page content. Rendering only #root avoids any visible additions and avoids
+presenting search bots text that users cannot see. Future enhancements could
+SSR the REAL existing calculator interface, but that is a separate scoped task.
+
+VERIFICATION STATUS
+- JavaScript syntax checks: passed.
+- Source-level tests: 10 passed, 4 skipped (full build/runtime unavailable).
+- Full Vite/TypeScript build and Vercel HTTP/UI tests: require your repository/deploy.
+- No payroll engine, CreateSalary.tsx, SalaryCalculatorForm.tsx or Supabase changes.
+
+The original master SEO plan remains untouched.
