@@ -243,7 +243,7 @@ export const ARTICLES: readonly ArticleDefinition[] = [
     slug: 'premia-brutto-netto',
     category: 'umowy',
     title: 'Premia brutto a netto — ile zostaje na rękę?',
-    seoTitle: 'Premia 500 zł brutto — ile netto? Obliczenia | VAZO',
+    seoTitle: 'Premia brutto netto – jak obliczyć? Przykład 500 zł | VAZO',
     metaDescription: 'Ile zostaje z premii brutto po ZUS, składce zdrowotnej i PIT? Przykład premii 500 zł przy pensji 6000 zł.',
     excerpt: 'Przykład premii 500 zł: różnica między kwotą brutto i wypłatą netto.',
     directAnswer: 'Premia pieniężna na umowie o pracę zwykle zwiększa podstawę składek i podatku, dlatego dodatkowe 500 zł brutto nie oznacza 500 zł na rękę. Kwota netto zależy od całej pensji, progów podatkowych, ulg i PPK.',
