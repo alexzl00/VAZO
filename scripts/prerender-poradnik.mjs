@@ -33,13 +33,14 @@ if (releaseMode === 'off') {
 const rawOrigin = process.env.VITE_SITE_URL ?? loadEnv('production', root, '').VITE_SITE_URL;
 const vite = await createServer({
   root,
+  optimizeDeps: { noDiscovery: true, include: [] },
   server: { middlewareMode: true, hmr: false },
   appType: 'custom',
 });
 
 try {
   const { renderIndex, renderArticle, ARTICLES, validateRegistry } = await vite.ssrLoadModule('/src/poradnik/entry-server.tsx');
-  const { PILOT_ARTICLE_IDS, visibleArticles } = await vite.ssrLoadModule('/src/content/poradnik/index.ts');
+  const { PILOT_ARTICLE_IDS, PREVIEW_ARTICLE_IDS, visibleArticles } = await vite.ssrLoadModule('/src/content/poradnik/index.ts');
   const { parseSiteOrigin, assertReleaseEnvironment } = await vite.ssrLoadModule('/src/seo/siteConfig.ts');
   const { indexSeoPage, articleSeoPage, renderSeoHead } = await vite.ssrLoadModule('/src/seo/metadata.ts');
   const { guidePath } = await vite.ssrLoadModule('/src/seo/routes.ts');
@@ -52,8 +53,11 @@ try {
     throw new Error('Public release requires at least one reviewed, published article. Phase 2 is not ready.');
   }
   const selected = visibleArticles(releaseMode);
-  if (releaseMode === 'preview' && selected.length !== PILOT_ARTICLE_IDS.length) {
-    throw new Error('Preview must contain exactly the three selected pilot articles.');
+  if (releaseMode === 'preview' && (
+    selected.length !== PREVIEW_ARTICLE_IDS.length ||
+    PREVIEW_ARTICLE_IDS.some((id) => !selected.some((article) => article.id === id))
+  )) {
+    throw new Error('Preview must contain exactly the explicitly selected review articles.');
   }
   if (releaseMode === 'public' && PILOT_ARTICLE_IDS.some((id) => !published.some((article) => article.id === id))) {
     throw new Error('Publishing requires all three pilot articles to be explicitly approved as published.');

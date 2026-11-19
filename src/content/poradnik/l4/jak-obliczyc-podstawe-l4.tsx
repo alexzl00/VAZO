@@ -39,23 +39,53 @@ export default function SickBaseContent() {
         wypłacania podczas choroby.
       </p>
       <h2>Kiedy premia wlicza się do podstawy L4?</h2>
-      <p>Sprawdź trzy rzeczy:</p>
+      <p>
+        Nie każda premia automatycznie zwiększa podstawę świadczenia chorobowego. Trzeba sprawdzić
+        <strong> trzy odrębne kwestie</strong>: czy premia stanowiła podstawę składki chorobowej,
+        czy pracownik zachowuje do niej prawo za czas choroby oraz za jaki okres została przyznana.
+        Sama nazwa „premia regulaminowa”, „uznaniowa” albo „nagroda” nie rozstrzyga wyniku.
+      </p>
       <ul>
-        <li><strong>Składki:</strong> czy od premii naliczano składkę na ubezpieczenie chorobowe?</li>
-        <li><strong>Wypłata podczas L4:</strong> czy dostajesz tę premię także za czas choroby?
-          Jeśli tak, zwykle nie wchodzi ona do podstawy świadczenia w trakcie zatrudnienia.</li>
-        <li><strong>Okres premii:</strong> czy jest miesięczna, kwartalna czy roczna?
-          Każdą rozlicza się inaczej. Ważne jest też, czy pracodawca zmniejsza ją za nieobecność.</li>
+        <li><strong>Premia pomniejszana za chorobę:</strong> jeżeli podlega składce chorobowej
+          i zgodnie z zasadami wynagradzania nie przysługuje w pełnej wysokości za czas pobierania
+          świadczenia, co do zasady uwzględnia się ją w podstawie. Sposób pomniejszania
+          (proporcjonalny albo inny) może wpływać na konieczność uzupełnienia jej kwoty.</li>
+        <li><strong>Premia zachowywana podczas choroby:</strong> jeżeli pracownik ma prawo
+          do składnika i otrzymuje go także za okres pobierania zasiłku, co do zasady nie wlicza
+          się go do podstawy świadczenia należnego podczas zatrudnienia. Nie liczy się go
+          ponownie, skoro przysługuje niezależnie od nieobecności.</li>
+        <li><strong>Premia bez składki chorobowej:</strong> samo otrzymanie dodatkowych pieniędzy
+          nie wystarcza. Punktem wyjścia jest przychód objęty podstawą składki chorobowej;
+          nie należy automatycznie doliczać wypłat, które nią nie były objęte.</li>
       </ul>
       <p>
-        <strong>Przykład:</strong> miesięczna premia sprzedażowa 400 zł, od której naliczano
-        składkę chorobową i która nie przysługuje za czas L4, zwykle wchodzi do podstawy.
-        Premia 400 zł wypłacana w całości także za czas choroby — zwykle nie.
+        Ważne jest również rozróżnienie między <strong>premią wypłaconą w miesiącu choroby
+        za wcześniej wykonaną pracę</strong> a premią, która <strong>przysługuje za sam okres
+        choroby</strong>. Sam termin przelewu nie przesądza o wyłączeniu składnika z podstawy.
+        Pomocne są regulamin premiowania, umowa oraz rzeczywiste zasady wypłat.
+      </p>
+      <p>Składniki, które podlegają uwzględnieniu, rozlicza się zależnie od okresu, za który przysługują:</p>
+      <ul>
+        <li><strong>Miesięczne:</strong> bierze się pod uwagę premie za miesiące wchodzące
+          do okresu ustalania podstawy, z uwzględnieniem zasad uzupełniania wynagrodzenia.</li>
+        <li><strong>Kwartalne:</strong> do przeciętnej miesięcznej podstawy przyjmuje się
+          co do zasady 1/12 sumy odpowiednich premii za cztery kwartały poprzedzające
+          miesiąc zachorowania.</li>
+        <li><strong>Roczne:</strong> co do zasady uwzględnia się 1/12 kwoty premii za poprzedni
+          rok kalendarzowy, o ile dany składnik spełnia warunki wliczenia.</li>
+      </ul>
+      <p>
+        <strong>Przykład:</strong> jeżeli w każdym z 12 miesięcy przysługiwała premia 400 zł,
+        objęta składką chorobową i nieprzysługująca za czas choroby, to przy braku innych
+        szczególnych okoliczności zwiększy ona miesięczną podstawę o
+        <strong> 345,16 zł</strong> (400 zł pomniejszone o 13,71%). Jeżeli natomiast pracownik
+        zachowuje prawo do tej premii za czas choroby, wynik może być inny.
       </p>
       <p>
-        <strong>Ważne:</strong> po zakończeniu zatrudnienia zasady dotyczące premii zachowywanych
-        w czasie choroby mogą być inne. O konkretnym bonusie decydują zasady jego wypłaty,
-        a nie sama nazwa „premia”.
+        <strong>Po ustaniu zatrudnienia:</strong> ZUS uwzględnia także składniki, które podczas
+        zatrudnienia były wyłączone dlatego, że pracownik zachowywał do nich prawo za czas
+        pobierania zasiłku. Nie oznacza to jednak, że każda wcześniejsza wypłata automatycznie
+        podwyższy zasiłek: nadal trzeba spełnić zasady dotyczące podstawy i okresu świadczenia.
       </p>
 
       <h2>Przykład obliczenia podstawy L4</h2>

@@ -21,23 +21,49 @@ export default function VacationPayContent() {
         składników mogą wymagać ponownego ustalenia podstawy.
       </p>
       <h2>Które premie liczą się do wynagrodzenia urlopowego?</h2>
-      <p>Najważniejsze jest to, jak premia jest przyznawana:</p>
+      <p>
+        Przy obliczaniu wynagrodzenia za urlop nie wszystkie premie traktuje się tak samo.
+        Trzeba rozróżnić <strong>stałe składniki miesięczne, zmienne premie miesięczne,
+        premie za dłuższe okresy oraz rzeczywiście jednorazowe nagrody</strong>.
+        Znaczenie mają zasady ich przyznawania i rzeczywisty charakter wypłaty, nie tylko nazwa.
+      </p>
       <ul>
-        <li><strong>Stała co miesiąc:</strong> np. 300 zł dodatku miesięcznego —
-          uwzględnia się kwotę należną w miesiącu urlopu, bez liczenia średniej.</li>
-        <li><strong>Zmienna co miesiąc:</strong> np. premia za wyniki sprzedaży —
-          zwykle wchodzi do średniej z 3 miesięcy (czasem z 12).</li>
-        <li><strong>Kwartalna lub roczna:</strong> nie dodaje się jej do miesięcznej średniej
-          urlopowej; wypłaca się ją na zwykłych zasadach.</li>
-        <li><strong>Jednorazowa:</strong> np. nagroda za wyjątkowe zadanie —
-          nie wchodzi do podstawy urlopowej.</li>
+        <li><strong>Stała premia miesięczna:</strong> np. dodatek 300 zł należny co miesiąc
+          w niezmiennej kwocie. Uwzględnia się kwotę należną w miesiącu urlopu,
+          zamiast wyliczać średnią z poprzednich miesięcy. Nie wypłaca się jej drugi raz
+          wyłącznie z powodu urlopu.</li>
+        <li><strong>Zmienna premia miesięczna:</strong> np. premia za sprzedaż albo wyniki,
+          której wysokość zależy od osiągniętych rezultatów. Jeśli ma charakter składnika
+          wynagrodzenia i nie podlega wyłączeniu, wlicza się ją do zmiennej części
+          wynagrodzenia urlopowego z poprzednich 3 miesięcy, a przy znacznych wahaniach
+          z okresu do 12 miesięcy.</li>
+        <li><strong>Premia kwartalna lub roczna:</strong> nie wchodzi do średniej godzinowej
+          obliczanej na potrzeby zwykłego wynagrodzenia urlopowego. Wypłaca się ją w terminach
+          przewidzianych dla danego składnika, a okres urlopu traktuje się w tym zakresie
+          na równi z okresem pracy. Nie oznacza to utraty prawa do premii.</li>
+        <li><strong>Rzeczywiście jednorazowa lub nieperiodyczna nagroda:</strong> np. wypłata
+          za wykonanie wyjątkowego zadania albo szczególne osiągnięcie. Takie świadczenia
+          co do zasady są wyłączone z podstawy wynagrodzenia urlopowego.</li>
+        <li><strong>„Premia uznaniowa”:</strong> sama taka nazwa nie oznacza wyłączenia.
+          Jeżeli świadczenie jest w praktyce regularną częścią wynagrodzenia za zwykłą pracę,
+          wymaga oceny jak premia, a nie automatycznie jak jednorazowa nagroda.</li>
       </ul>
       <p>
-        <strong>Przykład:</strong> jeśli premia sprzedażowa wyniosła kolejno 200, 400 i 600 zł,
-        do obliczenia stawki zmiennej przyjmujesz łącznie <strong>1200 zł</strong>
-        i dzielisz tę kwotę przez godziny faktycznie przepracowane w tych miesiącach.
+        <strong>Przykład:</strong> pracownik otrzymał w trzech miesiącach odpowiednio 200 zł,
+        400 zł i 600 zł zmiennej premii miesięcznej. Jeśli w tym okresie faktycznie
+        przepracował łącznie 480 godzin, a podczas urlopu miał zaplanowane 16 godzin pracy,
+        część urlopowa z tej premii wyniesie <strong>40,00 zł brutto</strong>
+        (1200 zł ÷ 480 godz. × 16 godz.). To tylko część ze składników zmiennych,
+        a nie pełne wynagrodzenie za urlop.
       </p>
-      <p>O tym, do której grupy należy premia, decydują zasady wypłaty, a nie jej nazwa.</p>
+      <p>
+        W praktyce warto sprawdzić regulamin wynagradzania i premiowania oraz to, za jaki
+        okres premia rzeczywiście przysługuje. Sam fakt wypłacenia premii w miesiącu urlopu
+        nie oznacza, że trzeba doliczyć ją do średniej za poprzednie miesiące.
+        <strong> Wynagrodzenie za urlop i ekwiwalent za niewykorzystany urlop
+        oblicza się według różnych zasad</strong> — nie należy przenosić reguł ekwiwalentu
+        na zwykły urlop.
+      </p>
 
       <h2>Jak policzyć stawkę godzinową składników zmiennych?</h2>
       <p>
