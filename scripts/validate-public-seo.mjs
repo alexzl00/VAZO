@@ -90,7 +90,7 @@ if (mode === 'off') {
     expect(emittedSlugs.length === previewSlugs.length, `expected ${previewSlugs.length} preview guides, got ${emittedSlugs.length}`);
     for (const slug of previewSlugs) expect(emittedSlugs.includes(slug), `missing preview guide ${slug}`);
   } else {
-    for (const slug of pilotSlugs) expect(emittedSlugs.includes(slug), `public release lacks approved pilot ${slug}`);
+    for (const slug of previewSlugs) expect(emittedSlugs.includes(slug), `public launch lacks approved guide ${slug}`);
   }
   const index = await readFile(poradnikIndex, 'utf8');
   const pages = [poradnikIndex, ...selectedSlugs.map(articleFile)];
@@ -112,6 +112,10 @@ if (mode === 'off') {
     } else {
       expect(html.includes('content="index, follow"'), 'published indexing meta missing');
       expect(html.includes('rel="canonical"'), 'published canonical missing');
+      if (filename !== poradnikIndex) {
+        expect(html.includes('application/ld+json'), 'published article JSON-LD missing');
+        expect(html.includes('\"datePublished\":\"'), 'published article publication date missing');
+      }
     }
   }
   for (const slug of selectedSlugs) {
@@ -125,8 +129,8 @@ if (mode === 'off') {
   if (mode === 'preview') expect(!xml.includes('/poradnik'), 'draft guides leaked into public sitemap');
   if (mode === 'public') {
     expect(xml.includes(`<loc>${validOrigin}/poradnik</loc>`), 'public sitemap missing guide index');
-    for (const slug of previewSlugs.filter((slug) => !emittedSlugs.includes(slug))) {
-      expect(!xml.includes(`/poradnik/${slug}`), `unpublished guide leaked into public sitemap: ${slug}`);
+    for (const slug of previewSlugs) {
+      expect(xml.includes(`/poradnik/${slug}`), `published article missing from sitemap: ${slug}`);
     }
   }
 } else {

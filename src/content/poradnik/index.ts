@@ -50,7 +50,8 @@ export const ARTICLES: readonly ArticleDefinition[] = [
     metaDescription: 'Sprawdź, z których miesięcy i składników wynagrodzenia oblicza się podstawę L4 na umowie o pracę. Poznaj odliczenie 13,71% i przykład.',
     excerpt: '12 miesięcy, premie, pomniejszenie o składki i przykład obliczenia miesięcznej podstawy.',
     directAnswer: 'Podstawę L4 pracownika ustala się co do zasady z przeciętnego miesięcznego wynagrodzenia za 12 miesięcy kalendarzowych poprzedzających miesiąc choroby. Uwzględnia się odpowiednie składniki przychodu po odliczeniu składek społecznych finansowanych przez pracownika. To nie jest ani pensja netto, ani automatycznie 80% kwoty brutto.',
-    status: 'draft',
+    status: 'published',
+    publishedAt: '2026-11-19',
     reviewedAt: '2026-11-10',
     effectiveDateScope: 'zasady ogólne na listopad 2026 r.; umowa o pracę',
     sources: [
@@ -73,7 +74,8 @@ export const ARTICLES: readonly ArticleDefinition[] = [
     metaDescription: 'Dowiedz się, ile wynosi wypłata za dni L4, kiedy obowiązuje 80% lub 100%, jak liczyć stawkę dzienną i czym różni się wynagrodzenie chorobowe od zasiłku.',
     excerpt: 'Stawka 80% lub 100%, dni kalendarzowe, płatnik i przykład sześciu dni zwolnienia.',
     directAnswer: 'W typowym przypadku świadczenie za L4 wynosi 80% odpowiedniej podstawy, a w określonych sytuacjach 100%. Kwotę za jeden dzień ustala się, dzieląc miesięczną podstawę przez 30 i stosując właściwy procent. To kwota świadczenia przed rozliczeniem całej listy płac, nie gwarantowana wypłata netto.',
-    status: 'draft',
+    status: 'published',
+    publishedAt: '2026-11-19',
     reviewedAt: '2026-11-07',
     effectiveDateScope: 'zasady ogólne na listopad 2026 r.; umowa o pracę',
     sources: [
@@ -99,7 +101,8 @@ export const ARTICLES: readonly ArticleDefinition[] = [
     metaDescription: 'Dowiedz się, jak liczyć wynagrodzenie za urlop wypoczynkowy: składniki stałe i zmienne, 3 lub 12 miesięcy, faktyczne godziny pracy i przykład.',
     excerpt: 'Stała pensja, zmienne dodatki, średnia godzinowa i przykład dwóch dni urlopu.',
     directAnswer: 'Za urlop wypoczynkowy pracownik otrzymuje wynagrodzenie takie, jakie otrzymałby, gdyby pracował. Stałe składniki miesięczne uwzględnia się w kwocie należnej w miesiącu urlopu, a odpowiednie składniki zmienne rozlicza się zwykle na podstawie trzech poprzednich miesięcy i faktycznie przepracowanych godzin.',
-    status: 'draft',
+    status: 'published',
+    publishedAt: '2026-11-19',
     reviewedAt: '2026-11-10',
     effectiveDateScope: 'zasady ogólne na listopad 2026 r.; urlop wypoczynkowy przy umowie o pracę',
     sources: [
@@ -125,7 +128,8 @@ export const ARTICLES: readonly ArticleDefinition[] = [
     metaDescription: 'Jak policzyć nadgodziny na umowie o pracę? Sprawdź dodatek 50% i 100%, czas wolny i przykład ze stawką godzinową.',
     excerpt: 'Dodatek 50% i 100%, płaca za godzinę oraz zasady czasu wolnego.',
     directAnswer: 'Za nadgodziny na umowie o pracę przysługuje zazwyczaj normalna płaca za dodatkowe godziny i dodatek 50% albo 100%. Niektóre nadgodziny można rozliczyć czasem wolnym zamiast dodatku. Stawka zależy od grafiku i rodzaju przekroczenia.',
-    status: 'draft',
+    status: 'published',
+    publishedAt: '2026-11-19',
     reviewedAt: '2026-11-17',
     effectiveDateScope: 'zasady ogólne na listopad 2026 r.; pełny etat UoP, typowy grafik pon.–pt.',
     sources: [
@@ -148,7 +152,8 @@ export const ARTICLES: readonly ArticleDefinition[] = [
     metaDescription: 'Poznaj ulgę dla młodych w 2026 roku: limit 85 528 zł, umowy objęte PIT-0, składki ZUS i prosty przykład.',
     excerpt: 'PIT-0 do 26 lat, roczny limit 85 528 zł i różnica między PIT a ZUS.',
     directAnswer: 'Ulga dla młodych zwalnia z PIT określone przychody uzyskane przed 26. urodzinami, do 85 528 zł rocznie. Nie znosi automatycznie składek ZUS i nie obejmuje każdego rodzaju umowy.',
-    status: 'draft',
+    status: 'published',
+    publishedAt: '2026-11-19',
     reviewedAt: '2026-11-17',
     effectiveDateScope: 'PIT 2026; kwalifikujące się przychody uzyskane przed 26. urodzinami',
     sources: [
@@ -171,7 +176,8 @@ export const ARTICLES: readonly ArticleDefinition[] = [
     metaDescription: 'Zobacz, ile potrąca się z wypłaty na PPK, ile dopłaca pracodawca i jak wpływa na podatek. Przykład dla 6000 zł.',
     excerpt: 'Wpłata pracownika 2%, wpłata pracodawcy 1,5% i wpływ na wypłatę.',
     directAnswer: 'PPK zwykle zmniejsza wypłatę o wpłatę finansowaną przez pracownika (podstawowo 2%). Pracodawca dopłaca od siebie 1,5%, a jego wpłata może dodatkowo wpłynąć na zaliczkę PIT. Nie należy odejmować obu wpłat od pensji netto.',
-    status: 'draft',
+    status: 'published',
+    publishedAt: '2026-11-19',
     reviewedAt: '2026-11-17',
     effectiveDateScope: 'zasady PPK na listopad 2026 r.; przykładowa miesięczna podstawa 6000 zł',
     sources: [
@@ -194,7 +200,8 @@ export const ARTICLES: readonly ArticleDefinition[] = [
     metaDescription: 'Sprawdź, jak liczyć netto na umowie zleceniu: status studenta, składki ZUS, zdrowotna, PIT i dwa przykłady z 5000 zł.',
     excerpt: 'Dlaczego 5000 zł ze zlecenia może dać inne netto studentowi i dorosłemu?',
     directAnswer: 'Netto z umowy zlecenia zależy między innymi od wieku, statusu studenta, innych tytułów do ubezpieczeń, składek i podatku. Student przed 26. urodzinami może otrzymać całe brutto, ale osoba objęta składkami zwykle dostaje mniej.',
-    status: 'draft',
+    status: 'published',
+    publishedAt: '2026-11-19',
     reviewedAt: '2026-11-17',
     effectiveDateScope: 'przykładowe zasady 2026; typowe zlecenie, bez szczególnych zbiegów tytułów',
     sources: [
@@ -217,7 +224,8 @@ export const ARTICLES: readonly ArticleDefinition[] = [
     metaDescription: 'Sprawdź, jak PIT-2 zmniejsza miesięczną zaliczkę podatkową, jak dzieli się 300 zł między płatników i kiedy nie działa.',
     excerpt: 'PIT-2 może zmniejszyć miesięczną zaliczkę PIT o 300, 150 albo 100 zł.',
     directAnswer: 'PIT-2 pozwala płatnikowi pomniejszyć miesięczną zaliczkę na PIT o zadeklarowaną część kwoty zmniejszającej podatek: 300, 150 albo 100 zł. Nie jest to dodatkowa premia i nie zwiększa rocznej ulgi podatkowej.',
-    status: 'draft',
+    status: 'published',
+    publishedAt: '2026-11-19',
     reviewedAt: '2026-11-17',
     effectiveDateScope: 'zasady PIT-2 aktualne w 2026 r.; rozliczenie zaliczek według skali',
     sources: [
@@ -239,7 +247,8 @@ export const ARTICLES: readonly ArticleDefinition[] = [
     metaDescription: 'Ile zostaje z premii brutto po ZUS, składce zdrowotnej i PIT? Przykład premii 500 zł przy pensji 6000 zł.',
     excerpt: 'Przykład premii 500 zł: różnica między kwotą brutto i wypłatą netto.',
     directAnswer: 'Premia pieniężna na umowie o pracę zwykle zwiększa podstawę składek i podatku, dlatego dodatkowe 500 zł brutto nie oznacza 500 zł na rękę. Kwota netto zależy od całej pensji, progów podatkowych, ulg i PPK.',
-    status: 'draft',
+    status: 'published',
+    publishedAt: '2026-11-19',
     reviewedAt: '2026-11-17',
     effectiveDateScope: 'modelowy przykład UoP 2026; KUP 250 zł, PIT-2 300 zł, bez PPK i ulg',
     sources: [
@@ -262,7 +271,8 @@ export const ARTICLES: readonly ArticleDefinition[] = [
     metaDescription: 'Czym różni się wynagrodzenie chorobowe od zasiłku? Kto finansuje L4, kiedy obowiązuje 33 lub 14 dni i przykład 35 dni.',
     excerpt: 'Kiedy kończy się wynagrodzenie chorobowe i zaczyna zasiłek?',
     directAnswer: 'Przez pierwsze 33 dni choroby w roku kalendarzowym pracownik zwykle otrzymuje wynagrodzenie chorobowe finansowane przez pracodawcę; dla określonych pracowników po 50. roku życia limit wynosi 14 dni. Potem, po spełnieniu warunków, przysługuje zasiłek chorobowy finansowany z FUS. Przelewu nie zawsze dokonuje ZUS.',
-    status: 'draft',
+    status: 'published',
+    publishedAt: '2026-11-19',
     reviewedAt: '2026-11-17',
     effectiveDateScope: 'zasady 2026; typowa choroba pracownika na umowie o pracę',
     sources: [

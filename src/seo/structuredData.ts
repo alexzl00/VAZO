@@ -32,7 +32,7 @@ export function articleSchema(origin: string, article: ArticleDefinition): objec
     inLanguage: 'pl-PL',
     mainEntityOfPage: absoluteSiteUrl(origin, guidePath(article.slug)),
     datePublished: article.publishedAt,
-    dateModified: article.updatedAt ?? article.reviewedAt,
+    dateModified: article.updatedAt ?? article.publishedAt,
     publisher: { '@type': 'Organization', name: 'VAZO' },
   };
 }

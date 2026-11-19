@@ -51,7 +51,7 @@ test('UI strings reuse the original Polish react-intl catalog', async () => {
   assert.match(await readFile(file('src/poradnik/intl.ts'), 'utf8'), /languages\/pl\.json/);
 });
 
-test('Scope 4 generated HTML respects selected drafts and release visibility', async (t) => {
+test('Publication generated HTML respects preview and public visibility', async (t) => {
   if (!await exists('dist/index.html')) return t.skip('Run npm run build first');
   const mode = process.env.PORADNIK_RELEASE_MODE ?? 'off';
   assert.equal(await exists('dist/poradnik/demo-architektury.html'), false);
@@ -62,7 +62,7 @@ test('Scope 4 generated HTML respects selected drafts and release visibility', a
     return;
   }
   const index = await readFile(file('dist/poradnik.html'), 'utf8');
-  const selectedSlugs = mode === 'preview' ? previewSlugs : pilots;
+  const selectedSlugs = previewSlugs; // Initial public launch publishes the same 10 reviewed guides.
   for (const slug of selectedSlugs) {
     assert.match(index, new RegExp(`/poradnik/${slug}`));
     const html = await readFile(file(`dist/poradnik/${slug}.html`), 'utf8');
@@ -76,6 +76,9 @@ test('Scope 4 generated HTML respects selected drafts and release visibility', a
     } else {
       assert.match(html, /name="robots" content="index, follow"/);
       assert.match(html, /rel="canonical"/);
+      assert.match(html, /application\/ld\+json/);
+      assert.match(html, /"datePublished":"\d{4}-\d{2}-\d{2}"/);
+      assert.match(html, /"dateModified":"\d{4}-\d{2}-\d{2}"/);
     }
   }
   assert.match(index, /Poradnik wynagrodzeń/);
@@ -83,6 +86,7 @@ test('Scope 4 generated HTML respects selected drafts and release visibility', a
   const sitemap = await readFile(file('dist/sitemap.xml'), 'utf8');
   assert.match(sitemap, /\/salary-calculator/);
   if (mode !== 'public') assert.doesNotMatch(sitemap, /\/poradnik/);
+  else for (const slug of previewSlugs) assert.match(sitemap, new RegExp(`/poradnik/${slug}`));
 });
 
 test('Registry, published-only sitemap, shared URLs, and example math', async (t) => {
@@ -106,7 +110,8 @@ test('Registry, published-only sitemap, shared URLs, and example math', async (t
     assert.deepEqual([...PREVIEW_ARTICLE_IDS], previewSlugs);
     assert.equal(ARTICLES.length, 10);
     assert.deepEqual(visibleArticles('preview').map((a) => a.slug), previewSlugs);
-    assert.deepEqual(visibleArticles('public').map((a) => a.id), ARTICLES.filter((a) => a.status === 'published').map((a) => a.id));
+    assert.deepEqual(visibleArticles('public').map((a) => a.slug), previewSlugs);
+    assert.ok(ARTICLES.every((a) => a.status === 'published' && /^\d{4}-\d{2}-\d{2}$/.test(a.publishedAt ?? '')));
     assert.equal(visibleArticles('off').length, 0);
     for (const article of ARTICLES) {
       assert.ok(['draft', 'published'].includes(article.status));
@@ -114,6 +119,14 @@ test('Registry, published-only sitemap, shared URLs, and example math', async (t
       assert.doesNotMatch(renderSeoHead(articleSeoPage(article), origin, 'preview'), /rel="canonical"/);
     }
     const sitemap = generateSitemap(origin, ARTICLES);
+    assert.equal(visibleArticles('public').length, 10);
+    assert.equal((sitemap.match(/<lastmod>/g) ?? []).length, 10);
+    for (const article of ARTICLES) {
+      assert.ok(sitemap.includes(`<lastmod>${article.updatedAt ?? article.publishedAt}</lastmod>`));
+      const publicHead = renderSeoHead(articleSeoPage(article), origin, 'public');
+      assert.match(publicHead, /"datePublished":"\d{4}-\d{2}-\d{2}"/);
+      assert.ok(publicHead.includes(`"dateModified":"${article.updatedAt ?? article.publishedAt}"`));
+    }
     for (const article of ARTICLES) {
       if (article.status === 'draft') assert.ok(!sitemap.includes(guidePath(article.slug)), `draft leaked into sitemap: ${article.id}`);
       else assert.ok(sitemap.includes(guidePath(article.slug)), `published article missing from sitemap: ${article.id}`);

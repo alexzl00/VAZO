@@ -8,7 +8,7 @@ export function sitemapRoutes(articles: readonly ArticleDefinition[]): Array<{ p
   return [
     { path: PUBLIC_PATHS.calculator },
     ...(published.length ? [{ path: PUBLIC_PATHS.poradnik }] : []),
-    ...published.map((article) => ({ path: guidePath(article.slug), updatedAt: article.updatedAt ?? article.reviewedAt })),
+    ...published.map((article) => ({ path: guidePath(article.slug), updatedAt: article.updatedAt ?? article.publishedAt })),
   ];
 }
 
